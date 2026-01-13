@@ -91,6 +91,12 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <dependency>
+            <groupId>io.hypersistence</groupId>
+            <artifactId>hypersistence-utils-hibernate-63</artifactId>
+            <version>3.14.1</version>
+            <scope>compile</scope>
+        </dependency>
 
         <!-- DEV TOOLING -->
         <dependency>
@@ -148,6 +154,12 @@
             <groupId>org.webjars</groupId>
             <artifactId>jquery-ui</artifactId>
             <version>1.14.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars.npm</groupId>
+            <artifactId>htmx.org</artifactId>
+            <version>2.0.8</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- HTTP CLIENT -->
