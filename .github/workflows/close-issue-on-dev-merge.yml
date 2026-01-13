@@ -25,10 +25,18 @@ jobs:
         with:
           script: |
             const pr = context.payload.pull_request;
+
+            // Skip fork PRs (GITHUB_TOKEN won't have issues:write on "pull_request" from forks)
+            const isFork = pr.head.repo.full_name !== context.repo.owner + "/" + context.repo.repo;
+            if (isFork) {
+              core.notice(`PR is from a fork (${pr.head.repo.full_name}). Skipping auto-close.`);
+              return;
+            }
+
             const branch = pr.head.ref;
 
             // Accepted examples:
-            // feat/123-add-thing, fix/456-bug, chore/789-cleanup
+            // feat/123-add-thing, feature/456-add-thing, fix/789-cleanup
             const re = /^(feat|feature|fix|bugfix|hotfix|chore|docs|refactor)\/(?<issue>\d+)(?:[-/].+)?$/i;
             const m = branch.match(re);
 
@@ -39,7 +47,7 @@ jobs:
 
             const issue_number = Number(m.groups.issue);
 
-            // Guard: ensure it's an Issue, not a PR number
+            // Fetch issue; if it doesn't exist, do not fail the workflow (avoid noisy red checks)
             let issue;
             try {
               issue = await github.rest.issues.get({
@@ -48,12 +56,13 @@ jobs:
                 issue_number
               });
             } catch (e) {
-              core.setFailed(`Branch '${branch}' implies issue #${issue_number}, but it doesn't exist.`);
+              core.notice(`Branch '${branch}' implies issue #${issue_number}, but it wasn't found. Skipping.`);
               return;
             }
 
+            // Guard: don't close PRs
             if (issue.data.pull_request) {
-              core.setFailed(`#${issue_number} is a pull request, not an issue. Refusing to close.`);
+              core.notice(`#${issue_number} is a pull request, not an issue. Skipping.`);
               return;
             }
 
