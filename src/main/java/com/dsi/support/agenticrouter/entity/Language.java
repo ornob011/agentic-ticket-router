@@ -9,10 +9,10 @@ import java.util.Objects;
 
 @Entity
 @Table(
-        name = "ref_language",
+        name = "language",
         indexes = {
                 @Index(
-                        name = "idx_ref_language_name",
+                        name = "idx_language_name",
                         columnList = "name"
                 )
         }

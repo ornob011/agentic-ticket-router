@@ -9,10 +9,10 @@ import java.util.Objects;
 
 @Entity
 @Table(
-        name = "ref_customer_tier",
+        name = "customer_tier",
         indexes = {
                 @Index(
-                        name = "idx_ref_customer_tier_active",
+                        name = "idx_customer_tier_active",
                         columnList = "active"
                 )
         }

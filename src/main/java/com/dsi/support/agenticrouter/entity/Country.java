@@ -9,14 +9,14 @@ import java.util.Objects;
 
 @Entity
 @Table(
-        name = "ref_country",
+        name = "country",
         indexes = {
                 @Index(
-                        name = "idx_ref_country_name",
+                        name = "idx_country_name",
                         columnList = "name"
                 ),
                 @Index(
-                        name = "idx_ref_country_active",
+                        name = "idx_country_active",
                         columnList = "active"
                 )
         }
