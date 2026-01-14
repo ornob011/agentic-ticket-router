@@ -29,73 +29,145 @@
 
                             <div class="space-y-4">
                                 <div
-                                    th:replace="~{fragments/form-section :: header(step=1, title='Account Information')}"
+                                    th:replace="~{fragments/form-section :: header(
+                                        step=1,
+                                        title='Account Information'
+                                    )}"
                                 ></div>
 
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div
-                                        th:replace="~{fragments/form-fields :: input(field='username', label='Username', placeholder='johndoe')}"
+                                        th:replace="~{fragments/form-fields :: input(
+                                            field='username',
+                                            label='Username',
+                                            placeholder='johndoe'
+                                        )}"
                                     ></div>
                                     <div
-                                        th:replace="~{fragments/form-fields :: input(field='email', label='Email Address', placeholder='john@company.com', type='email')}"
+                                        th:replace="~{fragments/form-fields :: input(
+                                            field='email',
+                                            label='Email Address',
+                                            placeholder='john@company.com',
+                                            type='email'
+                                        )}"
                                     ></div>
                                 </div>
 
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div
-                                        th:replace="~{fragments/form-fields :: input(field='password', label='Password', placeholder='••••••••', type='password')}"
+                                        th:replace="~{fragments/form-fields :: input(
+                                            field='password',
+                                            label='Password',
+                                            placeholder='••••••••',
+                                            type='password'
+                                        )}"
                                     ></div>
                                     <div
-                                        th:replace="~{fragments/form-fields :: input(field='confirmPassword', label='Confirm Password', placeholder='••••••••', type='password')}"
+                                        th:replace="~{fragments/form-fields :: input(
+                                            field='confirmPassword',
+                                            label='Confirm Password',
+                                            placeholder='••••••••',
+                                            type='password'
+                                        )}"
                                     ></div>
                                 </div>
 
                                 <div
-                                    th:replace="~{fragments/form-fields :: input(field='fullName', label='Full Name', placeholder='John Doe')}"
+                                    th:replace="~{fragments/form-fields :: input(
+                                        field='fullName',
+                                        label='Full Name',
+                                        placeholder='John Doe'
+                                    )}"
                                 ></div>
                             </div>
 
                             <div class="space-y-4">
                                 <div
-                                    th:replace="~{fragments/form-section :: header(step=2, title='Company Information')}"
+                                    th:replace="~{fragments/form-section :: header(
+                                        step=2,
+                                        title='Company Information'
+                                    )}"
                                 ></div>
 
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div
-                                        th:replace="~{fragments/form-fields :: input(field='companyName', label='Company Name', placeholder='Acme Corporation')}"
+                                        th:replace="~{fragments/form-fields :: input(
+                                            field='companyName',
+                                            label='Company Name',
+                                            placeholder='Acme Corporation'
+                                        )}"
                                     ></div>
                                     <div
-                                        th:replace="~{fragments/form-fields :: input(field='phoneNumber', label='Phone Number', placeholder='+1 (555) 123-4567', type='tel')}"
+                                        th:replace="~{fragments/form-fields :: input(
+                                            field='phoneNumber',
+                                            label='Phone Number',
+                                            placeholder='+1 (555) 123-4567',
+                                            type='tel'
+                                        )}"
                                     ></div>
                                 </div>
 
                                 <div
-                                    th:replace="~{fragments/form-fields :: input(field='address', label='Street Address', placeholder='123 Business Avenue, Suite 100')}"
+                                    th:replace="~{fragments/form-fields :: input(
+                                        field='address',
+                                        label='Street Address',
+                                        placeholder='123 Business Avenue, Suite 100'
+                                    )}"
                                 ></div>
 
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div
-                                        th:replace="~{fragments/form-fields :: input(field='city', label='City', placeholder='San Francisco')}"
+                                        th:replace="~{fragments/form-fields :: input(
+                                            field='city',
+                                            label='City',
+                                            placeholder='San Francisco'
+                                        )}"
                                     ></div>
 
                                     <div
-                                        th:replace="~{fragments/form-fields :: select(field='countryIso2', label='Country', placeholder='Select a country', options=${countries}, itemValue='iso2', itemLabel='name')}"
+                                        th:replace="~{fragments/form-fields :: select(
+                                            field='countryIso2',
+                                            label='Country',
+                                            placeholder='Select a country',
+                                            options=${countries},
+                                            itemValue='iso2',
+                                            itemLabel='name',
+                                            selectedValue='BD'
+                                        )}"
                                     ></div>
                                 </div>
                             </div>
 
                             <div class="space-y-4">
                                 <div
-                                    th:replace="~{fragments/form-section :: header(step=3, title='Preferences')}"
+                                    th:replace="~{fragments/form-section :: header(
+                                        step=3,
+                                        title='Preferences'
+                                    )}"
                                 ></div>
 
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div
-                                        th:replace="~{fragments/form-fields :: select(field='customerTierCode', label='Support Tier', placeholder='Select your tier', options=${tiers}, itemValue='code', itemLabel='displayName')}"
+                                        th:replace="~{fragments/form-fields :: select(
+                                            field='customerTierCode',
+                                            label='Support Tier',
+                                            placeholder='Select your tier',
+                                            options=${tiers},
+                                            itemValue='code',
+                                            itemLabel='displayName'
+                                        )}"
                                     ></div>
 
                                     <div
-                                        th:replace="~{fragments/form-fields :: select(field='preferredLanguageCode', label='Preferred Language', placeholder='Select a language', options=${languages}, itemValue='code', itemLabel='name')}"
+                                        th:replace="~{fragments/form-fields :: select(
+                                            field='preferredLanguageCode',
+                                            label='Preferred Language',
+                                            placeholder='Select a language',
+                                            options=${languages},
+                                            itemValue='code',
+                                            itemLabel='name',
+                                            selectedValue='en'
+                                        )}"
                                     ></div>
                                 </div>
                             </div>
