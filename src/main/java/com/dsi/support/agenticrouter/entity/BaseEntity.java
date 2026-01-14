@@ -22,14 +22,15 @@ import java.util.UUID;
 public abstract class BaseEntity {
 
     @Id
-    @UuidGenerator
-    @Column(
-            name = "id",
-            nullable = false,
-            updatable = false,
-            columnDefinition = "uuid"
+    @GeneratedValue(
+        strategy = GenerationType.IDENTITY
     )
-    private UUID id;
+    @Column(
+        name = "id",
+        updatable = false,
+        insertable = false
+    )
+    private Long id;
 
     @Version
     @Column(name = "row_version", nullable = false)

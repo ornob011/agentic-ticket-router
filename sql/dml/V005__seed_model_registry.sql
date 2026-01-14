@@ -1,12 +1,9 @@
 BEGIN;
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
 WITH ts AS (SELECT now() AS now_ts)
 INSERT
 INTO model_registry
-(id,
- row_version,
+(row_version,
  created_at,
  updated_at,
  model_tag,
@@ -24,8 +21,7 @@ INTO model_registry
  activated_by_id,
  performance_metrics,
  model_config)
-VALUES (gen_random_uuid(),
-        0,
+VALUES (0,
         (SELECT now_ts FROM ts),
         (SELECT now_ts FROM ts),
         'ollama-phi',
@@ -43,38 +39,34 @@ VALUES (gen_random_uuid(),
         NULL,
         NULL,
         NULL)
-ON CONFLICT
-  (model_tag)
-  DO UPDATE
-  SET model_name      = EXCLUDED.model_name,
-      version         = EXCLUDED.version,
-      description     = EXCLUDED.description,
-      base_model      = EXCLUDED.base_model,
-      training_method = EXCLUDED.training_method,
-      quantization    = EXCLUDED.quantization,
-      artifact_path   = EXCLUDED.artifact_path,
-      active          = EXCLUDED.active,
-      is_default      = EXCLUDED.is_default,
+ON CONFLICT (model_tag)
+  DO UPDATE SET model_name      = EXCLUDED.model_name,
+                version         = EXCLUDED.version,
+                description     = EXCLUDED.description,
+                base_model      = EXCLUDED.base_model,
+                training_method = EXCLUDED.training_method,
+                quantization    = EXCLUDED.quantization,
+                artifact_path   = EXCLUDED.artifact_path,
+                active          = EXCLUDED.active,
+                is_default      = EXCLUDED.is_default,
 
-      activated_at    =
-        CASE
-          WHEN EXCLUDED.active
-            AND NOT model_registry.active
-            THEN (SELECT now_ts FROM ts)
-          ELSE model_registry.activated_at
-          END,
+                activated_at    =
+                  CASE
+                    WHEN EXCLUDED.active AND NOT model_registry.active
+                      THEN (SELECT now_ts FROM ts)
+                    ELSE model_registry.activated_at
+                    END,
 
-      deactivated_at  =
-        CASE
-          WHEN NOT EXCLUDED.active
-            AND model_registry.active
-            THEN (SELECT now_ts FROM ts)
-          WHEN EXCLUDED.active
-            THEN NULL
-          ELSE model_registry.deactivated_at
-          END,
+                deactivated_at  =
+                  CASE
+                    WHEN NOT EXCLUDED.active AND model_registry.active
+                      THEN (SELECT now_ts FROM ts)
+                    WHEN EXCLUDED.active
+                      THEN NULL
+                    ELSE model_registry.deactivated_at
+                    END,
 
-      updated_at      = (SELECT now_ts FROM ts)
+                updated_at      = (SELECT now_ts FROM ts)
 WHERE model_registry.model_name IS DISTINCT FROM EXCLUDED.model_name
    OR model_registry.version IS DISTINCT FROM EXCLUDED.version
    OR model_registry.description IS DISTINCT FROM EXCLUDED.description
