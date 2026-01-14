@@ -2,20 +2,19 @@ package com.dsi.support.agenticrouter.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
-import java.util.Objects;
-
 @Entity
 @Table(
-        name = "ref_customer_tier",
-        indexes = {
-                @Index(
-                        name = "idx_ref_customer_tier_active",
-                        columnList = "active"
-                )
-        }
+    name = "customer_tier",
+    indexes = {
+        @Index(
+            name = "idx_customer_tier_active",
+            columnList = "active"
+        )
+    }
 )
 @Getter
 @Setter
@@ -26,36 +25,45 @@ public class CustomerTier {
 
     @Id
     @Column(
-            name = "code",
-            nullable = false,
-            length = 50,
-            updatable = false
+        name = "code",
+        nullable = false,
+        length = 50,
+        updatable = false
     )
-    @Size(max = 50)
+    @NotBlank
+    @Size(
+        max = 50
+    )
+    @Pattern(
+        regexp = "^[A-Z0-9_]+$",
+        message = "code must be uppercase alphanumerics/underscore (e.g. FREE, STANDARD)"
+    )
     private String code;
 
     @NotBlank
     @Column(
-            name = "display_name",
-            nullable = false,
-            length = 100
+        name = "display_name",
+        nullable = false,
+        length = 100
     )
-    @Size(max = 100)
+    @Size(
+        max = 100
+    )
     private String displayName;
 
-    @Column(name = "active", nullable = false)
+    @Column(
+        name = "active",
+        nullable = false
+    )
     @Builder.Default
     private boolean active = true;
 
-    @PrePersist
-    @PreUpdate
-    public void normalize() {
-        if (Objects.nonNull(code)) {
-            code = code.trim().toUpperCase();
-        }
-
-        if (Objects.nonNull(displayName)) {
-            displayName = displayName.trim();
-        }
+    @Override
+    public String toString() {
+        return "CustomerTier{" +
+               "code='" + code + '\'' +
+               ", displayName='" + displayName + '\'' +
+               ", active=" + active +
+               '}';
     }
 }

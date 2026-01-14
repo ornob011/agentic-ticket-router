@@ -15,15 +15,15 @@ public enum TicketCategory {
     OTHER("General inquiries and other topics");
 
     private static final Set<TicketCategory> HIGH_RISK =
-            EnumSet.of(
-                    SECURITY
-            );
+        EnumSet.of(
+            SECURITY
+        );
 
     private static final Set<TicketCategory> CUSTOMER_ACCOUNT_RELATED =
-            EnumSet.of(
-                    ACCOUNT,
-                    BILLING
-            );
+        EnumSet.of(
+            ACCOUNT,
+            BILLING
+        );
 
     private final String description;
 

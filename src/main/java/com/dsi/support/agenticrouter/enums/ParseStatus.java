@@ -18,23 +18,23 @@ public enum ParseStatus {
     MODEL_ERROR("Model returned error response");
 
     private static final Set<ParseStatus> SUCCESS_STATUSES =
-            EnumSet.of(
-                    SUCCESS,
-                    REPAIR_SUCCESS
-            );
+        EnumSet.of(
+            SUCCESS,
+            REPAIR_SUCCESS
+        );
 
     private static final Set<ParseStatus> HUMAN_REVIEW_REQUIRED =
-            EnumSet.of(
-                    REPAIR_FAILED,
-                    SCHEMA_VIOLATION,
-                    MODEL_ERROR
-            );
+        EnumSet.of(
+            REPAIR_FAILED,
+            SCHEMA_VIOLATION,
+            MODEL_ERROR
+        );
 
     private static final Set<ParseStatus> RETRYABLE =
-            EnumSet.of(
-                    INVALID_JSON,
-                    INVALID_ENUM
-            );
+        EnumSet.of(
+            INVALID_JSON,
+            INVALID_ENUM
+        );
 
     private final String description;
 

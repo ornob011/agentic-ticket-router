@@ -25,17 +25,17 @@ public enum AuditEventType {
     MANUAL_INTERVENTION("Manual intervention by staff");
 
     private static final Set<AuditEventType> SYSTEM_GENERATED =
-            EnumSet.of(
-                    ROUTING_EXECUTED,
-                    AUTO_CLOSE_TRIGGERED,
-                    SLA_BREACH,
-                    NOTIFICATION_SENT
-            );
+        EnumSet.of(
+            ROUTING_EXECUTED,
+            AUTO_CLOSE_TRIGGERED,
+            SLA_BREACH,
+            NOTIFICATION_SENT
+        );
 
     private static final Set<AuditEventType> ERROR_EVENTS =
-            EnumSet.of(
-                    MODEL_INFERENCE_FAILED
-            );
+        EnumSet.of(
+            MODEL_INFERENCE_FAILED
+        );
 
     private final String description;
 

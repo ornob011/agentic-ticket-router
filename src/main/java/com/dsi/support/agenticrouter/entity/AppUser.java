@@ -15,27 +15,27 @@ import java.util.Objects;
 
 @Entity
 @Table(
-        name = "app_user",
-        indexes = {
-                @Index(
-                        name = "idx_app_user_email",
-                        columnList = "email",
-                        unique = true
-                ),
-                @Index(
-                        name = "idx_app_user_username",
-                        columnList = "username",
-                        unique = true
-                ),
-                @Index(
-                        name = "idx_app_user_role",
-                        columnList = "role"
-                ),
-                @Index(
-                        name = "idx_app_user_active_role",
-                        columnList = "active, role"
-                )
-        }
+    name = "app_user",
+    indexes = {
+        @Index(
+            name = "idx_app_user_email",
+            columnList = "email",
+            unique = true
+        ),
+        @Index(
+            name = "idx_app_user_username",
+            columnList = "username",
+            unique = true
+        ),
+        @Index(
+            name = "idx_app_user_role",
+            columnList = "role"
+        ),
+        @Index(
+            name = "idx_app_user_active_role",
+            columnList = "active, role"
+        )
+    }
 )
 @Getter
 @Setter
@@ -47,10 +47,10 @@ public class AppUser extends BaseEntity {
     @NotBlank(message = "Username is required")
     @Size(max = 50)
     @Column(
-            name = "username",
-            nullable = false,
-            unique = true,
-            length = 50
+        name = "username",
+        nullable = false,
+        unique = true,
+        length = 50
     )
     private String username;
 
@@ -58,25 +58,25 @@ public class AppUser extends BaseEntity {
     @Email(message = "Email must be valid")
     @Size(max = 100)
     @Column(
-            name = "email",
-            nullable = false,
-            unique = true,
-            length = 100
+        name = "email",
+        nullable = false,
+        unique = true,
+        length = 100
     )
     private String email;
 
     @NotBlank(message = "Password hash is required")
     @Size(max = 255)
     @Column(
-            name = "password_hash",
-            nullable = false
+        name = "password_hash",
+        nullable = false
     )
     private String passwordHash;
 
     @Size(max = 100)
     @Column(
-            name = "full_name",
-            length = 100
+        name = "full_name",
+        length = 100
     )
     private String fullName;
 
@@ -84,9 +84,9 @@ public class AppUser extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
-            name = "role",
-            nullable = false,
-            columnDefinition = "user_role"
+        name = "role",
+        nullable = false,
+        columnDefinition = "user_role"
     )
     private UserRole role;
 
@@ -99,22 +99,22 @@ public class AppUser extends BaseEntity {
     private boolean emailVerified = false;
 
     @Column(
-            name = "last_login_at",
-            columnDefinition = "timestamptz"
+        name = "last_login_at",
+        columnDefinition = "timestamptz"
     )
     private Instant lastLoginAt;
 
     @Size(max = 45)
     @Column(
-            name = "last_login_ip",
-            length = 45
+        name = "last_login_ip",
+        length = 45
     )
     private String lastLoginIp;
 
     @OneToOne(
-            mappedBy = "user",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
+        mappedBy = "user",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
     )
     private CustomerProfile customerProfile;
 
@@ -161,11 +161,11 @@ public class AppUser extends BaseEntity {
     @Override
     public String toString() {
         return "AppUser{" +
-                "id=" + getId() +
-                ", username='" + username + '\'' +
-                ", email='" + email + '\'' +
-                ", role=" + role +
-                ", active=" + active +
-                '}';
+               "id=" + getId() +
+               ", username='" + username + '\'' +
+               ", email='" + email + '\'' +
+               ", role=" + role +
+               ", active=" + active +
+               '}';
     }
 }

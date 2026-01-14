@@ -15,28 +15,29 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 @Entity
 @Table(
-        name = "ticket_routing",
-        indexes = {
-                @Index(
-                        name = "idx_ticket_routing_ticket_id",
-                        columnList = "ticket_id"
-                ),
-                @Index(
-                        name = "idx_ticket_routing_ticket_version",
-                        columnList = "ticket_id, version",
-                        unique = true
-                ),
-                @Index(
-                        name = "idx_ticket_routing_llm_output_id",
-                        columnList = "llm_output_id"
-                )
-        }
+    name = "ticket_routing",
+    indexes = {
+        @Index(
+            name = "idx_ticket_routing_ticket_id",
+            columnList = "ticket_id"
+        ),
+        @Index(
+            name = "idx_ticket_routing_ticket_version",
+            columnList = "ticket_id, version",
+            unique = true
+        ),
+        @Index(
+            name = "idx_ticket_routing_llm_output_id",
+            columnList = "llm_output_id"
+        )
+    }
 )
 @Getter
 @Setter
@@ -48,9 +49,9 @@ public class TicketRouting extends BaseEntity {
     @NotNull(message = "Ticket is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "ticket_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "fk_ticket_routing_ticket")
+        name = "ticket_id",
+        nullable = false,
+        foreignKey = @ForeignKey(name = "fk_ticket_routing_ticket")
     )
     private SupportTicket ticket;
 
@@ -60,8 +61,8 @@ public class TicketRouting extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "llm_output_id",
-            foreignKey = @ForeignKey(name = "fk_ticket_routing_llm_output")
+        name = "llm_output_id",
+        foreignKey = @ForeignKey(name = "fk_ticket_routing_llm_output")
     )
     private LlmOutput llmOutput;
 
@@ -69,9 +70,9 @@ public class TicketRouting extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
-            name = "category",
-            nullable = false,
-            columnDefinition = "ticket_category"
+        name = "category",
+        nullable = false,
+        columnDefinition = "ticket_category"
     )
     private TicketCategory category;
 
@@ -79,9 +80,9 @@ public class TicketRouting extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
-            name = "priority",
-            nullable = false,
-            columnDefinition = "ticket_priority"
+        name = "priority",
+        nullable = false,
+        columnDefinition = "ticket_priority"
     )
     private TicketPriority priority;
 
@@ -89,9 +90,9 @@ public class TicketRouting extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
-            name = "queue",
-            nullable = false,
-            columnDefinition = "ticket_queue"
+        name = "queue",
+        nullable = false,
+        columnDefinition = "ticket_queue"
     )
     private TicketQueue queue;
 
@@ -99,9 +100,9 @@ public class TicketRouting extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
-            name = "next_action",
-            nullable = false,
-            columnDefinition = "next_action"
+        name = "next_action",
+        nullable = false,
+        columnDefinition = "next_action"
     )
     private NextAction nextAction;
 
@@ -109,29 +110,28 @@ public class TicketRouting extends BaseEntity {
     @DecimalMin(value = "0.0")
     @DecimalMax(value = "1.0")
     @Column(
-            name = "confidence",
-            nullable = false,
-            precision = 5,
-            scale = 4
+        name = "confidence",
+        nullable = false,
+        columnDefinition = "numeric(5,4)"
     )
-    private Double confidence;
+    private BigDecimal confidence;
 
     @Column(
-            name = "clarifying_question",
-            columnDefinition = "text"
+        name = "clarifying_question",
+        columnDefinition = "text"
     )
     private String clarifyingQuestion;
 
     @Column(
-            name = "draft_reply",
-            columnDefinition = "text"
+        name = "draft_reply",
+        columnDefinition = "text"
     )
     private String draftReply;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(
-            name = "rationale_tags",
-            columnDefinition = "jsonb"
+        name = "rationale_tags",
+        columnDefinition = "jsonb"
     )
     @Builder.Default
     private List<String> rationaleTags = new ArrayList<>();
@@ -142,14 +142,14 @@ public class TicketRouting extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "overridden_by_id",
-            foreignKey = @ForeignKey(name = "fk_ticket_routing_overridden_by")
+        name = "overridden_by_id",
+        foreignKey = @ForeignKey(name = "fk_ticket_routing_overridden_by")
     )
     private AppUser overriddenBy;
 
     @Column(
-            name = "override_reason",
-            columnDefinition = "text"
+        name = "override_reason",
+        columnDefinition = "text"
     )
     private String overrideReason;
 
@@ -166,13 +166,13 @@ public class TicketRouting extends BaseEntity {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(
-            name = "metadata",
-            columnDefinition = "jsonb"
+        name = "metadata",
+        columnDefinition = "jsonb"
     )
     private JsonNode metadata;
 
     public boolean meetsAutoRoutingThreshold(double threshold) {
-        return Objects.nonNull(confidence) && confidence >= threshold;
+        return Objects.nonNull(confidence) && confidence.compareTo(BigDecimal.valueOf(threshold)) >= 0;
     }
 
     public boolean requiresHumanIntervention() {
@@ -182,16 +182,16 @@ public class TicketRouting extends BaseEntity {
     @Override
     public String toString() {
         return "TicketRouting{" +
-                "id=" + getId() +
-                ", ticketId=" + (ticket != null ? ticket.getId() : null) +
-                ", version=" + version +
-                ", category=" + category +
-                ", priority=" + priority +
-                ", queue=" + queue +
-                ", nextAction=" + nextAction +
-                ", confidence=" + confidence +
-                ", overridden=" + overridden +
-                ", applied=" + applied +
-                '}';
+               "id=" + getId() +
+               ", ticketId=" + (ticket != null ? ticket.getId() : null) +
+               ", version=" + version +
+               ", category=" + category +
+               ", priority=" + priority +
+               ", queue=" + queue +
+               ", nextAction=" + nextAction +
+               ", confidence=" + confidence +
+               ", overridden=" + overridden +
+               ", applied=" + applied +
+               '}';
     }
 }

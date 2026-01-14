@@ -14,10 +14,10 @@ public enum NextAction {
     HUMAN_REVIEW("Requires human review before processing");
 
     private static final Set<NextAction> HUMAN_INTERVENTION_REQUIRED =
-            EnumSet.of(
-                    HUMAN_REVIEW,
-                    ESCALATE
-            );
+        EnumSet.of(
+            HUMAN_REVIEW,
+            ESCALATE
+        );
 
     private final String description;
 

@@ -14,29 +14,29 @@ import java.util.Objects;
 
 @Entity
 @Table(
-        name = "notification",
-        indexes = {
-                @Index(
-                        name = "idx_notification_recipient_id",
-                        columnList = "recipient_id"
-                ),
-                @Index(
-                        name = "idx_notification_read",
-                        columnList = "read"
-                ),
-                @Index(
-                        name = "idx_notification_created_at",
-                        columnList = "created_at"
-                ),
-                @Index(
-                        name = "idx_notification_recipient_read",
-                        columnList = "recipient_id, read, created_at"
-                ),
-                @Index(
-                        name = "idx_notification_ticket_id",
-                        columnList = "ticket_id"
-                )
-        }
+    name = "notification",
+    indexes = {
+        @Index(
+            name = "idx_notification_recipient_id",
+            columnList = "recipient_id"
+        ),
+        @Index(
+            name = "idx_notification_read",
+            columnList = "read"
+        ),
+        @Index(
+            name = "idx_notification_created_at",
+            columnList = "created_at"
+        ),
+        @Index(
+            name = "idx_notification_recipient_read",
+            columnList = "recipient_id, read, created_at"
+        ),
+        @Index(
+            name = "idx_notification_ticket_id",
+            columnList = "ticket_id"
+        )
+    }
 )
 @Getter
 @Setter
@@ -48,9 +48,9 @@ public class Notification extends BaseEntity {
     @NotNull(message = "Recipient is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "recipient_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "fk_notification_recipient")
+        name = "recipient_id",
+        nullable = false,
+        foreignKey = @ForeignKey(name = "fk_notification_recipient")
     )
     private AppUser recipient;
 
@@ -58,32 +58,32 @@ public class Notification extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
-            name = "notification_type",
-            nullable = false,
-            columnDefinition = "notification_type"
+        name = "notification_type",
+        nullable = false,
+        columnDefinition = "notification_type"
     )
     private NotificationType notificationType;
 
     @NotBlank(message = "Title is required")
     @Size(max = 255)
     @Column(
-            name = "title",
-            nullable = false
+        name = "title",
+        nullable = false
     )
     private String title;
 
     @NotBlank(message = "Body is required")
     @Column(
-            name = "body",
-            nullable = false,
-            columnDefinition = "text"
+        name = "body",
+        nullable = false,
+        columnDefinition = "text"
     )
     private String body;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "ticket_id",
-            foreignKey = @ForeignKey(name = "fk_notification_ticket")
+        name = "ticket_id",
+        foreignKey = @ForeignKey(name = "fk_notification_ticket")
     )
     private SupportTicket ticket;
 
@@ -96,8 +96,8 @@ public class Notification extends BaseEntity {
     private boolean read = false;
 
     @Column(
-            name = "read_at",
-            columnDefinition = "timestamptz"
+        name = "read_at",
+        columnDefinition = "timestamptz"
     )
     private Instant readAt;
 
@@ -117,11 +117,11 @@ public class Notification extends BaseEntity {
     @Override
     public String toString() {
         return "Notification{" +
-                "id=" + getId() +
-                ", recipientId=" + (recipient != null ? recipient.getId() : null) +
-                ", notificationType=" + notificationType +
-                ", read=" + read +
-                ", createdAt=" + getCreatedAt() +
-                '}';
+               "id=" + getId() +
+               ", recipientId=" + (recipient != null ? recipient.getId() : null) +
+               ", notificationType=" + notificationType +
+               ", read=" + read +
+               ", createdAt=" + getCreatedAt() +
+               '}';
     }
 }
