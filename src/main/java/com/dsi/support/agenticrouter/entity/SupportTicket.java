@@ -17,6 +17,7 @@ import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import org.hibernate.generator.EventType;
 import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -186,11 +187,10 @@ public class SupportTicket extends BaseEntity {
     private boolean escalated = false;
 
     @Column(
-            name = "latest_routing_confidence",
-            precision = 5,
-            scale = 4
+        name = "latest_routing_confidence",
+        columnDefinition = "numeric(5,4)"
     )
-    private Double latestRoutingConfidence;
+    private BigDecimal latestRoutingConfidence;
 
     @Column(
             name = "latest_routing_version",

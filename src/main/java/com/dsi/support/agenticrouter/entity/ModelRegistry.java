@@ -12,22 +12,17 @@ import java.time.Instant;
 
 @Entity
 @Table(
-        name = "model_registry",
-        indexes = {
-                @Index(
-                        name = "idx_model_registry_model_tag",
-                        columnList = "model_tag",
-                        unique = true
-                ),
-                @Index(
-                        name = "idx_model_registry_active",
-                        columnList = "active"
-                ),
-                @Index(
-                        name = "idx_model_registry_active_default",
-                        columnList = "active, is_default"
-                )
-        }
+    name = "model_registry",
+    indexes = {
+        @Index(
+            name = "idx_model_registry_active",
+            columnList = "active"
+        ),
+        @Index(
+            name = "idx_model_registry_active_default",
+            columnList = "active, is_default"
+        )
+    }
 )
 @Getter
 @Setter
@@ -39,92 +34,111 @@ public class ModelRegistry extends BaseEntity {
     @NotBlank
     @Size(max = 100)
     @Column(
-            name = "model_tag",
-            nullable = false,
-            unique = true,
-            length = 100
+        name = "model_tag",
+        nullable = false,
+        unique = true,
+        length = 100
     )
     private String modelTag;
 
     @NotBlank
     @Size(max = 200)
     @Column(
-            name = "model_name",
-            nullable = false,
-            length = 200
+        name = "model_name",
+        nullable = false,
+        length = 200
     )
     private String modelName;
 
     @NotBlank
     @Size(max = 50)
     @Column(
-            name = "version",
-            nullable = false,
-            length = 50
+        name = "version",
+        nullable = false,
+        length = 50
     )
     private String version;
 
-    @Size(max = 1000)
     @Column(
-            name = "description",
-            columnDefinition = "text"
+        name = "description",
+        columnDefinition = "text"
     )
     private String description;
 
     @Size(max = 50)
-    @Column(name = "base_model", length = 50)
+    @Column(
+        name = "base_model",
+        length = 50
+    )
     private String baseModel;
 
     @Size(max = 50)
-    @Column(name = "training_method", length = 50)
+    @Column(
+        name = "training_method",
+        length = 50
+    )
     private String trainingMethod;
 
     @Size(max = 50)
-    @Column(name = "quantization", length = 50)
+    @Column(
+        name = "quantization",
+        length = 50
+    )
     private String quantization;
 
     @Size(max = 500)
-    @Column(name = "artifact_path", length = 500)
+    @Column(
+        name = "artifact_path",
+        length = 500
+    )
     private String artifactPath;
 
-    @Column(name = "active", nullable = false)
+    @Column(
+        name = "active",
+        nullable = false
+    )
     @Builder.Default
     private boolean active = false;
 
-    @Column(name = "is_default", nullable = false)
+    @Column(
+        name = "is_default",
+        nullable = false
+    )
     @Builder.Default
     private boolean isDefault = false;
 
     @Column(
-            name = "activated_at",
-            columnDefinition = "timestamptz"
+        name = "activated_at",
+        columnDefinition = "timestamptz"
     )
     private Instant activatedAt;
 
     @Column(
-            name = "deactivated_at",
-            columnDefinition = "timestamptz"
+        name = "deactivated_at",
+        columnDefinition = "timestamptz"
     )
     private Instant deactivatedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "activated_by_id",
-            foreignKey = @ForeignKey(name = "fk_model_registry_activated_by")
+        name = "activated_by_id",
+        foreignKey = @ForeignKey(
+            name = "fk_model_registry_activated_by"
+        )
     )
     private AppUser activatedBy;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(
-            name = "performance_metrics",
-            columnDefinition = "jsonb"
+        name = "performance_metrics",
+        columnDefinition = "jsonb"
     )
     private JsonNode performanceMetrics;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(
-            name = "model_config",
-            columnDefinition = "jsonb"
+        name = "model_config",
+        columnDefinition = "jsonb"
     )
     private JsonNode modelConfig;
 
@@ -137,11 +151,13 @@ public class ModelRegistry extends BaseEntity {
 
     public void deactivate() {
         active = false;
+        isDefault = false;
         deactivatedAt = Instant.now();
     }
 
     public void setAsDefault(AppUser activator) {
         isDefault = true;
+
         if (!active) {
             activate(activator);
         }
@@ -150,11 +166,11 @@ public class ModelRegistry extends BaseEntity {
     @Override
     public String toString() {
         return "ModelRegistry{" +
-                "id=" + getId() +
-                ", modelTag='" + modelTag + '\'' +
-                ", version='" + version + '\'' +
-                ", active=" + active +
-                ", isDefault=" + isDefault +
-                '}';
+               "id=" + getId() +
+               ", modelTag='" + modelTag + '\'' +
+               ", version='" + version + '\'' +
+               ", active=" + active +
+               ", isDefault=" + isDefault +
+               '}';
     }
 }
