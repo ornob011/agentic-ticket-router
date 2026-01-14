@@ -18,8 +18,10 @@ public class RestExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(RestExceptionHandler.class);
 
     @ExceptionHandler(Exception.class)
-    public ProblemDetail handleRestException(Exception exception,
-                                             HttpServletRequest request) {
+    public ProblemDetail handleRestException(
+        Exception exception,
+        HttpServletRequest request
+    ) {
         logger.error("Exception occurred: ", exception);
 
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
@@ -34,8 +36,10 @@ public class RestExceptionHandler {
     }
 
     @ExceptionHandler(DataNotFoundException.class)
-    public ProblemDetail handleDataNotFoundException(DataNotFoundException ex,
-                                                     HttpServletRequest request) {
+    public ProblemDetail handleDataNotFoundException(
+        DataNotFoundException ex,
+        HttpServletRequest request
+    ) {
         logger.warn("DataNotFoundException: ", ex);
 
         HttpStatus status = HttpStatus.NOT_FOUND;
@@ -49,7 +53,10 @@ public class RestExceptionHandler {
     }
 
     @ExceptionHandler({AccessDeniedException.class, AuthorizationDeniedException.class})
-    public ProblemDetail handleAccessDenied(Exception ex, HttpServletRequest request) {
+    public ProblemDetail handleAccessDenied(
+        Exception ex,
+        HttpServletRequest request
+    ) {
         logger.warn("Access denied: ", ex);
 
         HttpStatus status = HttpStatus.FORBIDDEN;
