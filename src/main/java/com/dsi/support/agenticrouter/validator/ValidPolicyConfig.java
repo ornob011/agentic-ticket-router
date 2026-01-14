@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.validation;
+package com.dsi.support.agenticrouter.validator;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
