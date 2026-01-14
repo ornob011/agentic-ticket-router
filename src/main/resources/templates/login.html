@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/common-layout}" lang="en">
+
+<head>
+    <title layout:fragment="title">Login</title>
+</head>
+
+<body>
+
+<div layout:fragment="contentBody">
+    <main class="max-w-5xl mx-auto mt-8">
+<!--        <div id="usage-rules-button-container" class="flex justify-center mb-6">-->
+<!--            <button class="px-5 py-2 bg-neutral-600 text-white text-lg rounded-md hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-500">ব্যবহার বিধি</button>-->
+<!--        </div>-->
+
+        <!-- Error message -->
+        <div th:if="${param.error}"
+             class="bg-error-100 border border-error-400 text-error-700 px-4 py-3 rounded-md relative mb-6"
+             role="alert">
+            <strong class="font-bold" th:text="#{login.error.title}">Login Failed</strong>
+            <span class="block sm:inline" th:text="#{login.error.message}">Invalid index number or password.</span>
+        </div>
+
+        <div id="content-grid" class="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
+            <!-- Login Section -->
+            <section id="login-section" class="bg-white border border-neutral-300 rounded-lg shadow-md">
+                <header class="bg-section-header p-4 rounded-t-lg border-b border-neutral-300">
+                    <h2 class="text-xl text-neutral-800 flex items-center">
+                        <i class="fas fa-pen-to-square mr-3"></i> অ্যাপ্লিকেশন আপডেট এন্ড ট্রাকিং
+                    </h2>
+                </header>
+
+                <div class="p-6">
+                    <form method="POST" class="space-y-6">
+                        <div class="space-y-2">
+                            <label for="indexNumber" class="block text-lg text-neutral-700">ইনডেক্স নম্বর</label>
+                            <input type="text" id="indexNumber" name="indexNumber" class="w-full px-4 py-3 bg-white border border-neutral-300 rounded-md text-lg focus:outline-none focus:ring-2 focus:ring-neutral-400" placeholder="Index No." required>
+                        </div>
+                        <div class="space-y-2">
+                            <label for="password" class="block text-lg text-neutral-700">পাসওয়ার্ড</label>
+                            <input type="password" id="password" name="password" class="w-full px-4 py-3 bg-white border border-neutral-300 rounded-md text-lg focus:outline-none focus:ring-2 focus:ring-neutral-400" placeholder="Password" required>
+                        </div>
+                        <div class="flex items-center space-x-4 pt-2">
+                            <button type="submit" class="px-6 py-2 bg-primary-button text-white text-lg rounded-md hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-button">
+                                লগইন করুন
+                            </button>
+<!--                            <button type="button" class="px-6 py-2 bg-neutral-700 text-white text-lg rounded-md hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-600">আবেদনের বিস্তারিত দেখুন</button>-->
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Registration Section -->
+            <section id="registration-section" class="bg-white border border-neutral-300 rounded-lg shadow-md">
+                <header class="bg-section-header p-4 rounded-t-lg border-b border-neutral-300">
+                    <h2 class="text-xl text-neutral-800 flex items-center">
+                        <i class="fas fa-user-plus mr-3"></i> অনলাইন আবেদন
+                    </h2>
+                </header>
+                <div class="p-6 flex flex-col items-center justify-center space-y-6">
+                    <div class="w-48 h-48 bg-neutral-300 flex items-center justify-center rounded-lg">
+                        <img src="/images/apply.jpg" alt="অনলাইন আবেদন" class="w-full h-full object-contain">
+                    </div>
+                    <p class="text-lg text-neutral-700 text-center">ক্লিক করে আপনার রেজিস্ট্রেশন সম্পন্ন করুন।</p>
+
+                    <!-- Changed button to link -->
+                    <a href="/pre-registration"
+                       class="px-8 py-3 bg-primary-button text-white text-lg rounded-md hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-button inline-block text-center">
+                        অনলাইন আবেদন করুন
+                    </a>
+                </div>
+            </section>
+        </div>
+
+        <!-- Migration notice / alert -->
+        <section id="migration-notice"
+                 class="mt-6 mb-10 bg-warning-50 border border-warning-400 border-l-4 border-l-warning-600 text-warning-900 px-4 py-3 rounded-md">
+            <div class="flex items-start">
+                <div class="mt-1 mr-3">
+                    <i class="fas fa-exclamation-triangle text-warning-700"></i>
+                </div>
+                <div>
+                    <h3 class="text-base-content md:text-lg font-semibold mb-1">
+                        গুরুত্বপূর্ণ ঘোষণা (পুরাতন আবেদনকারীদের জন্য)
+                    </h3>
+                    <p class="text-sm md:text-base-content leading-relaxed">
+                        যে সকল শিক্ষক/কর্মচারী ইতিমধ্যে
+                        <span class="font-semibold">১৭/০৯/২০২৫</span>
+                        তারিখের আগে আবেদন করে রিসিট কপি ডাউনলোড করতে পেরেছেন
+                        তাদের নতুন করে আর আবেদন করার প্রয়োজন নাই।
+                    </p>
+                    <p class="text-sm md:text-base-content leading-relaxed mt-2">
+                        <span class="font-semibold">বি:দ্র:</span>
+                        যারা ১৭/০৯/২০২৫ এর আগে আবেদন করেছেন তাদের তথ্য পুরাতন সিস্টেমে রয়েছে, নতুন সিস্টেমে ডাটা স্থানান্তর এর কাজ চলমান।
+                        তাই নতুন সিস্টেমে কেউ লগিন করতে না পারলে চিন্তিত হওয়ার দরকার নেই।
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+</body>
+</html>

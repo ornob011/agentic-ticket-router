@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/common-layout}" lang="en">
+
+<head>
+    <title layout:fragment="title">Signup</title>
+</head>
+
+<body>
+
+<div layout:fragment="contentBody">
+    <main class="max-w-5xl mx-auto mt-8">
+        <div class="bg-white border border-neutral-200 rounded-lg shadow-sm p-6">
+            <div id="form-instructions" class="mb-6 pb-2 border-b border-neutral-200">
+                <p class="text-sm text-neutral-600">
+                    <span class="text-red-500">*</span> চিহ্নিত ঘরগুলো অবশ্যই পূরণ করতে হবে। * চিহ্ন ব্যতীত অন্যান্য
+                    ঘরগুলো পূরণ বাধ্যতামূলক নয়।
+                </p>
+            </div>
+
+            <form id="signup-form" th:object="${signupDto}" method="POST" class="space-y-8">
+                <input type="hidden" th:field="*{otpVerified}"/>
+                <input type="hidden" th:field="*{otpVerifiedMobile}"/>
+
+                <!-- ================= Personal Information Section ================= -->
+                <section id="personal-information-section" class="border border-neutral-200 rounded-md">
+                    <h2 class="bg-section-header text-neutral-800 p-3 border-b border-neutral-200 rounded-t-md">
+                        <i class="fa-solid fa-user mr-2"></i> নিজ পরিচিতি
+                    </h2>
+
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+
+                        <!-- Row 1 -->
+                        <!-- Full Name -->
+                        <div class="space-y-1">
+                            <label for="name" class="block text-sm text-neutral-700">
+                                <span class="text-red-500">*</span> শিক্ষক/কর্মচারীর নাম
+                            </label>
+                            <input type="text"
+                                   id="name"
+                                   th:field="*{fullName}"
+                                   class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500"
+                                   placeholder="Name">
+                            <p class="text-xs text-neutral-500">আপনার পুরো নাম ইংরেজিতে লিখুন। যেমনঃ Md. Solim Khan</p>
+                            <span th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"
+                                  class="text-xs text-error-600"></span>
+                        </div>
+                        <!-- Email -->
+                        <div class="space-y-1">
+                            <label for="email" class="block text-sm text-neutral-700">ই-মেইল</label>
+                            <input type="text"
+                                   id="email"
+                                   th:field="*{email}"
+                                   class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500"
+                                   placeholder="ইমেইল অ্যাড্রেস">
+                            <p class="text-xs text-neutral-500">যেমনঃ info@gmail.com</p>
+                            <span th:if="${#fields.hasErrors('email')}" th:errors="*{email}"
+                                  class="text-xs text-error-600"></span>
+                        </div>
+
+                        <!-- Row 2 -->
+                        <!-- Index Number -->
+                        <div class="space-y-1">
+                            <label for="indexNumber" class="block text-sm text-neutral-700">
+                                <span class="text-red-500">*</span> প্রিফিক্স সহ ইনডেক্স নাম্বার
+                            </label>
+                            <input type="text"
+                                   id="indexNumber"
+                                   th:field="*{indexNumber}"
+                                   class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500"
+                                   placeholder="W1234567">
+                            <p class="text-xs text-neutral-500">প্রিফিক্স সহ আপনার ইনডেক্স নম্বর ইংরেজীতে লিখুন। যেমনঃ
+                                W1234567</p>
+                            <span th:if="${#fields.hasErrors('indexNumber')}" th:errors="*{indexNumber}"
+                                  class="text-xs text-error-600"></span>
+                        </div>
+                        <!-- Mobile Number -->
+                        <div class="space-y-1">
+                            <label for="mobileNumber" class="block text-sm text-neutral-700">
+                                <span class="text-red-500">*</span> মোবাইল নম্বর
+                            </label>
+                            <input type="tel"
+                                   id="mobileNumber"
+                                   th:field="*{mobileNumber}"
+                                   class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500"
+                                   placeholder="01XXXXXXXXX">
+                            <p class="text-xs text-neutral-500">আপনার মোবাইল নম্বর ইংরেজিতে লিখুন। যেমনঃ 01777777777</p>
+                            <span th:if="${#fields.hasErrors('mobileNumber')}" th:errors="*{mobileNumber}"
+                                  class="text-xs text-error-600"></span>
+                        </div>
+
+                        <!-- Row 3 -->
+                        <!-- Confirm Index Number -->
+                        <div class="space-y-1">
+                            <label for="confirmIndexNumber" class="block text-sm text-neutral-700">
+                                <span class="text-red-500">*</span> পুনরায় প্রিফিক্স সহ ইনডেক্স নাম্বার লিখুন
+                            </label>
+                            <input type="text"
+                                   id="confirmIndexNumber"
+                                   th:field="*{confirmIndexNumber}"
+                                   class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500"
+                                   placeholder="W1234567">
+                            <p class="text-xs text-neutral-500">প্রিফিক্স সহ আপনার ইনডেক্স নম্বরটি ইংরেজীতে আবার
+                                লিখুন।</p>
+                            <span th:if="${#fields.hasErrors('confirmIndexNumber')}" th:errors="*{confirmIndexNumber}"
+                                  class="text-xs text-error-600"></span>
+                        </div>
+                        <!-- NID Number -->
+                        <div class="space-y-1">
+                            <label for="nidNumber" class="block text-sm text-neutral-700">
+                                <span class="text-red-500">*</span> জাতীয় পরিচয়পত্র
+                            </label>
+                            <input type="text"
+                                   id="nidNumber"
+                                   th:field="*{nidNumber}"
+                                   class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500"
+                                   placeholder="National Id">
+                            <p class="text-xs text-neutral-500">জাতীয় কার্ড এর আইডি নম্বর ইংরেজিতে লিখুন। যেমনঃ
+                                0508199129</p>
+                            <span th:if="${#fields.hasErrors('nidNumber')}" th:errors="*{nidNumber}"
+                                  class="text-xs text-error-600"></span>
+                        </div>
+
+                        <!-- Row 4 (Added for Password) -->
+                        <!-- Password -->
+                        <div class="space-y-1">
+                            <label for="password" class="block text-sm text-neutral-700">
+                                <span class="text-red-500">*</span> পাসওয়ার্ড টাইপ করুন
+                            </label>
+                            <input type="password"
+                                   id="password"
+                                   th:field="*{password}"
+                                   class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500"
+                                   placeholder="********">
+                            <p class="text-xs text-neutral-500">অন্তত ৮ অক্ষরের একটি পাসওয়ার্ড দিন, এবং শুধুমাত্র ইংরেজি বর্ণ ও সংখ্যা ব্যবহার করুন।</p>
+                            <span th:if="${#fields.hasErrors('password')}" th:errors="*{password}"
+                                  class="text-xs text-error-600"></span>
+                        </div>
+                        <!-- Confirm Password -->
+                        <div class="space-y-1">
+                            <label for="confirmPassword" class="block text-sm text-neutral-700">
+                                <span class="text-red-500">*</span> পাসওয়ার্ড আবার লিখুন
+                            </label>
+                            <input type="password"
+                                   id="confirmPassword"
+                                   th:field="*{confirmPassword}"
+                                   class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500"
+                                   placeholder="********">
+                            <p class="text-xs text-neutral-500">নিশ্চিত করার জন্য আবার একই পাসওয়ার্ড লিখুন।</p>
+                            <span th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}"
+                                  class="text-xs text-error-600"></span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= Institute Information Section ================= -->
+                <section id="institute-information-section" class="border border-neutral-200 rounded-md"
+                         data-container='lastInstitutionAddress'>
+                    <h2 class="bg-section-header text-neutral-800 p-3 border-b border-neutral-200 rounded-t-md">
+                        <i class="fa-solid fa-school mr-2"></i> সর্বশেষ প্রতিষ্ঠান নির্বাচন করুন
+                    </h2>
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+
+                        <!-- Row 1 -->
+                        <!-- Total Institutions -->
+                        <div class="space-y-1">
+                            <label for="total-institutes" class="block text-sm text-neutral-700"><span class="text-red-500">*</span> মোট প্রতিষ্ঠান</label>
+                            <select id="total-institutes"
+                                    th:field="*{totalInstitutions}"
+                                    class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500">
+                                <option value="">Select</option>
+                                <option th:each="i : ${totalInstitutionsOptions}" th:value="${i}"
+                                        th:text="${i}"></option>
+                            </select>
+                            <p class="text-xs text-neutral-500">আপনার মোট প্রতিষ্ঠান নির্বাচন করুন।</p>
+                            <span th:if="${#fields.hasErrors('totalInstitutions')}" th:errors="*{totalInstitutions}"
+                                  class="text-xs text-error-600"></span>
+                        </div>
+                        <!-- Institute Category -->
+                        <div class="space-y-1">
+                            <label for="institute-category" class="block text-sm text-neutral-700"><span class="text-red-500">*</span> প্রতিষ্ঠানের শ্রেণি</label>
+                            <select id="institute-category"
+                                    th:field="*{lastInstitution.institutionCategoryId}"
+                                    th:data-selected="*{lastInstitution.institutionCategoryId}"
+                                    class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500">
+                                <option value="">Select Institute Category</option>
+                                <option th:each="cat : ${institutionCategories}" th:value="${cat.id}"
+                                        th:text="${cat.nameEn}"></option>
+                            </select>
+                            <p class="text-xs text-neutral-500">আপনার প্রতিষ্ঠানের শ্রেণি নির্বাচন করুন। যেমনঃ
+                                School</p>
+                            <span th:if="${#fields.hasErrors('lastInstitution.institutionCategoryId')}"
+                                  th:errors="*{lastInstitution.institutionCategoryId}"
+                                  class="text-xs text-error-600"></span>
+                        </div>
+
+                        <!-- Row 2 -->
+                        <!-- Division -->
+                        <div class="space-y-1">
+                            <label for="division" class="block text-sm text-neutral-700"><span class="text-red-500">*</span> বিভাগ</label>
+                            <select id="division"
+                                    th:field="*{lastInstitution.divisionId}"
+                                    th:data-selected="*{lastInstitution.divisionId}"
+                                    class="division-select w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500">
+                                <option value="">Select Division</option>
+                                <option th:each="division : ${divisions}" th:value="${division.id}"
+                                        th:text="${division.nameEn}"></option>
+                            </select>
+                            <p class="text-xs text-neutral-500">আপনার বিভাগ নির্বাচন করুন। যেমনঃ Dhaka</p>
+                            <span th:if="${#fields.hasErrors('lastInstitution.divisionId')}"
+                                  th:errors="*{lastInstitution.divisionId}" class="text-xs text-error-600"></span>
+                        </div>
+                        <!-- Institute Type -->
+                        <div class="space-y-1">
+                            <label for="institute-type" class="block text-sm text-neutral-700"><span class="text-red-500">*</span> প্রতিষ্ঠানের ধরন</label>
+                            <select id="institute-type"
+                                    th:field="*{lastInstitution.institutionTypeId}"
+                                    th:data-selected="*{lastInstitution.institutionTypeId}"
+                                    class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500">
+                                <option value="">Select Institute Type</option>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
+                            <p class="text-xs text-neutral-500">আপনার প্রতিষ্ঠানের ধরন নির্বাচন করুন। যেমনঃ Degree</p>
+                            <span th:if="${#fields.hasErrors('lastInstitution.institutionTypeId')}"
+                                  th:errors="*{lastInstitution.institutionTypeId}"
+                                  class="text-xs text-error-600"></span>
+                        </div>
+
+                        <!-- Row 3 -->
+                        <!-- District -->
+                        <div class="space-y-1">
+                            <label for="district" class="block text-sm text-neutral-700"><span class="text-red-500">*</span> জেলা</label>
+                            <select id="district"
+                                    th:field="*{lastInstitution.districtId}"
+                                    th:data-selected="*{lastInstitution.districtId}"
+                                    class="district-select w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500">
+                                <option value="">Select District</option>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
+                            <p class="text-xs text-neutral-500">আপনার জেলা নির্বাচন করুন। যেমনঃ Dhaka</p>
+                            <span th:if="${#fields.hasErrors('lastInstitution.districtId')}"
+                                  th:errors="*{lastInstitution.districtId}" class="text-xs text-error-600"></span>
+                        </div>
+                        <!-- Institute -->
+                        <div class="space-y-1">
+                            <label for="institute" class="block text-sm text-neutral-700"><span class="text-red-500">*</span> সর্বশেষ প্রতিষ্ঠান</label>
+                            <select id="institute"
+                                    th:field="*{lastInstitution.institutionId}"
+                                    th:data-selected="*{lastInstitution.institutionId}"
+                                    class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500">
+                                <option value="">Select Institute</option>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
+                            <p class="text-xs text-neutral-500">আপনার সর্বশেষ প্রতিষ্ঠান নির্বাচন করুন। যেমনঃ BADDA HIGH
+                                SCHOOL</p>
+                            <span th:if="${#fields.hasErrors('lastInstitution.institutionId')}"
+                                  th:errors="*{lastInstitution.institutionId}" class="text-xs text-error-600"></span>
+                        </div>
+
+                        <!-- Row 4 -->
+                        <!-- Thana/Upazila -->
+                        <div class="space-y-1">
+                            <label for="thana" class="block text-sm text-neutral-700"><span class="text-red-500">*</span> থানা</label>
+                            <select id="thana"
+                                    th:field="*{lastInstitution.upazilaId}"
+                                    th:data-selected="*{lastInstitution.upazilaId}"
+                                    class="upazila-select w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500">
+                                <option value="">Select Thana</option>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
+                            <p class="text-xs text-neutral-500">আপনার থানা নির্বাচন করুন। যেমনঃ Badda</p>
+                            <span th:if="${#fields.hasErrors('lastInstitution.upazilaId')}"
+                                  th:errors="*{lastInstitution.upazilaId}" class="text-xs text-error-600"></span>
+                        </div>
+                        <!-- Designation -->
+                        <div class="space-y-1">
+                            <label for="designation" class="block text-sm text-neutral-700"><span class="text-red-500">*</span> পদবী</label>
+                            <select id="designation"
+                                    th:field="*{lastInstitution.designationId}"
+                                    class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500">
+                                <option value="">Select Designation</option>
+                                <option th:each="desig : ${designations}" th:value="${desig.id}"
+                                        th:text="${desig.nameEn}"></option>
+                            </select>
+                            <p class="text-xs text-neutral-500">আপনার পদবী নির্বাচন করুন। যেমনঃ Lecturer</p>
+                            <span th:if="${#fields.hasErrors('lastInstitution.designationId')}"
+                                  th:errors="*{lastInstitution.designationId}" class="text-xs text-error-600"></span>
+                        </div>
+
+                        <!-- Row 5 -->
+                        <!-- Join Date -->
+                        <div class="space-y-1">
+                            <label for="join-date" class="block text-sm text-neutral-700"><span class="text-red-500">*</span> যোগদানের তারিখ</label>
+                            <input type="date"
+                                   id="join-date"
+                                   th:field="*{lastInstitution.joinDate}"
+                                   class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm
+                                          focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500">
+                            <p class="text-xs text-red-600" th:if="${#fields.hasErrors('lastInstitution.joinDate')}"
+                               th:errors="*{lastInstitution.joinDate}"></p>
+                        </div>
+                        <!-- Retirement Date -->
+                        <div class="space-y-1">
+                            <label for="retirement-date" class="block text-sm text-neutral-700"><span class="text-red-500">*</span> অবসর/পদত্যাগ/স্বেচ্ছায় অবসর গ্রহণের তারিখ</label>
+                            <input type="date"
+                                   id="retirement-date"
+                                   th:field="*{lastInstitution.retirementDate}"
+                                   class="w-full px-3 py-2 bg-white border border-neutral-300 rounded-md shadow-sm
+                                          focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500">
+                            <p class="text-xs text-red-600"
+                               th:if="${#fields.hasErrors('lastInstitution.retirementDate')}"
+                               th:errors="*{lastInstitution.retirementDate}"></p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= Actions ================= -->
+                <div id="form-actions" class="flex items-center justify-center space-x-4 pt-4">
+                    <button type="submit"
+                            class="px-6 py-2 bg-primary-button border border-transparent rounded-md text-sm text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-button">
+                        জমা দিন
+                    </button>
+                    <a href="/"
+                       class="px-6 py-2 bg-neutral-100 border border-neutral-300 rounded-md text-sm text-neutral-700 hover:bg-neutral-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-500">ফিরে
+                        যান</a>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <!-- OTP Modal -->
+    <div id="otp-modal"
+         class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="otp-title"
+         aria-describedby="otp-desc">
+
+        <div class="relative w-[28rem] max-w-full mx-4 rounded-xl border border-neutral-200 bg-white shadow-lg">
+            <button id="close-otp-btn" type="button"
+                    class="absolute right-3 top-3 inline-flex items-center gap-1 rounded-md px-2 py-1 text-neutral-500 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                <span class="text-sm font-medium">বন্ধ করুন</span>
+            </button>
+
+            <div class="border-b border-neutral-200 px-6 pb-4 pt-6 mt-4 text-center">
+                <h2 id="otp-title" class="text-xl font-semibold text-neutral-900">
+                    <i class="fa-solid fa-shield-halved mr-2"></i> ওটিপি ভেরিফিকেশন
+                </h2>
+                <p id="otp-desc" class="mt-2 text-sm text-neutral-600">
+                    আপনার মোবাইল নম্বরে পাঠানো ৬-সংখ্যার কোডটি প্রবেশ করান।
+                </p>
+            </div>
+
+            <div class="px-6 py-5 space-y-4">
+                <label class="block text-sm font-medium text-neutral-800">যাচাইকরণ কোড</label>
+
+                <div id="otp-inputs" class="flex items-center justify-between gap-2 sm:gap-3" dir="ltr">
+                    <input
+                        class="otp-box h-12 w-10 sm:h-14 sm:w-12 rounded-md border border-neutral-300 bg-white text-center text-lg sm:text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-neutral-600 focus:border-neutral-600"
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="1"
+                        aria-label="ওটিপি প্রথম অঙ্ক">
+                    <input
+                        class="otp-box h-12 w-10 sm:h-14 sm:w-12 rounded-md border border-neutral-300 bg-white text-center text-lg sm:text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-neutral-600 focus:border-neutral-600"
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="1"
+                        aria-label="ওটিপি দ্বিতীয় অঙ্ক">
+                    <input
+                        class="otp-box h-12 w-10 sm:h-14 sm:w-12 rounded-md border border-neutral-300 bg-white text-center text-lg sm:text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-neutral-600 focus:border-neutral-600"
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="1"
+                        aria-label="ওটিপি তৃতীয় অঙ্ক">
+                    <input
+                        class="otp-box h-12 w-10 sm:h-14 sm:w-12 rounded-md border border-neutral-300 bg-white text-center text-lg sm:text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-neutral-600 focus:border-neutral-600"
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="1"
+                        aria-label="ওটিপি চতুর্থ অঙ্ক">
+                    <input
+                        class="otp-box h-12 w-10 sm:h-14 sm:w-12 rounded-md border border-neutral-300 bg-white text-center text-lg sm:text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-neutral-600 focus:border-neutral-600"
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="1"
+                        aria-label="ওটিপি পঞ্চম অঙ্ক">
+                    <input
+                        class="otp-box h-12 w-10 sm:h-14 sm:w-12 rounded-md border border-neutral-300 bg-white text-center text-lg sm:text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-neutral-600 focus:border-neutral-600"
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="1"
+                        aria-label="ওটিপি ষষ্ঠ অঙ্ক">
+                </div>
+
+                <!-- hidden combined value -->
+                <input id="otp-code" type="hidden" maxlength="6"/>
+
+                <p id="otp-info"
+                   class="mt-2 flex items-center justify-center gap-2 text-xs text-neutral-500 text-center transition-opacity duration-500 opacity-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-amber-500" fill="none"
+                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M12 9v2m0 4h.01M4.93 4.93l14.14 14.14M12 2a10 10 0 100 20 10 10 0 000-20z"/>
+                    </svg>
+                    <span>আপনি প্রতি ২৪ ঘন্টায় সর্বোচ্চ ৫ টি OTP অনুরোধ করতে পারবেন।</span>
+                </p>
+
+                <p id="otp-timer"
+                   class="hidden mt-2 w-full rounded-full bg-neutral-100 px-3 py-1 text-center text-sm font-semibold text-neutral-700"
+                   aria-live="polite"></p>
+                <p id="otp-message" class="min-h-5 text-center text-sm" aria-live="assertive"></p>
+
+                <div class="mt-2 flex items-center justify-center gap-3">
+                    <button id="verify-otp-btn"
+                            class="inline-flex items-center justify-center rounded-md border border-transparent bg-primary-button px-6 py-2 text-sm font-medium text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary-button focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                        যাচাই করুন
+                    </button>
+                    <button id="resend-otp-btn"
+                            class="inline-flex items-center justify-center rounded-md border border-neutral-300 bg-neutral-100 px-6 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled>
+                        পুনরায় পাঠান
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<span layout:fragment="customJsImportBlock">
+    <script type="text/javascript" th:src="@{/js/widget/category-type-widget.js}"></script>
+    <script type="text/javascript" th:src="@{/js/widget/institute-widget.js}"></script>
+    <script type="text/javascript" th:src="@{/js/widget/address-widget.js}"></script>
+    <script type="text/javascript" th:src="@{/js/widget/otp-widget.js}"></script>
+</span>
+
+<script layout:fragment="localJsCodeBlock" type="text/javascript" th:inline="javascript">
+
+    $(document).ready(function () {
+
+        $("[data-container='lastInstitutionAddress']").addressWidget({
+            division: "#division",
+            district: "#district",
+            upazila: "#thana"
+        });
+
+        $("body").categoryTypeWidget({
+            category: "#institute-category",
+            type: "#institute-type"
+        });
+
+        $("body").instituteWidget({
+            institute: "#institute",
+            division: "#division",
+            district: "#district",
+            upazila: "#thana",
+            type: "#institute-type"
+        });
+
+        $("body").otpWidget({
+            mobileField: "#mobileNumber",
+            form: "#signup-form",
+            otpRequired: [[${otpRequired}]]
+        });
+    });
+</script>
+</body>
+</html>

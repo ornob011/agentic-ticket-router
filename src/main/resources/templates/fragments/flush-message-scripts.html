@@ -1,0 +1,17 @@
+<script th:fragment="globalMessageScripts" th:inline="javascript">
+    $(document).ready(function () {
+        Pension.APP.stopLoading();
+
+        $(document).on('click', ".removeFlushMsg", function () {
+            $(this).closest('div.flex').fadeOut("slow", function () {
+                $(this).remove();
+            });
+        });
+
+        setTimeout(function () {
+            $("#globalMessageBlock div.flex").fadeOut("slow", function () {
+                $(this).remove();
+            });
+        }, 2000);
+    });
+</script>

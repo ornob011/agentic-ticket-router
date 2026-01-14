@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head th:replace="~{fragments/common-head :: common-head}">
+</head>
+
+<body class="h-full text-base-content">
+
+<div class="bg-neutral-50 text-neutral-800 p-4 sm:p-6 md:p-8 min-h-screen">
+    <div th:insert="~{fragments/flush-message.html :: globalMessageBlock}" th:remove="tag"></div>
+    <th:block th:replace="~{fragments/flush-message-scripts.html :: globalMessageScripts}"></th:block>
+
+    <div th:insert="~{fragments/top-menu :: top-menu}"></div>
+
+    <div id="se-pre-con"
+         class="fixed inset-0 z-[9999] block
+            bg-[#13121296] bg-[url('/images/loading.gif')] bg-no-repeat bg-center bg-[length:80px_80px]
+            opacity-90">
+    </div>
+
+    <main class="max-w-5xl mx-auto mt-8 px-4 sm:px-6 lg:px-8" layout:fragment="contentBody">
+
+    </main>
+
+</div>
+
+<span layout:fragment="customJsImportBlock" th:remove="tag"></span>
+<script layout:fragment="localJsCodeBlock" type="text/javascript"></script>
+
+</body>
+</html>

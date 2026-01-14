@@ -1,0 +1,51 @@
+<div th:fragment="globalMessageBlock"
+     id="globalMessageBlock"
+     class="absolute top-2 right-3 w-3/5 space-y-2 z-50">
+
+    <!-- Success -->
+    <div th:if="${session.flushSuccessMessage != null}" th:remove="tag">
+        <div
+            class="flex items-center justify-between rounded-md border border-green-300 bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-md shadow-green-400/30">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-circle-check text-white text-lg"></i>
+                <span th:text="${session.flushSuccessMessage}"></span>
+            </div>
+            <i class="fa fa-xmark text-white text-lg cursor-pointer removeFlushMsg"></i>
+        </div>
+    </div>
+
+    <!-- Error -->
+    <div th:if="${session.flushErrorMessage != null}" th:remove="tag">
+        <div class="flex items-center justify-between rounded-lg border border-red-300 bg-red-700 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-red-400/30">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-triangle-exclamation text-white text-lg"></i>
+                <span th:text="${session.flushErrorMessage}"></span>
+            </div>
+            <i class="fa fa-xmark text-white text-lg cursor-pointer removeFlushMsg"></i>
+        </div>
+    </div>
+
+    <!-- Warning -->
+    <div th:if="${session.flushWarningMessage != null}" th:remove="tag">
+        <div class="flex items-center justify-between rounded-lg border border-yellow-300 bg-yellow-100 px-4 py-3 text-sm font-semibold text-yellow-800 shadow-lg shadow-yellow-300/50">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-triangle-exclamation text-yellow-600 text-lg"></i>
+                <span th:text="${session.flushWarningMessage}"></span>
+            </div>
+            <i class="fa fa-xmark text-yellow-600 text-lg cursor-pointer removeFlushMsg"></i>
+        </div>
+    </div>
+
+    <!-- Info -->
+    <div th:if="${session.flushInfoMessage != null}" th:remove="tag">
+        <div class="flex items-center justify-between rounded-lg border border-blue-300 bg-blue-100 px-4 py-3 text-sm font-semibold text-blue-800 shadow-lg shadow-blue-300/50">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-circle-info text-blue-600 text-lg"></i>
+                <span th:text="${session.flushInfoMessage}"></span>
+            </div>
+            <i class="fa fa-xmark text-blue-600 text-lg cursor-pointer removeFlushMsg"></i>
+        </div>
+    </div>
+
+    <div th:text="${@sessionService.removeFlushMessageFromSession()}" th:remove="tag"></div>
+</div>

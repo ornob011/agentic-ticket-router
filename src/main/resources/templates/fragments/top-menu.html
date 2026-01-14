@@ -1,0 +1,32 @@
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+
+<div th:fragment="top-menu">
+    <header id="header" class="w-full bg-white py-4 border-b border-neutral-300 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 flex items-center justify-between">
+            <a href="/"
+               class="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center hover:opacity-90 transition">
+                <img src="/images/govt-logo.png" alt="সরকারি লোগো" class="w-full h-full object-contain">
+            </a>
+
+            <h1 class="text-2xl md:text-3xl text-black font-semibold leading-tight text-center">
+                বেসরকারি শিক্ষা প্রতিষ্ঠান শিক্ষক ও কর্মচারী অবসর সুবিধা বোর্ড
+            </h1>
+
+            <th:block sec:authorize="isAuthenticated()">
+                <form th:action="@{/logout}" method="post" class="w-16 h-16 flex items-center justify-center">
+                    <button type="submit"
+                            class="w-16 h-16 border border-neutral-400 bg-neutral-100 hover:bg-neutral-200 rounded-full flex flex-col items-center justify-center text-neutral-700 text-xs transition">
+                        <i class="fas fa-sign-out-alt text-lg"></i>
+                        <span class="mt-1">লগআউট</span>
+                    </button>
+                </form>
+            </th:block>
+
+            <th:block sec:authorize="!isAuthenticated()">
+                <div class="w-16 h-16"></div>
+            </th:block>
+        </div>
+    </header>
+</div>
+</html>

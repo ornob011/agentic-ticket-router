@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/common-head :: common-head}">
+    <title th:text="#{page.title.error.403}">403 Forbidden</title>
+</head>
+
+<body>
+<div>
+    <div th:insert="~{fragments/top-menu :: top-menu}"></div>
+
+    <div class="w-full bg-gray-100 min-h-screen flex flex-col justify-center items-center text-center py-12">
+
+        <h1 class="text-9xl text-yellow-600 font-bold">403</h1>
+
+        <p class="text-2xl text-gray-500 mb-6" th:text="#{error.403.title}">Access Denied</p>
+
+        <a href="/" class="bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition-colors flex items-center gap-2 px-4 py-2">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span th:text="#{button.back.to.home}">Back to Home</span>
+        </a>
+
+        <div class="mt-12">
+            <img src="/images/error-background.png" th:alt="#{image.alt.error}" alt="Error image" class="max-w-full h-auto" style="max-height: 300px;">
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
