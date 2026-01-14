@@ -1,0 +1,606 @@
+-- =====================================================
+-- Agentic Router Support Ticket System - PostgreSQL DDL
+-- =====================================================
+
+-- Drop existing objects (in reverse dependency order)
+DROP TABLE IF EXISTS notification CASCADE;
+DROP TABLE IF EXISTS audit_event CASCADE;
+DROP TABLE IF EXISTS ticket_routing CASCADE;
+DROP TABLE IF EXISTS ticket_message CASCADE;
+DROP TABLE IF EXISTS escalation CASCADE;
+DROP TABLE IF EXISTS llm_output CASCADE;
+DROP TABLE IF EXISTS support_ticket CASCADE;
+DROP TABLE IF EXISTS customer_profile CASCADE;
+DROP TABLE IF EXISTS app_user CASCADE;
+DROP TABLE IF EXISTS model_registry CASCADE;
+DROP TABLE IF EXISTS policy_config CASCADE;
+DROP TABLE IF EXISTS customer_tier CASCADE;
+DROP TABLE IF EXISTS country CASCADE;
+DROP TABLE IF EXISTS language CASCADE;
+
+-- Drop existing types
+DROP TYPE IF EXISTS user_role CASCADE;
+DROP TYPE IF EXISTS ticket_status CASCADE;
+DROP TYPE IF EXISTS ticket_category CASCADE;
+DROP TYPE IF EXISTS ticket_priority CASCADE;
+DROP TYPE IF EXISTS ticket_queue CASCADE;
+DROP TYPE IF EXISTS next_action CASCADE;
+DROP TYPE IF EXISTS message_kind CASCADE;
+DROP TYPE IF EXISTS parse_status CASCADE;
+DROP TYPE IF EXISTS audit_event_type CASCADE;
+DROP TYPE IF EXISTS notification_type CASCADE;
+DROP TYPE IF EXISTS config_value_type CASCADE;
+
+-- Drop sequences
+DROP SEQUENCE IF EXISTS support_ticket_ticket_no_seq CASCADE;
+
+-- =====================================================
+-- ENUM TYPES
+-- =====================================================
+
+CREATE TYPE user_role AS ENUM (
+  'CUSTOMER',
+  'AGENT',
+  'SUPERVISOR',
+  'ADMIN'
+  );
+
+CREATE TYPE ticket_status AS ENUM (
+  'RECEIVED',
+  'TRIAGING',
+  'WAITING_CUSTOMER',
+  'ASSIGNED',
+  'IN_PROGRESS',
+  'RESOLVED',
+  'ESCALATED',
+  'AUTO_CLOSED_PENDING',
+  'CLOSED'
+  );
+
+CREATE TYPE ticket_category AS ENUM (
+  'BILLING',
+  'TECHNICAL',
+  'ACCOUNT',
+  'SHIPPING',
+  'SECURITY',
+  'OTHER'
+  );
+
+CREATE TYPE ticket_priority AS ENUM (
+  'CRITICAL',
+  'HIGH',
+  'MEDIUM',
+  'LOW'
+  );
+
+CREATE TYPE ticket_queue AS ENUM (
+  'BILLING_Q',
+  'TECH_Q',
+  'OPS_Q',
+  'SECURITY_Q',
+  'ACCOUNT_Q',
+  'GENERAL_Q'
+  );
+
+CREATE TYPE next_action AS ENUM (
+  'AUTO_REPLY',
+  'ASK_CLARIFYING',
+  'ASSIGN_QUEUE',
+  'ESCALATE',
+  'HUMAN_REVIEW'
+  );
+
+CREATE TYPE message_kind AS ENUM (
+  'CUSTOMER_MESSAGE',
+  'AGENT_MESSAGE',
+  'SYSTEM_MESSAGE',
+  'CLARIFYING_QUESTION',
+  'AUTO_REPLY',
+  'INTERNAL_NOTE'
+  );
+
+CREATE TYPE parse_status AS ENUM (
+  'SUCCESS',
+  'INVALID_JSON',
+  'INVALID_ENUM',
+  'SCHEMA_VIOLATION',
+  'REPAIR_ATTEMPTED',
+  'REPAIR_SUCCESS',
+  'REPAIR_FAILED',
+  'TIMEOUT',
+  'MODEL_ERROR'
+  );
+
+CREATE TYPE audit_event_type AS ENUM (
+  'TICKET_CREATED',
+  'TICKET_STATUS_CHANGED',
+  'MESSAGE_POSTED',
+  'ROUTING_EXECUTED',
+  'ROUTING_OVERRIDDEN',
+  'QUEUE_ASSIGNED',
+  'AGENT_ASSIGNED',
+  'ESCALATION_CREATED',
+  'PRIORITY_CHANGED',
+  'NOTIFICATION_SENT',
+  'SLA_BREACH',
+  'AUTO_CLOSE_TRIGGERED',
+  'TICKET_REOPENED',
+  'POLICY_GATE_TRIGGERED',
+  'MODEL_INFERENCE_FAILED',
+  'MANUAL_INTERVENTION'
+  );
+
+CREATE TYPE notification_type AS ENUM (
+  'TICKET_ACK',
+  'STATUS_CHANGE',
+  'NEW_MESSAGE',
+  'SLA_REMINDER',
+  'ESCALATION',
+  'AUTO_CLOSE_WARNING',
+  'TICKET_REOPENED',
+  'ASSIGNED_TO_YOU'
+  );
+
+CREATE TYPE config_value_type AS ENUM (
+  'DOUBLE',
+  'INTEGER',
+  'LONG',
+  'BOOLEAN',
+  'STRING',
+  'JSON'
+  );
+
+-- =====================================================
+-- REFERENCE TABLES
+-- =====================================================
+
+-- Language table
+CREATE TABLE language
+(
+  code VARCHAR(10)  NOT NULL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+
+  CONSTRAINT chk_language_code_format CHECK (code ~ '^[a-z]{2}(-[A-Z]{2})?$')
+);
+
+CREATE INDEX idx_language_name ON language (name);
+
+COMMENT ON TABLE language IS 'ISO language codes and names';
+COMMENT ON COLUMN language.code IS 'Language code in format: en, bn, or en-GB';
+
+-- Country table
+CREATE TABLE country
+(
+  iso2   CHAR(2)      NOT NULL PRIMARY KEY,
+  name   VARCHAR(100) NOT NULL,
+  active BOOLEAN      NOT NULL DEFAULT true,
+
+  CONSTRAINT chk_country_iso2_format CHECK (iso2 ~ '^[A-Za-z]{2}$')
+);
+
+CREATE INDEX idx_country_name ON country (name);
+CREATE INDEX idx_country_active ON country (active);
+
+COMMENT ON TABLE country IS 'ISO 3166-1 alpha-2 country codes';
+
+-- Customer Tier table
+CREATE TABLE customer_tier
+(
+  code         VARCHAR(50)  NOT NULL PRIMARY KEY,
+  display_name VARCHAR(100) NOT NULL,
+  active       BOOLEAN      NOT NULL DEFAULT true,
+
+  CONSTRAINT chk_customer_tier_code_format CHECK (code ~ '^[A-Z0-9_]+$')
+);
+
+CREATE INDEX idx_customer_tier_active ON customer_tier (active);
+
+COMMENT ON TABLE customer_tier IS 'Customer service tier levels (FREE, STANDARD, PREMIUM, etc.)';
+
+-- =====================================================
+-- CORE APPLICATION TABLES
+-- =====================================================
+
+-- App User table
+CREATE TABLE app_user
+(
+  id             UUID         NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  row_version    BIGINT       NOT NULL DEFAULT 0,
+  created_at     TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at     TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by     VARCHAR(100),
+  updated_by     VARCHAR(100),
+
+  username       VARCHAR(50)  NOT NULL UNIQUE,
+  email          VARCHAR(100) NOT NULL UNIQUE,
+  password_hash  VARCHAR(255) NOT NULL,
+  full_name      VARCHAR(100),
+  role           user_role    NOT NULL,
+  active         BOOLEAN      NOT NULL DEFAULT true,
+  email_verified BOOLEAN      NOT NULL DEFAULT false,
+  last_login_at  TIMESTAMPTZ,
+  last_login_ip  VARCHAR(45)
+);
+
+CREATE UNIQUE INDEX idx_app_user_email ON app_user (email);
+CREATE UNIQUE INDEX idx_app_user_username ON app_user (username);
+CREATE INDEX idx_app_user_role ON app_user (role);
+CREATE INDEX idx_app_user_active_role ON app_user (active, role);
+
+COMMENT ON TABLE app_user IS 'Application users including customers, agents, supervisors, and admins';
+COMMENT ON COLUMN app_user.password_hash IS 'Bcrypt or similar hashed password';
+
+-- Customer Profile table
+CREATE TABLE customer_profile
+(
+  id                      UUID        NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  row_version             BIGINT      NOT NULL DEFAULT 0,
+  created_at              TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at              TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by              VARCHAR(100),
+  updated_by              VARCHAR(100),
+
+  user_id                 UUID        NOT NULL UNIQUE,
+  company_name            VARCHAR(100),
+  phone_number            VARCHAR(20),
+  address                 VARCHAR(255),
+  city                    VARCHAR(100),
+  country_iso2            CHAR(2),
+  postal_code             VARCHAR(20),
+  tier_code               VARCHAR(50),
+  preferred_language_code VARCHAR(10),
+  notifications_enabled   BOOLEAN     NOT NULL DEFAULT true,
+
+  CONSTRAINT fk_customer_profile_user FOREIGN KEY (user_id)
+    REFERENCES app_user (id) ON DELETE CASCADE,
+  CONSTRAINT fk_customer_profile_country FOREIGN KEY (country_iso2)
+    REFERENCES country (iso2) ON DELETE SET NULL,
+  CONSTRAINT fk_customer_profile_tier FOREIGN KEY (tier_code)
+    REFERENCES customer_tier (code) ON DELETE SET NULL,
+  CONSTRAINT fk_customer_profile_language FOREIGN KEY (preferred_language_code)
+    REFERENCES language (code) ON DELETE SET NULL
+);
+
+CREATE UNIQUE INDEX idx_customer_profile_user_id ON customer_profile (user_id);
+CREATE INDEX idx_customer_profile_country ON customer_profile (country_iso2);
+CREATE INDEX idx_customer_profile_tier ON customer_profile (tier_code);
+
+COMMENT ON TABLE customer_profile IS 'Extended profile information for customer users';
+
+-- Policy Config table
+CREATE TABLE policy_config
+(
+  id            UUID              NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  row_version   BIGINT            NOT NULL DEFAULT 0,
+  created_at    TIMESTAMPTZ       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    TIMESTAMPTZ       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by    VARCHAR(100),
+  updated_by    VARCHAR(100),
+
+  config_key    VARCHAR(100)      NOT NULL UNIQUE,
+  config_value  VARCHAR(500)      NOT NULL,
+  value_type    config_value_type NOT NULL,
+  description   TEXT,
+  active        BOOLEAN           NOT NULL DEFAULT true,
+  default_value VARCHAR(500),
+  min_value     VARCHAR(50),
+  max_value     VARCHAR(50)
+);
+
+CREATE INDEX idx_policy_config_active ON policy_config (active);
+
+COMMENT ON TABLE policy_config IS 'System-wide policy configuration settings';
+COMMENT ON COLUMN policy_config.config_key IS 'Unique configuration key (e.g., AUTO_CLOSE_DAYS, CONFIDENCE_THRESHOLD)';
+
+-- Model Registry table
+CREATE TABLE model_registry
+(
+  id                  UUID         NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  row_version         BIGINT       NOT NULL DEFAULT 0,
+  created_at          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by          VARCHAR(100),
+  updated_by          VARCHAR(100),
+
+  model_tag           VARCHAR(100) NOT NULL UNIQUE,
+  model_name          VARCHAR(200) NOT NULL,
+  version             VARCHAR(50)  NOT NULL,
+  description         TEXT,
+  base_model          VARCHAR(50),
+  training_method     VARCHAR(50),
+  quantization        VARCHAR(50),
+  artifact_path       VARCHAR(500),
+  active              BOOLEAN      NOT NULL DEFAULT false,
+  is_default          BOOLEAN      NOT NULL DEFAULT false,
+  activated_at        TIMESTAMPTZ,
+  deactivated_at      TIMESTAMPTZ,
+  activated_by_id     UUID,
+  performance_metrics JSONB,
+  model_config        JSONB,
+
+  CONSTRAINT fk_model_registry_activated_by FOREIGN KEY (activated_by_id)
+    REFERENCES app_user (id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_model_registry_active ON model_registry (active);
+CREATE INDEX idx_model_registry_active_default ON model_registry (active, is_default);
+
+COMMENT ON TABLE model_registry IS 'Registry of AI models used for ticket routing and classification';
+
+-- Support Ticket table
+CREATE SEQUENCE support_ticket_ticket_no_seq START WITH 1 INCREMENT BY 1;
+
+CREATE TABLE support_ticket
+(
+  id                        UUID            NOT NULL        DEFAULT gen_random_uuid() PRIMARY KEY,
+  row_version               BIGINT          NOT NULL        DEFAULT 0,
+  created_at                TIMESTAMPTZ     NOT NULL        DEFAULT CURRENT_TIMESTAMP,
+  updated_at                TIMESTAMPTZ     NOT NULL        DEFAULT CURRENT_TIMESTAMP,
+  created_by                VARCHAR(100),
+  updated_by                VARCHAR(100),
+
+  ticket_no                 BIGINT          NOT NULL UNIQUE DEFAULT nextval('support_ticket_ticket_no_seq'),
+  customer_id               UUID            NOT NULL,
+  subject                   VARCHAR(255)    NOT NULL,
+  status                    ticket_status   NOT NULL        DEFAULT 'RECEIVED',
+  current_category          ticket_category,
+  current_priority          ticket_priority NOT NULL        DEFAULT 'MEDIUM',
+  assigned_queue            ticket_queue,
+  assigned_agent_id         UUID,
+  last_activity_at          TIMESTAMPTZ     NOT NULL        DEFAULT CURRENT_TIMESTAMP,
+  first_assigned_at         TIMESTAMPTZ,
+  resolved_at               TIMESTAMPTZ,
+  closed_at                 TIMESTAMPTZ,
+  reopen_count              INT             NOT NULL        DEFAULT 0,
+  escalated                 BOOLEAN         NOT NULL        DEFAULT false,
+  latest_routing_confidence NUMERIC(5, 4),
+  latest_routing_version    INT             NOT NULL        DEFAULT 0,
+  metadata                  JSONB,
+
+  CONSTRAINT fk_support_ticket_customer FOREIGN KEY (customer_id)
+    REFERENCES app_user (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_support_ticket_assigned_agent FOREIGN KEY (assigned_agent_id)
+    REFERENCES app_user (id) ON DELETE SET NULL,
+  CONSTRAINT chk_support_ticket_confidence_range
+    CHECK (latest_routing_confidence IS NULL OR
+           (latest_routing_confidence >= 0 AND latest_routing_confidence <= 1))
+);
+
+CREATE UNIQUE INDEX idx_support_ticket_ticket_no ON support_ticket (ticket_no);
+CREATE INDEX idx_support_ticket_customer_id ON support_ticket (customer_id);
+CREATE INDEX idx_support_ticket_status ON support_ticket (status);
+CREATE INDEX idx_support_ticket_assigned_queue ON support_ticket (assigned_queue);
+CREATE INDEX idx_support_ticket_current_priority ON support_ticket (current_priority);
+CREATE INDEX idx_support_ticket_last_activity_at ON support_ticket (last_activity_at);
+CREATE INDEX idx_support_ticket_assigned_agent_id ON support_ticket (assigned_agent_id);
+CREATE INDEX idx_support_ticket_status_queue_priority ON support_ticket (status, assigned_queue, current_priority);
+CREATE INDEX idx_support_ticket_customer_created ON support_ticket (customer_id, created_at);
+
+COMMENT ON TABLE support_ticket IS 'Main support ticket entity';
+COMMENT ON COLUMN support_ticket.ticket_no IS 'Human-readable sequential ticket number';
+
+-- LLM Output table
+CREATE TABLE llm_output
+(
+  id               UUID         NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  row_version      BIGINT       NOT NULL DEFAULT 0,
+  created_at       TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at       TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by       VARCHAR(100),
+  updated_by       VARCHAR(100),
+
+  ticket_id        UUID         NOT NULL,
+  model_tag        VARCHAR(100) NOT NULL,
+  raw_request      JSONB        NOT NULL,
+  raw_response     JSONB,
+  parse_status     parse_status NOT NULL,
+  error_message    TEXT,
+  latency_ms       BIGINT,
+  repair_attempts  INT          NOT NULL DEFAULT 0,
+  temperature      DOUBLE PRECISION,
+  max_tokens       INT,
+  inference_config JSONB,
+
+  CONSTRAINT fk_llm_output_ticket FOREIGN KEY (ticket_id)
+    REFERENCES support_ticket (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_llm_output_ticket_id ON llm_output (ticket_id);
+CREATE INDEX idx_llm_output_created_at ON llm_output (created_at);
+CREATE INDEX idx_llm_output_parse_status ON llm_output (parse_status);
+CREATE INDEX idx_llm_output_model_tag ON llm_output (model_tag);
+
+COMMENT ON TABLE llm_output IS 'LLM inference requests and responses for ticket analysis';
+
+-- Ticket Message table
+CREATE TABLE ticket_message
+(
+  id                  UUID         NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  row_version         BIGINT       NOT NULL DEFAULT 0,
+  created_at          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at          TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by          VARCHAR(100),
+  updated_by          VARCHAR(100),
+
+  ticket_id           UUID         NOT NULL,
+  author_id           UUID,
+  message_kind        message_kind NOT NULL,
+  content             TEXT         NOT NULL,
+  visible_to_customer BOOLEAN      NOT NULL DEFAULT true,
+  llm_output_id       UUID,
+  read_by_customer    BOOLEAN      NOT NULL DEFAULT false,
+  read_by_agent       BOOLEAN      NOT NULL DEFAULT false,
+
+  CONSTRAINT fk_ticket_message_ticket FOREIGN KEY (ticket_id)
+    REFERENCES support_ticket (id) ON DELETE CASCADE,
+  CONSTRAINT fk_ticket_message_author FOREIGN KEY (author_id)
+    REFERENCES app_user (id) ON DELETE SET NULL,
+  CONSTRAINT fk_ticket_message_llm_output FOREIGN KEY (llm_output_id)
+    REFERENCES llm_output (id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_ticket_message_ticket_id ON ticket_message (ticket_id);
+CREATE INDEX idx_ticket_message_created_at ON ticket_message (created_at);
+CREATE INDEX idx_ticket_message_ticket_created ON ticket_message (ticket_id, created_at);
+
+COMMENT ON TABLE ticket_message IS 'Messages and communications on support tickets';
+
+-- Ticket Routing table
+CREATE TABLE ticket_routing
+(
+  id                    UUID            NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  row_version           BIGINT          NOT NULL DEFAULT 0,
+  created_at            TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at            TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by            VARCHAR(100),
+  updated_by            VARCHAR(100),
+
+  ticket_id             UUID            NOT NULL,
+  version               INT             NOT NULL,
+  llm_output_id         UUID,
+  category              ticket_category NOT NULL,
+  priority              ticket_priority NOT NULL,
+  queue                 ticket_queue    NOT NULL,
+  next_action           next_action     NOT NULL,
+  confidence            NUMERIC(5, 4)   NOT NULL,
+  clarifying_question   TEXT,
+  draft_reply           TEXT,
+  rationale_tags        JSONB                    DEFAULT '[]'::jsonb,
+  overridden            BOOLEAN         NOT NULL DEFAULT false,
+  overridden_by_id      UUID,
+  override_reason       TEXT,
+  policy_gate_triggered BOOLEAN         NOT NULL DEFAULT false,
+  triggered_policy_name VARCHAR(100),
+  applied               BOOLEAN         NOT NULL DEFAULT false,
+  metadata              JSONB,
+
+  CONSTRAINT fk_ticket_routing_ticket FOREIGN KEY (ticket_id)
+    REFERENCES support_ticket (id) ON DELETE CASCADE,
+  CONSTRAINT fk_ticket_routing_llm_output FOREIGN KEY (llm_output_id)
+    REFERENCES llm_output (id) ON DELETE SET NULL,
+  CONSTRAINT fk_ticket_routing_overridden_by FOREIGN KEY (overridden_by_id)
+    REFERENCES app_user (id) ON DELETE SET NULL,
+  CONSTRAINT chk_ticket_routing_confidence_range
+    CHECK (confidence >= 0 AND confidence <= 1)
+);
+
+CREATE INDEX idx_ticket_routing_ticket_id ON ticket_routing (ticket_id);
+CREATE UNIQUE INDEX idx_ticket_routing_ticket_version ON ticket_routing (ticket_id, version);
+CREATE INDEX idx_ticket_routing_llm_output_id ON ticket_routing (llm_output_id);
+
+COMMENT ON TABLE ticket_routing IS 'AI routing decisions and overrides for tickets';
+COMMENT ON COLUMN ticket_routing.version IS 'Routing version number for this ticket (incremental)';
+
+-- Escalation table
+CREATE TABLE escalation
+(
+  id                     UUID        NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  row_version            BIGINT      NOT NULL DEFAULT 0,
+  created_at             TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at             TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by             VARCHAR(100),
+  updated_by             VARCHAR(100),
+
+  ticket_id              UUID        NOT NULL UNIQUE,
+  reason                 TEXT        NOT NULL,
+  assigned_supervisor_id UUID,
+  resolved               BOOLEAN     NOT NULL DEFAULT false,
+  resolved_at            TIMESTAMPTZ,
+  resolution_notes       TEXT,
+  resolved_by_id         UUID,
+
+  CONSTRAINT fk_escalation_ticket FOREIGN KEY (ticket_id)
+    REFERENCES support_ticket (id) ON DELETE CASCADE,
+  CONSTRAINT fk_escalation_supervisor FOREIGN KEY (assigned_supervisor_id)
+    REFERENCES app_user (id) ON DELETE SET NULL,
+  CONSTRAINT fk_escalation_resolved_by FOREIGN KEY (resolved_by_id)
+    REFERENCES app_user (id) ON DELETE SET NULL
+);
+
+CREATE UNIQUE INDEX idx_escalation_ticket_id ON escalation (ticket_id);
+CREATE INDEX idx_escalation_assigned_supervisor_id ON escalation (assigned_supervisor_id);
+CREATE INDEX idx_escalation_resolved ON escalation (resolved);
+
+COMMENT ON TABLE escalation IS 'Ticket escalations to supervisors or specialized teams';
+
+-- Audit Event table
+CREATE TABLE audit_event
+(
+  id              UUID             NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  row_version     BIGINT           NOT NULL DEFAULT 0,
+  created_at      TIMESTAMPTZ      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMPTZ      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by      VARCHAR(100),
+  updated_by      VARCHAR(100),
+
+  ticket_id       UUID,
+  event_type      audit_event_type NOT NULL,
+  performed_by_id UUID,
+  description     TEXT             NOT NULL,
+  payload         JSONB,
+  ip_address      VARCHAR(45),
+  user_agent      VARCHAR(500),
+  correlation_id  VARCHAR(100),
+
+  CONSTRAINT fk_audit_event_ticket FOREIGN KEY (ticket_id)
+    REFERENCES support_ticket (id) ON DELETE CASCADE,
+  CONSTRAINT fk_audit_event_performed_by FOREIGN KEY (performed_by_id)
+    REFERENCES app_user (id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_audit_event_ticket_id ON audit_event (ticket_id);
+CREATE INDEX idx_audit_event_event_type ON audit_event (event_type);
+CREATE INDEX idx_audit_event_performed_by_id ON audit_event (performed_by_id);
+CREATE INDEX idx_audit_event_created_at ON audit_event (created_at);
+CREATE INDEX idx_audit_event_ticket_created ON audit_event (ticket_id, created_at);
+
+COMMENT ON TABLE audit_event IS 'Audit trail of all significant system events and user actions';
+
+-- Notification table
+CREATE TABLE notification
+(
+  id                UUID              NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  row_version       BIGINT            NOT NULL DEFAULT 0,
+  created_at        TIMESTAMPTZ       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at        TIMESTAMPTZ       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by        VARCHAR(100),
+  updated_by        VARCHAR(100),
+
+  recipient_id      UUID              NOT NULL,
+  notification_type notification_type NOT NULL,
+  title             VARCHAR(255)      NOT NULL,
+  body              TEXT              NOT NULL,
+  ticket_id         UUID,
+  link              VARCHAR(500),
+  read              BOOLEAN           NOT NULL DEFAULT false,
+  read_at           TIMESTAMPTZ,
+
+  CONSTRAINT fk_notification_recipient FOREIGN KEY (recipient_id)
+    REFERENCES app_user (id) ON DELETE CASCADE,
+  CONSTRAINT fk_notification_ticket FOREIGN KEY (ticket_id)
+    REFERENCES support_ticket (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_notification_recipient_id ON notification (recipient_id);
+CREATE INDEX idx_notification_read ON notification (read);
+CREATE INDEX idx_notification_created_at ON notification (created_at);
+CREATE INDEX idx_notification_recipient_read ON notification (recipient_id, read, created_at);
+CREATE INDEX idx_notification_ticket_id ON notification (ticket_id);
+
+COMMENT ON TABLE notification IS 'User notifications for ticket events and system updates';
+
+-- =====================================================
+-- COMMENTS ON ENUMS
+-- =====================================================
+
+COMMENT ON TYPE user_role IS 'User roles: CUSTOMER, AGENT, SUPERVISOR, ADMIN';
+COMMENT ON TYPE ticket_status IS 'Ticket lifecycle states';
+COMMENT ON TYPE ticket_category IS 'Ticket classification categories';
+COMMENT ON TYPE ticket_priority IS 'Ticket priority levels';
+COMMENT ON TYPE ticket_queue IS 'Agent queues for ticket routing';
+COMMENT ON TYPE next_action IS 'AI-recommended next action for ticket';
+COMMENT ON TYPE message_kind IS 'Type of message (customer, agent, system, etc.)';
+COMMENT ON TYPE parse_status IS 'LLM output parsing and validation status';
+COMMENT ON TYPE audit_event_type IS 'Types of auditable events in the system';
+COMMENT ON TYPE notification_type IS 'Types of user notifications';
+COMMENT ON TYPE config_value_type IS 'Data type for policy configuration values';
