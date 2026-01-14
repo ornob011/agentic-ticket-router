@@ -18,7 +18,7 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
     public void handle(
         HttpServletRequest request,
         HttpServletResponse response,
-        AccessDeniedException exc
+        AccessDeniedException exception
     ) throws IOException {
         String requestURI = request.getRequestURI();
 

@@ -37,16 +37,16 @@ public class RestExceptionHandler {
 
     @ExceptionHandler(DataNotFoundException.class)
     public ProblemDetail handleDataNotFoundException(
-        DataNotFoundException ex,
+        DataNotFoundException exception,
         HttpServletRequest request
     ) {
-        logger.warn("DataNotFoundException: ", ex);
+        logger.warn("DataNotFoundException: ", exception);
 
         HttpStatus status = HttpStatus.NOT_FOUND;
         ProblemDetail problem = ProblemDetail.forStatus(status);
 
         problem.setTitle(status.getReasonPhrase());
-        problem.setDetail(ex.getMessage());
+        problem.setDetail(exception.getMessage());
         problem.setInstance(URI.create(request.getRequestURI()));
 
         return problem;
@@ -54,10 +54,10 @@ public class RestExceptionHandler {
 
     @ExceptionHandler({AccessDeniedException.class, AuthorizationDeniedException.class})
     public ProblemDetail handleAccessDenied(
-        Exception ex,
+        Exception exception,
         HttpServletRequest request
     ) {
-        logger.warn("Access denied: ", ex);
+        logger.warn("Access denied: ", exception);
 
         HttpStatus status = HttpStatus.FORBIDDEN;
         ProblemDetail problem = ProblemDetail.forStatus(status);
