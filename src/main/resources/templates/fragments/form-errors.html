@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+    <body>
+        <div
+            th:fragment="globalErrors"
+            th:if="${#fields.hasGlobalErrors()}"
+            class="p-4 bg-red-50 border border-red-200 rounded-lg"
+        >
+            <div class="flex items-start gap-3">
+                <div th:replace="~{fragments/icons :: alert}"></div>
+                <div>
+                    <p
+                        class="text-sm font-medium text-red-700"
+                        th:each="err : ${#fields.globalErrors()}"
+                        th:text="${err}"
+                    >
+                        Global error
+                    </p>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
