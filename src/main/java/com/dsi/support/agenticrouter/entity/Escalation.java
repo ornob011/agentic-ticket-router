@@ -9,22 +9,22 @@ import java.time.Instant;
 
 @Entity
 @Table(
-        name = "escalation",
-        indexes = {
-                @Index(
-                        name = "idx_escalation_ticket_id",
-                        columnList = "ticket_id",
-                        unique = true
-                ),
-                @Index(
-                        name = "idx_escalation_assigned_supervisor_id",
-                        columnList = "assigned_supervisor_id"
-                ),
-                @Index(
-                        name = "idx_escalation_resolved",
-                        columnList = "resolved"
-                )
-        }
+    name = "escalation",
+    indexes = {
+        @Index(
+            name = "idx_escalation_ticket_id",
+            columnList = "ticket_id",
+            unique = true
+        ),
+        @Index(
+            name = "idx_escalation_assigned_supervisor_id",
+            columnList = "assigned_supervisor_id"
+        ),
+        @Index(
+            name = "idx_escalation_resolved",
+            columnList = "resolved"
+        )
+    }
 )
 @Getter
 @Setter
@@ -36,25 +36,25 @@ public class Escalation extends BaseEntity {
     @NotNull(message = "Ticket is required")
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "ticket_id",
-            nullable = false,
-            unique = true,
-            foreignKey = @ForeignKey(name = "fk_escalation_ticket")
+        name = "ticket_id",
+        nullable = false,
+        unique = true,
+        foreignKey = @ForeignKey(name = "fk_escalation_ticket")
     )
     private SupportTicket ticket;
 
     @NotBlank(message = "Escalation reason is required")
     @Column(
-            name = "reason",
-            nullable = false,
-            columnDefinition = "text"
+        name = "reason",
+        nullable = false,
+        columnDefinition = "text"
     )
     private String reason;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "assigned_supervisor_id",
-            foreignKey = @ForeignKey(name = "fk_escalation_supervisor")
+        name = "assigned_supervisor_id",
+        foreignKey = @ForeignKey(name = "fk_escalation_supervisor")
     )
     private AppUser assignedSupervisor;
 
@@ -63,21 +63,21 @@ public class Escalation extends BaseEntity {
     private boolean resolved = false;
 
     @Column(
-            name = "resolved_at",
-            columnDefinition = "timestamptz"
+        name = "resolved_at",
+        columnDefinition = "timestamptz"
     )
     private Instant resolvedAt;
 
     @Column(
-            name = "resolution_notes",
-            columnDefinition = "text"
+        name = "resolution_notes",
+        columnDefinition = "text"
     )
     private String resolutionNotes;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "resolved_by_id",
-            foreignKey = @ForeignKey(name = "fk_escalation_resolved_by")
+        name = "resolved_by_id",
+        foreignKey = @ForeignKey(name = "fk_escalation_resolved_by")
     )
     private AppUser resolvedBy;
 
@@ -95,10 +95,10 @@ public class Escalation extends BaseEntity {
     @Override
     public String toString() {
         return "Escalation{" +
-                "id=" + getId() +
-                ", ticketId=" + (ticket != null ? ticket.getId() : null) +
-                ", resolved=" + resolved +
-                ", resolvedAt=" + resolvedAt +
-                '}';
+               "id=" + getId() +
+               ", ticketId=" + (ticket != null ? ticket.getId() : null) +
+               ", resolved=" + resolved +
+               ", resolvedAt=" + resolvedAt +
+               '}';
     }
 }

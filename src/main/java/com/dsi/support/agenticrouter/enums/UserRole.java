@@ -13,22 +13,22 @@ public enum UserRole {
     ADMIN("System administrator with full access");
 
     private static final Set<UserRole> AGENT_PORTAL_ACCESS =
-            EnumSet.of(
-                    AGENT,
-                    SUPERVISOR,
-                    ADMIN
-            );
+        EnumSet.of(
+            AGENT,
+            SUPERVISOR,
+            ADMIN
+        );
 
     private static final Set<UserRole> ROUTING_OVERRIDE =
-            EnumSet.of(
-                    SUPERVISOR,
-                    ADMIN
-            );
+        EnumSet.of(
+            SUPERVISOR,
+            ADMIN
+        );
 
     private static final Set<UserRole> POLICY_MANAGEMENT =
-            EnumSet.of(
-                    ADMIN
-            );
+        EnumSet.of(
+            ADMIN
+        );
 
     private final String description;
 

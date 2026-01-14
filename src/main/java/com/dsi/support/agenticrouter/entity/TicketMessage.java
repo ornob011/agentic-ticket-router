@@ -12,21 +12,21 @@ import java.util.Objects;
 
 @Entity
 @Table(
-        name = "ticket_message",
-        indexes = {
-                @Index(
-                        name = "idx_ticket_message_ticket_id",
-                        columnList = "ticket_id"
-                ),
-                @Index(
-                        name = "idx_ticket_message_created_at",
-                        columnList = "created_at"
-                ),
-                @Index(
-                        name = "idx_ticket_message_ticket_created",
-                        columnList = "ticket_id, created_at"
-                )
-        }
+    name = "ticket_message",
+    indexes = {
+        @Index(
+            name = "idx_ticket_message_ticket_id",
+            columnList = "ticket_id"
+        ),
+        @Index(
+            name = "idx_ticket_message_created_at",
+            columnList = "created_at"
+        ),
+        @Index(
+            name = "idx_ticket_message_ticket_created",
+            columnList = "ticket_id, created_at"
+        )
+    }
 )
 @Getter
 @Setter
@@ -38,16 +38,16 @@ public class TicketMessage extends BaseEntity {
     @NotNull(message = "Ticket is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "ticket_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "fk_ticket_message_ticket")
+        name = "ticket_id",
+        nullable = false,
+        foreignKey = @ForeignKey(name = "fk_ticket_message_ticket")
     )
     private SupportTicket ticket;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "author_id",
-            foreignKey = @ForeignKey(name = "fk_ticket_message_author")
+        name = "author_id",
+        foreignKey = @ForeignKey(name = "fk_ticket_message_author")
     )
     private AppUser author;
 
@@ -55,17 +55,17 @@ public class TicketMessage extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
-            name = "message_kind",
-            nullable = false,
-            columnDefinition = "message_kind"
+        name = "message_kind",
+        nullable = false,
+        columnDefinition = "message_kind"
     )
     private MessageKind messageKind;
 
     @NotBlank(message = "Content is required")
     @Column(
-            name = "content",
-            nullable = false,
-            columnDefinition = "text"
+        name = "content",
+        nullable = false,
+        columnDefinition = "text"
     )
     private String content;
 
@@ -75,8 +75,8 @@ public class TicketMessage extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "llm_output_id",
-            foreignKey = @ForeignKey(name = "fk_ticket_message_llm_output")
+        name = "llm_output_id",
+        foreignKey = @ForeignKey(name = "fk_ticket_message_llm_output")
     )
     private LlmOutput llmOutput;
 
@@ -107,11 +107,11 @@ public class TicketMessage extends BaseEntity {
     @Override
     public String toString() {
         return "TicketMessage{" +
-                "id=" + getId() +
-                ", ticketId=" + (ticket != null ? ticket.getId() : null) +
-                ", messageKind=" + messageKind +
-                ", visibleToCustomer=" + visibleToCustomer +
-                ", createdAt=" + getCreatedAt() +
-                '}';
+               "id=" + getId() +
+               ", ticketId=" + (ticket != null ? ticket.getId() : null) +
+               ", messageKind=" + messageKind +
+               ", visibleToCustomer=" + visibleToCustomer +
+               ", createdAt=" + getCreatedAt() +
+               '}';
     }
 }

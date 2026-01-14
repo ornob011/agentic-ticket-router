@@ -15,29 +15,29 @@ import java.util.Objects;
 
 @Entity
 @Table(
-        name = "audit_event",
-        indexes = {
-                @Index(
-                        name = "idx_audit_event_ticket_id",
-                        columnList = "ticket_id"
-                ),
-                @Index(
-                        name = "idx_audit_event_event_type",
-                        columnList = "event_type"
-                ),
-                @Index(
-                        name = "idx_audit_event_performed_by_id",
-                        columnList = "performed_by_id"
-                ),
-                @Index(
-                        name = "idx_audit_event_created_at",
-                        columnList = "created_at"
-                ),
-                @Index(
-                        name = "idx_audit_event_ticket_created",
-                        columnList = "ticket_id, created_at"
-                )
-        }
+    name = "audit_event",
+    indexes = {
+        @Index(
+            name = "idx_audit_event_ticket_id",
+            columnList = "ticket_id"
+        ),
+        @Index(
+            name = "idx_audit_event_event_type",
+            columnList = "event_type"
+        ),
+        @Index(
+            name = "idx_audit_event_performed_by_id",
+            columnList = "performed_by_id"
+        ),
+        @Index(
+            name = "idx_audit_event_created_at",
+            columnList = "created_at"
+        ),
+        @Index(
+            name = "idx_audit_event_ticket_created",
+            columnList = "ticket_id, created_at"
+        )
+    }
 )
 @Getter
 @Setter
@@ -48,8 +48,8 @@ public class AuditEvent extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "ticket_id",
-            foreignKey = @ForeignKey(name = "fk_audit_event_ticket")
+        name = "ticket_id",
+        foreignKey = @ForeignKey(name = "fk_audit_event_ticket")
     )
     private SupportTicket ticket;
 
@@ -57,31 +57,31 @@ public class AuditEvent extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
-            name = "event_type",
-            nullable = false,
-            columnDefinition = "audit_event_type"
+        name = "event_type",
+        nullable = false,
+        columnDefinition = "audit_event_type"
     )
     private AuditEventType eventType;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "performed_by_id",
-            foreignKey = @ForeignKey(name = "fk_audit_event_performed_by")
+        name = "performed_by_id",
+        foreignKey = @ForeignKey(name = "fk_audit_event_performed_by")
     )
     private AppUser performedBy;
 
     @NotBlank(message = "Description is required")
     @Column(
-            name = "description",
-            nullable = false,
-            columnDefinition = "text"
+        name = "description",
+        nullable = false,
+        columnDefinition = "text"
     )
     private String description;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(
-            name = "payload",
-            columnDefinition = "jsonb"
+        name = "payload",
+        columnDefinition = "jsonb"
     )
     private JsonNode payload;
 
@@ -96,7 +96,7 @@ public class AuditEvent extends BaseEntity {
 
     public boolean isSystemGenerated() {
         return Objects.isNull(performedBy) ||
-                (Objects.nonNull(eventType) && eventType.isSystemGenerated());
+               (Objects.nonNull(eventType) && eventType.isSystemGenerated());
     }
 
     public boolean isError() {
@@ -106,11 +106,11 @@ public class AuditEvent extends BaseEntity {
     @Override
     public String toString() {
         return "AuditEvent{" +
-                "id=" + getId() +
-                ", ticketId=" + (ticket != null ? ticket.getId() : null) +
-                ", eventType=" + eventType +
-                ", performedBy=" + (performedBy != null ? performedBy.getUsername() : "SYSTEM") +
-                ", createdAt=" + getCreatedAt() +
-                '}';
+               "id=" + getId() +
+               ", ticketId=" + (ticket != null ? ticket.getId() : null) +
+               ", eventType=" + eventType +
+               ", performedBy=" + (performedBy != null ? performedBy.getUsername() : "SYSTEM") +
+               ", createdAt=" + getCreatedAt() +
+               '}';
     }
 }

@@ -15,18 +15,18 @@ public enum MessageKind {
     INTERNAL_NOTE("Internal note (not visible to customer)");
 
     private static final Set<MessageKind> VISIBLE_TO_CUSTOMER =
-            EnumSet.complementOf(
-                    EnumSet.of(
-                            INTERNAL_NOTE
-                    )
-            );
+        EnumSet.complementOf(
+            EnumSet.of(
+                INTERNAL_NOTE
+            )
+        );
 
     private static final Set<MessageKind> AUTOMATED =
-            EnumSet.of(
-                    SYSTEM_MESSAGE,
-                    CLARIFYING_QUESTION,
-                    AUTO_REPLY
-            );
+        EnumSet.of(
+            SYSTEM_MESSAGE,
+            CLARIFYING_QUESTION,
+            AUTO_REPLY
+        );
 
     private final String description;
 

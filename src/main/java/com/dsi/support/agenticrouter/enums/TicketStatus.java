@@ -18,30 +18,30 @@ public enum TicketStatus {
     CLOSED("Ticket closed");
 
     private static final Set<TicketStatus> TERMINAL =
-            EnumSet.of(
-                    CLOSED
-            );
+        EnumSet.of(
+            CLOSED
+        );
 
     private static final Set<TicketStatus> CUSTOMER_ACTION_REQUIRED =
-            EnumSet.of(
-                    WAITING_CUSTOMER
-            );
+        EnumSet.of(
+            WAITING_CUSTOMER
+        );
 
     private static final Set<TicketStatus> AGENT_ACTION_REQUIRED =
-            EnumSet.of(
-                    ASSIGNED,
-                    IN_PROGRESS,
-                    ESCALATED
-            );
+        EnumSet.of(
+            ASSIGNED,
+            IN_PROGRESS,
+            ESCALATED
+        );
 
     private static final Set<TicketStatus> ACTIVE_WORK =
-            EnumSet.of(
-                    ASSIGNED,
-                    IN_PROGRESS,
-                    ESCALATED,
-                    WAITING_CUSTOMER,
-                    TRIAGING
-            );
+        EnumSet.of(
+            ASSIGNED,
+            IN_PROGRESS,
+            ESCALATED,
+            WAITING_CUSTOMER,
+            TRIAGING
+        );
 
     private final String description;
 

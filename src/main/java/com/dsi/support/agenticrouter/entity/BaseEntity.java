@@ -6,14 +6,12 @@ import lombok.Setter;
 import org.hibernate.Hibernate;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.annotations.UuidGenerator;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.util.Objects;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -38,33 +36,33 @@ public abstract class BaseEntity {
 
     @CreationTimestamp
     @Column(
-            name = "created_at",
-            nullable = false,
-            updatable = false,
-            columnDefinition = "timestamptz"
+        name = "created_at",
+        nullable = false,
+        updatable = false,
+        columnDefinition = "timestamptz"
     )
     private Instant createdAt;
 
     @UpdateTimestamp
     @Column(
-            name = "updated_at",
-            nullable = false,
-            columnDefinition = "timestamptz"
+        name = "updated_at",
+        nullable = false,
+        columnDefinition = "timestamptz"
     )
     private Instant updatedAt;
 
     @CreatedBy
     @Column(
-            name = "created_by",
-            updatable = false,
-            length = 100
+        name = "created_by",
+        updatable = false,
+        length = 100
     )
     private String createdBy;
 
     @LastModifiedBy
     @Column(
-            name = "updated_by",
-            length = 100
+        name = "updated_by",
+        length = 100
     )
     private String updatedBy;
 
@@ -89,19 +87,19 @@ public abstract class BaseEntity {
     @Override
     public final int hashCode() {
         return Objects.nonNull(getId())
-                ? getId().hashCode()
-                : System.identityHashCode(this);
+            ? getId().hashCode()
+            : System.identityHashCode(this);
     }
 
     @Override
     public String toString() {
         return "BaseEntity{" +
-                "id=" + id +
-                ", rowVersion=" + rowVersion +
-                ", createdAt=" + createdAt +
-                ", updatedAt=" + updatedAt +
-                ", createdBy='" + createdBy + '\'' +
-                ", updatedBy='" + updatedBy + '\'' +
-                '}';
+               "id=" + id +
+               ", rowVersion=" + rowVersion +
+               ", createdAt=" + createdAt +
+               ", updatedAt=" + updatedAt +
+               ", createdBy='" + createdBy + '\'' +
+               ", updatedBy='" + updatedBy + '\'' +
+               '}';
     }
 }

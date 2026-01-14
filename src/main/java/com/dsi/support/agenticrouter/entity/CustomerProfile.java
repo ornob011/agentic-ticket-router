@@ -7,22 +7,22 @@ import lombok.*;
 
 @Entity
 @Table(
-        name = "customer_profile",
-        indexes = {
-                @Index(
-                        name = "idx_customer_profile_user_id",
-                        columnList = "user_id",
-                        unique = true
-                ),
-                @Index(
-                        name = "idx_customer_profile_country",
-                        columnList = "country_iso2"
-                ),
-                @Index(
-                        name = "idx_customer_profile_tier",
-                        columnList = "tier_code"
-                )
-        }
+    name = "customer_profile",
+    indexes = {
+        @Index(
+            name = "idx_customer_profile_user_id",
+            columnList = "user_id",
+            unique = true
+        ),
+        @Index(
+            name = "idx_customer_profile_country",
+            columnList = "country_iso2"
+        ),
+        @Index(
+            name = "idx_customer_profile_tier",
+            columnList = "tier_code"
+        )
+    }
 )
 @Getter
 @Setter
@@ -34,24 +34,24 @@ public class CustomerProfile extends BaseEntity {
     @NotNull(message = "User is required")
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "user_id",
-            nullable = false,
-            unique = true,
-            foreignKey = @ForeignKey(name = "fk_customer_profile_user")
+        name = "user_id",
+        nullable = false,
+        unique = true,
+        foreignKey = @ForeignKey(name = "fk_customer_profile_user")
     )
     private AppUser user;
 
     @Size(max = 100)
     @Column(
-            name = "company_name",
-            length = 100
+        name = "company_name",
+        length = 100
     )
     private String companyName;
 
     @Size(max = 20)
     @Column(
-            name = "phone_number",
-            length = 20
+        name = "phone_number",
+        length = 20
     )
     private String phoneNumber;
 
@@ -65,29 +65,29 @@ public class CustomerProfile extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "country_iso2",
-            foreignKey = @ForeignKey(name = "fk_customer_profile_country")
+        name = "country_iso2",
+        foreignKey = @ForeignKey(name = "fk_customer_profile_country")
     )
     private Country country;
 
     @Size(max = 20)
     @Column(
-            name = "postal_code",
-            length = 20
+        name = "postal_code",
+        length = 20
     )
     private String postalCode;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "tier_code",
-            foreignKey = @ForeignKey(name = "fk_customer_profile_tier")
+        name = "tier_code",
+        foreignKey = @ForeignKey(name = "fk_customer_profile_tier")
     )
     private CustomerTier customerTier;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "preferred_language_code",
-            foreignKey = @ForeignKey(name = "fk_customer_profile_language")
+        name = "preferred_language_code",
+        foreignKey = @ForeignKey(name = "fk_customer_profile_language")
     )
     private Language preferredLanguage;
 
@@ -98,9 +98,9 @@ public class CustomerProfile extends BaseEntity {
     @Override
     public String toString() {
         return "CustomerProfile{" +
-                "id=" + getId() +
-                ", userId=" + (user != null ? user.getId() : null) +
-                ", companyName='" + companyName + '\'' +
-                '}';
+               "id=" + getId() +
+               ", userId=" + (user != null ? user.getId() : null) +
+               ", companyName='" + companyName + '\'' +
+               '}';
     }
 }

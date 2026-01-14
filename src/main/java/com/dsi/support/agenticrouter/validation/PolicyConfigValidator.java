@@ -10,52 +10,6 @@ import java.util.Objects;
 
 public class PolicyConfigValidator implements ConstraintValidator<ValidPolicyConfig, PolicyConfig> {
 
-    @Override
-    public boolean isValid(PolicyConfig policyConfig, ConstraintValidatorContext context) {
-        if (Objects.isNull(policyConfig)) {
-            return true;
-        }
-
-        ConfigValueType valueType = policyConfig.getValueType();
-        String rawValue = policyConfig.getConfigValue();
-
-        if (Objects.isNull(valueType) || Objects.isNull(rawValue)) {
-            return false;
-        }
-
-        String configValue = rawValue.trim();
-
-        if (configValue.isEmpty()) {
-            return false;
-        }
-
-        return switch (valueType) {
-            case DOUBLE -> isDecimalInRange(
-                configValue,
-                policyConfig.getMinValue(),
-                policyConfig.getMaxValue()
-            );
-
-            case INTEGER -> isIntegerInRange(
-                configValue,
-                policyConfig.getMinValue(),
-                policyConfig.getMaxValue()
-            );
-
-            case LONG -> isLongInRange(
-                configValue,
-                policyConfig.getMinValue(),
-                policyConfig.getMaxValue()
-            );
-
-            case BOOLEAN -> isBooleanLiteral(
-                configValue
-            );
-
-            case STRING, JSON -> true;
-        };
-    }
-
     private static boolean isBooleanLiteral(String configValue) {
         return "true".equalsIgnoreCase(configValue)
                || "false".equalsIgnoreCase(configValue);
@@ -203,5 +157,51 @@ public class PolicyConfigValidator implements ConstraintValidator<ValidPolicyCon
         }
 
         return parseLong(trimmed);
+    }
+
+    @Override
+    public boolean isValid(PolicyConfig policyConfig, ConstraintValidatorContext context) {
+        if (Objects.isNull(policyConfig)) {
+            return true;
+        }
+
+        ConfigValueType valueType = policyConfig.getValueType();
+        String rawValue = policyConfig.getConfigValue();
+
+        if (Objects.isNull(valueType) || Objects.isNull(rawValue)) {
+            return false;
+        }
+
+        String configValue = rawValue.trim();
+
+        if (configValue.isEmpty()) {
+            return false;
+        }
+
+        return switch (valueType) {
+            case DOUBLE -> isDecimalInRange(
+                configValue,
+                policyConfig.getMinValue(),
+                policyConfig.getMaxValue()
+            );
+
+            case INTEGER -> isIntegerInRange(
+                configValue,
+                policyConfig.getMinValue(),
+                policyConfig.getMaxValue()
+            );
+
+            case LONG -> isLongInRange(
+                configValue,
+                policyConfig.getMinValue(),
+                policyConfig.getMaxValue()
+            );
+
+            case BOOLEAN -> isBooleanLiteral(
+                configValue
+            );
+
+            case STRING, JSON -> true;
+        };
     }
 }
