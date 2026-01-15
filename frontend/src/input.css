@@ -155,8 +155,8 @@
 
 @font-face {
     font-family: 'Kalpurush';
-    src: url('/fonts/kalpurush.woff2') format('woff2'),
-    url('/fonts/kalpurush.ttf') format('truetype');
+    src: url('./assets/fonts/kalpurush.woff2') format('woff2'),
+    url('./assets/fonts/kalpurush.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
     font-display: swap;
@@ -164,7 +164,7 @@
 
 @layer base {
     html {
-        font-size: clamp(16px, 0.9vw + 13px, 16px);
+        font-size: clamp(16px, 0.9vw + 13px, 18px);
 
         -webkit-text-size-adjust: 100%;
         text-size-adjust: 100%;
@@ -219,6 +219,13 @@
     .no-scrollbar {
         -ms-overflow-style: none;  /* IE and Edge */
         scrollbar-width: none;  /* Firefox */
+    }
+
+    .force-visible {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        color: rgb(75 85 99) !important; /* Tailwind gray-600 */
     }
 }
 

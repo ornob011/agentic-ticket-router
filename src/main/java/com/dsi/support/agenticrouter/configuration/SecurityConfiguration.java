@@ -50,10 +50,12 @@ public class SecurityConfiguration {
                 .requestMatchers(
                     "/signup",
                     "/login",
+                    "/favicon.ico",
                     "/js/**",
                     "/css/**",
                     "/images/**",
                     "/webjars/**",
+                    "/fonts/**",
                     "/logout",
                     "/error",
                     "/dev/**"

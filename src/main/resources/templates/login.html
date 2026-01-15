@@ -1,106 +1,269 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="~{layouts/common-layout}" lang="en">
-
+<html
+    lang="en"
+    xmlns:th="http://www.thymeleaf.org"
+    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/common-layout}"
+>
 <head>
-    <title layout:fragment="title">Login</title>
+    <title layout:fragment="title">Sign In - SupportHub</title>
 </head>
 
 <body>
-
-<div layout:fragment="contentBody">
-    <main class="max-w-5xl mx-auto mt-8">
-<!--        <div id="usage-rules-button-container" class="flex justify-center mb-6">-->
-<!--            <button class="px-5 py-2 bg-neutral-600 text-white text-lg rounded-md hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-500">ব্যবহার বিধি</button>-->
-<!--        </div>-->
-
-        <!-- Error message -->
-        <div th:if="${param.error}"
-             class="bg-error-100 border border-error-400 text-error-700 px-4 py-3 rounded-md relative mb-6"
-             role="alert">
-            <strong class="font-bold" th:text="#{login.error.title}">Login Failed</strong>
-            <span class="block sm:inline" th:text="#{login.error.message}">Invalid index number or password.</span>
-        </div>
-
-        <div id="content-grid" class="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
-            <!-- Login Section -->
-            <section id="login-section" class="bg-white border border-neutral-300 rounded-lg shadow-md">
-                <header class="bg-section-header p-4 rounded-t-lg border-b border-neutral-300">
-                    <h2 class="text-xl text-neutral-800 flex items-center">
-                        <i class="fas fa-pen-to-square mr-3"></i> অ্যাপ্লিকেশন আপডেট এন্ড ট্রাকিং
-                    </h2>
-                </header>
-
-                <div class="p-6">
-                    <form method="POST" class="space-y-6">
-                        <div class="space-y-2">
-                            <label for="indexNumber" class="block text-lg text-neutral-700">ইনডেক্স নম্বর</label>
-                            <input type="text" id="indexNumber" name="indexNumber" class="w-full px-4 py-3 bg-white border border-neutral-300 rounded-md text-lg focus:outline-none focus:ring-2 focus:ring-neutral-400" placeholder="Index No." required>
+<main layout:fragment="contentBody">
+    <div class="min-h-0 flex items-start justify-center py-20 px-4 sm:px-6 lg:px-8">
+        <div class="w-full max-w-5xl">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-stretch">
+                <!-- LEFT CARD -->
+                <section
+                    class="rounded-xl border border-gray-200 bg-white shadow-sm p-6 sm:p-8 h-full flex flex-col"
+                    aria-label="Why SupportHub"
+                >
+                    <div>
+                        <div class="flex items-center gap-3 mb-5">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-md"
+                            >
+                                <div th:replace="~{fragments/icons :: logo}"></div>
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-bold text-gray-900">SupportHub</h2>
+                                <p class="text-sm text-gray-600">Faster support, cleaner workflows.</p>
+                            </div>
                         </div>
-                        <div class="space-y-2">
-                            <label for="password" class="block text-lg text-neutral-700">পাসওয়ার্ড</label>
-                            <input type="password" id="password" name="password" class="w-full px-4 py-3 bg-white border border-neutral-300 rounded-md text-lg focus:outline-none focus:ring-2 focus:ring-neutral-400" placeholder="Password" required>
+
+                        <div class="space-y-3 text-sm text-gray-700">
+                            <div class="flex gap-3">
+                                <div class="mt-2 h-2 w-2 rounded-full bg-blue-600"></div>
+                                <p><span class="font-medium">Track</span> tickets from open → resolved with clear status history.</p>
+                            </div>
+                            <div class="flex gap-3">
+                                <div class="mt-2 h-2 w-2 rounded-full bg-blue-600"></div>
+                                <p><span class="font-medium">Route</span> requests with structured categories and tiers.</p>
+                            </div>
+                            <div class="flex gap-3">
+                                <div class="mt-2 h-2 w-2 rounded-full bg-blue-600"></div>
+                                <p><span class="font-medium">Context</span> stays attached: customer info, tier, and prior tickets.</p>
+                            </div>
                         </div>
-                        <div class="flex items-center space-x-4 pt-2">
-                            <button type="submit" class="px-6 py-2 bg-primary-button text-white text-lg rounded-md hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-button">
-                                লগইন করুন
+
+                        <div class="mt-6 rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                            <p class="text-sm text-gray-700">
+                                New here?
+                                <a
+                                    th:href="@{/signup}"
+                                    class="text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors duration-200"
+                                >
+                                    Create an account
+                                </a>
+                                in under a minute.
+                            </p>
+                        </div>
+                    </div>
+
+                    <p class="mt-auto pt-6 text-xs text-gray-500">
+                        Tip: "Remember me" keeps you signed in on this device.
+                    </p>
+                </section>
+
+                <!-- RIGHT CARD -->
+                <section
+                    class="rounded-xl border border-gray-200 bg-white shadow-sm p-6 sm:p-8 h-full flex flex-col"
+                    aria-label="Sign in"
+                >
+                    <div class="text-center mb-6">
+                        <h1 class="text-2xl font-bold text-gray-900">Sign in</h1>
+                        <p class="mt-2 text-gray-600">Use your username and password to continue.</p>
+                    </div>
+
+                    <!-- Feedback banners -->
+                    <div
+                        th:if="${param.error}"
+                        class="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+                        role="alert"
+                    >
+                        <p class="font-semibold">We couldn't sign you in.</p>
+                        <p class="mt-1">Check your username/password and try again.</p>
+                    </div>
+
+                    <div
+                        th:if="${param.logout}"
+                        class="mb-5 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+                        role="status"
+                    >
+                        You've been signed out successfully.
+                    </div>
+
+                    <form method="post" class="space-y-6" novalidate>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="username" class="block text-sm font-medium text-gray-700">
+                                    Username
+                                </label>
+                                <div class="mt-1">
+                                    <input
+                                        id="username"
+                                        name="username"
+                                        type="text"
+                                        autocomplete="username"
+                                        required
+                                        autofocus
+                                        class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 shadow-sm
+                                               focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition"
+                                        placeholder="rahimahmed"
+                                        th:value="${param.username}"
+                                    />
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">Use the username you chose during sign up.</p>
+                            </div>
+
+                            <div>
+                                <div class="flex items-center justify-between">
+                                    <label for="password" class="block text-sm font-medium text-gray-700">
+                                        Password
+                                    </label>
+                                    <a
+                                        href="#"
+                                        class="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors duration-200"
+                                    >
+                                        Forgot password?
+                                    </a>
+                                </div>
+
+                                <div class="mt-1 relative">
+                                    <input
+                                        id="password"
+                                        name="password"
+                                        type="password"
+                                        autocomplete="current-password"
+                                        required
+                                        class="block w-full rounded-lg border border-gray-300 px-3 py-2 pr-24 text-gray-900 placeholder-gray-400 shadow-sm
+                                               focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition"
+                                        placeholder="••••••••"
+                                    />
+
+                                    <button
+                                        type="button"
+                                        id="togglePassword"
+                                        class="absolute inset-y-0 right-2 my-1 px-3 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100
+                                               focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        aria-controls="password"
+                                        aria-pressed="false"
+                                    >
+                                        Show
+                                    </button>
+                                </div>
+
+                                <p id="capsHint" class="mt-2 text-xs text-amber-700 hidden" aria-live="polite">
+                                    Caps Lock is on.
+                                </p>
+                            </div>
+
+                            <div class="flex items-center justify-between">
+                                <label class="flex items-center gap-2 text-sm text-gray-700 select-none">
+                                    <input
+                                        id="remember-me"
+                                        name="remember-me"
+                                        type="checkbox"
+                                        class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    Remember me
+                                </label>
+
+                                <span class="text-xs text-gray-500 hidden sm:inline">
+                                    Recommended on personal devices
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="pt-2 space-y-4">
+                            <button
+                                type="submit"
+                                class="w-full py-2.5 px-6 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm
+                                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
+                            >
+                                Continue
                             </button>
-<!--                            <button type="button" class="px-6 py-2 bg-neutral-700 text-white text-lg rounded-md hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-600">আবেদনের বিস্তারিত দেখুন</button>-->
+
+                            <div class="text-center text-sm text-gray-600">
+                                Don't have an account?
+                                <a
+                                    th:href="@{/signup}"
+                                    class="text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors duration-200"
+                                >
+                                    Create one
+                                </a>
+                            </div>
+
+                            <p class="text-center text-xs text-gray-500">
+                                By signing in, you agree to our
+                                <a href="#" class="text-blue-600 hover:text-blue-700 hover:underline">Terms</a>
+                                and
+                                <a href="#" class="text-blue-600 hover:text-blue-700 hover:underline">Privacy Policy</a>.
+                            </p>
                         </div>
                     </form>
-                </div>
-            </section>
 
-            <!-- Registration Section -->
-            <section id="registration-section" class="bg-white border border-neutral-300 rounded-lg shadow-md">
-                <header class="bg-section-header p-4 rounded-t-lg border-b border-neutral-300">
-                    <h2 class="text-xl text-neutral-800 flex items-center">
-                        <i class="fas fa-user-plus mr-3"></i> অনলাইন আবেদন
-                    </h2>
-                </header>
-                <div class="p-6 flex flex-col items-center justify-center space-y-6">
-                    <div class="w-48 h-48 bg-neutral-300 flex items-center justify-center rounded-lg">
-                        <img src="/images/apply.jpg" alt="অনলাইন আবেদন" class="w-full h-full object-contain">
-                    </div>
-                    <p class="text-lg text-neutral-700 text-center">ক্লিক করে আপনার রেজিস্ট্রেশন সম্পন্ন করুন।</p>
-
-                    <!-- Changed button to link -->
-                    <a href="/pre-registration"
-                       class="px-8 py-3 bg-primary-button text-white text-lg rounded-md hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-button inline-block text-center">
-                        অনলাইন আবেদন করুন
-                    </a>
-                </div>
-            </section>
-        </div>
-
-        <!-- Migration notice / alert -->
-        <section id="migration-notice"
-                 class="mt-6 mb-10 bg-warning-50 border border-warning-400 border-l-4 border-l-warning-600 text-warning-900 px-4 py-3 rounded-md">
-            <div class="flex items-start">
-                <div class="mt-1 mr-3">
-                    <i class="fas fa-exclamation-triangle text-warning-700"></i>
-                </div>
-                <div>
-                    <h3 class="text-base-content md:text-lg font-semibold mb-1">
-                        গুরুত্বপূর্ণ ঘোষণা (পুরাতন আবেদনকারীদের জন্য)
-                    </h3>
-                    <p class="text-sm md:text-base-content leading-relaxed">
-                        যে সকল শিক্ষক/কর্মচারী ইতিমধ্যে
-                        <span class="font-semibold">১৭/০৯/২০২৫</span>
-                        তারিখের আগে আবেদন করে রিসিট কপি ডাউনলোড করতে পেরেছেন
-                        তাদের নতুন করে আর আবেদন করার প্রয়োজন নাই।
-                    </p>
-                    <p class="text-sm md:text-base-content leading-relaxed mt-2">
-                        <span class="font-semibold">বি:দ্র:</span>
-                        যারা ১৭/০৯/২০২৫ এর আগে আবেদন করেছেন তাদের তথ্য পুরাতন সিস্টেমে রয়েছে, নতুন সিস্টেমে ডাটা স্থানান্তর এর কাজ চলমান।
-                        তাই নতুন সিস্টেমে কেউ লগিন করতে না পারলে চিন্তিত হওয়ার দরকার নেই।
-                    </p>
-                </div>
+                    <div class="mt-auto"></div>
+                </section>
             </div>
-        </section>
-    </main>
-</div>
+        </div>
+    </div>
+</main>
+
+<script layout:fragment="localJsCodeBlock" type="text/javascript" th:inline="javascript">
+    $(function () {
+        const $passwordInput = $("#password");
+        const $passwordToggleButton = $("#togglePassword");
+        const $capsLockHint = $("#capsHint");
+
+        let isPasswordVisible = false;
+
+        function setPasswordVisibility(visible) {
+            isPasswordVisible = visible;
+
+            $passwordInput.prop("type", visible ? "text" : "password");
+            $passwordToggleButton
+                .text(visible ? "Hide" : "Show")
+                .attr("aria-pressed", String(visible))
+                .attr("aria-label", visible ? "Hide password" : "Show password");
+
+            $passwordInput.trigger("focus");
+        }
+
+        function showCapsLockHint() {
+            $capsLockHint.removeClass("hidden");
+        }
+
+        function hideCapsLockHint() {
+            $capsLockHint.addClass("hidden");
+        }
+
+        function updateCapsLockHint(event) {
+            const nativeEvent = event?.originalEvent ?? event;
+
+            if (!nativeEvent || typeof nativeEvent.getModifierState !== "function") return;
+
+            const isCapsLockOn = nativeEvent.getModifierState("CapsLock");
+            if (isCapsLockOn) showCapsLockHint();
+            else hideCapsLockHint();
+        }
+
+        $passwordToggleButton.on("click", function (event) {
+            event.preventDefault();
+            setPasswordVisibility(!isPasswordVisible);
+        });
+
+        $passwordInput.on("keydown keyup", updateCapsLockHint);
+
+        $passwordInput.on("blur", hideCapsLockHint);
+
+        $passwordToggleButton.attr({
+            "aria-pressed": "false",
+            "aria-label": "Show password"
+        });
+    });
+</script>
 
 </body>
 </html>
