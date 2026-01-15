@@ -155,8 +155,8 @@
 
 @font-face {
     font-family: 'Kalpurush';
-    src: url('/fonts/kalpurush.woff2') format('woff2'),
-    url('/fonts/kalpurush.ttf') format('truetype');
+    src: url('./assets/fonts/kalpurush.woff2') format('woff2'),
+    url('./assets/fonts/kalpurush.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
     font-display: swap;
