@@ -1,7 +1,7 @@
 package com.dsi.support.agenticrouter.entity;
 
 import com.dsi.support.agenticrouter.enums.ConfigValueType;
-import com.dsi.support.agenticrouter.validation.ValidPolicyConfig;
+import com.dsi.support.agenticrouter.validator.ValidPolicyConfig;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

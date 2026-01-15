@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+    <div
+        th:fragment="flash-message-block"
+        id="flash-message-block"
+        class="fixed top-16 right-4 w-full max-w-sm sm:max-w-md z-40 space-y-2 pointer-events-none"
+    >
+        <!-- Success Message -->
+        <th:block th:if="${session.flushSuccessMessage != null}">
+            <div
+                class="flash-message pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-green-200 bg-green-50 text-green-800 shadow-lg"
+                role="alert"
+                aria-live="polite"
+            >
+                <div class="flex items-center gap-3 min-w-0">
+                    <i class="fa fa-circle-check text-green-600 text-lg flex-shrink-0" aria-hidden="true"></i>
+                    <p class="text-sm font-medium truncate" th:text="${session.flushSuccessMessage}">Success message</p>
+                </div>
+                <button
+                    type="button"
+                    class="js-flash-dismiss flex-shrink-0 p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded transition-colors"
+                    aria-label="Dismiss message"
+                >
+                    <i class="fa fa-xmark text-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+        </th:block>
+
+        <!-- Error Message -->
+        <th:block th:if="${session.flushErrorMessage != null}">
+            <div
+                class="flash-message pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-red-200 bg-red-50 text-red-800 shadow-lg"
+                role="alert"
+                aria-live="assertive"
+            >
+                <div class="flex items-center gap-3 min-w-0">
+                    <i class="fa fa-triangle-exclamation text-red-600 text-lg flex-shrink-0" aria-hidden="true"></i>
+                    <p class="text-sm font-medium truncate" th:text="${session.flushErrorMessage}">Error message</p>
+                </div>
+                <button
+                    type="button"
+                    class="js-flash-dismiss flex-shrink-0 p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded transition-colors"
+                    aria-label="Dismiss message"
+                >
+                    <i class="fa fa-xmark text-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+        </th:block>
+
+        <!-- Warning Message -->
+        <th:block th:if="${session.flushWarningMessage != null}">
+            <div
+                class="flash-message pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 shadow-lg"
+                role="alert"
+                aria-live="polite"
+            >
+                <div class="flex items-center gap-3 min-w-0">
+                    <i class="fa fa-triangle-exclamation text-amber-600 text-lg flex-shrink-0" aria-hidden="true"></i>
+                    <p class="text-sm font-medium truncate" th:text="${session.flushWarningMessage}">Warning message</p>
+                </div>
+                <button
+                    type="button"
+                    class="js-flash-dismiss flex-shrink-0 p-1 text-amber-600 hover:text-amber-800 hover:bg-amber-100 rounded transition-colors"
+                    aria-label="Dismiss message"
+                >
+                    <i class="fa fa-xmark text-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+        </th:block>
+
+        <!-- Info Message -->
+        <th:block th:if="${session.flushInfoMessage != null}">
+            <div
+                class="flash-message pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-blue-200 bg-blue-50 text-blue-800 shadow-lg"
+                role="alert"
+                aria-live="polite"
+            >
+                <div class="flex items-center gap-3 min-w-0">
+                    <i class="fa fa-circle-info text-blue-600 text-lg flex-shrink-0" aria-hidden="true"></i>
+                    <p class="text-sm font-medium truncate" th:text="${session.flushInfoMessage}">Info message</p>
+                </div>
+                <button
+                    type="button"
+                    class="js-flash-dismiss flex-shrink-0 p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
+                    aria-label="Dismiss message"
+                >
+                    <i class="fa fa-xmark text-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+        </th:block>
+
+        <!-- Clear session messages after rendering -->
+        <th:block th:text="${@sessionService.removeFlushMessageFromSession()}" th:remove="all"></th:block>
+    </div>
+</html>

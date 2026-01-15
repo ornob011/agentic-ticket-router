@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html
+    lang="en"
+    xmlns:th="http://www.thymeleaf.org"
+    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/common-layout}"
+>
+    <head>
+        <title layout:fragment="title">Sign Up - SupportHub</title>
+    </head>
+
+    <body>
+        <main layout:fragment="contentBody">
+            <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+                <div class="w-full max-w-2xl">
+                    <div class="text-center mb-8">
+                        <div
+                            class="mx-auto w-14 h-14 rounded-xl bg-blue-600 flex items-center justify-center shadow-md mb-5"
+                        >
+                            <div th:replace="~{fragments/icons :: logo}"></div>
+                        </div>
+                        <h1 class="text-2xl font-bold text-gray-900">Create your account</h1>
+                        <p class="mt-2 text-gray-600">Join SupportHub to submit and track support tickets</p>
+                    </div>
+
+                    <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 sm:p-8">
+                        <form th:action="@{/signup}" th:object="${signup}" method="post" class="space-y-6">
+                            <div th:replace="~{fragments/form-errors :: globalErrors}"></div>
+
+                            <div class="space-y-4">
+                                <div
+                                    th:replace="~{fragments/form-section :: header(
+                                        step=1,
+                                        title='Account Information'
+                                    )}"
+                                ></div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div
+                                        th:replace="~{fragments/form-fields :: input(
+                                            field='username',
+                                            label='Username',
+                                            placeholder='rahimahmed'
+                                        )}"
+                                    ></div>
+                                    <div
+                                        th:replace="~{fragments/form-fields :: input(
+                                            field='email',
+                                            label='Email Address',
+                                            placeholder='rahim.ahmed@company.com.bd',
+                                            type='email'
+                                        )}"
+                                    ></div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div
+                                        th:replace="~{fragments/form-fields :: input(
+                                            field='password',
+                                            label='Password',
+                                            placeholder='••••••••',
+                                            type='password'
+                                        )}"
+                                    ></div>
+                                    <div
+                                        th:replace="~{fragments/form-fields :: input(
+                                            field='confirmPassword',
+                                            label='Confirm Password',
+                                            placeholder='••••••••',
+                                            type='password'
+                                        )}"
+                                    ></div>
+                                </div>
+
+                                <div
+                                    th:replace="~{fragments/form-fields :: input(
+                                        field='fullName',
+                                        label='Full Name',
+                                        placeholder='Rahim Ahmed'
+                                    )}"
+                                ></div>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div
+                                    th:replace="~{fragments/form-section :: header(
+                                        step=2,
+                                        title='Profile Information'
+                                    )}"
+                                ></div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div
+                                        th:replace="~{fragments/form-fields :: input(
+                                            field='companyName',
+                                            label='Company Name',
+                                            placeholder='Dhaka Tech Solutions Ltd.'
+                                        )}"
+                                    ></div>
+                                    <div
+                                        th:replace="~{fragments/form-fields :: input(
+                                            field='phoneNumber',
+                                            label='Phone Number',
+                                            placeholder='+880 1712-345678',
+                                            type='tel'
+                                        )}"
+                                    ></div>
+                                </div>
+
+                                <div
+                                    th:replace="~{fragments/form-fields :: input(
+                                        field='address',
+                                        label='Street Address',
+                                        placeholder='House 12, Road 5, Sector 10, Uttara'
+                                    )}"
+                                ></div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div
+                                        th:replace="~{fragments/form-fields :: input(
+                                            field='city',
+                                            label='City',
+                                            placeholder='Dhaka'
+                                        )}"
+                                    ></div>
+
+                                    <div
+                                        th:replace="~{fragments/form-fields :: select(
+                                            field='countryIso2',
+                                            label='Country',
+                                            placeholder='Select a country',
+                                            options=${countries},
+                                            itemValue='iso2',
+                                            itemLabel='name',
+                                            selectedValue='BD'
+                                        )}"
+                                    ></div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div
+                                    th:replace="~{fragments/form-section :: header(
+                                        step=3,
+                                        title='Preferences'
+                                    )}"
+                                ></div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div
+                                        th:replace="~{fragments/form-fields :: select(
+                                            field='customerTierCode',
+                                            label='Support Tier',
+                                            placeholder='Select your tier',
+                                            options=${tiers},
+                                            itemValue='code',
+                                            itemLabel='displayName'
+                                        )}"
+                                    ></div>
+
+                                    <div
+                                        th:replace="~{fragments/form-fields :: select(
+                                            field='preferredLanguageCode',
+                                            label='Preferred Language',
+                                            placeholder='Select a language',
+                                            options=${languages},
+                                            itemValue='code',
+                                            itemLabel='name',
+                                            selectedValue='en'
+                                        )}"
+                                    ></div>
+                                </div>
+                            </div>
+
+                            <div class="pt-4 space-y-4 border-t border-gray-100">
+                                <p class="text-sm text-gray-500 text-center">
+                                    By creating an account, you agree to our
+                                    <a href="#" class="text-blue-600 hover:text-blue-700 hover:underline"
+                                        >Terms of Service</a
+                                    >
+                                    and
+                                    <a href="#" class="text-blue-600 hover:text-blue-700 hover:underline"
+                                        >Privacy Policy</a
+                                    >.
+                                </p>
+
+                                <button
+                                    type="submit"
+                                    class="w-full py-2.5 px-6 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
+                                >
+                                    Create Account
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <p class="mt-6 text-center text-gray-600">
+                        Already have an account?
+                        <a
+                            th:href="@{/login}"
+                            class="text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors duration-200"
+                        >
+                            Sign in
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </main>
+    </body>
+</html>

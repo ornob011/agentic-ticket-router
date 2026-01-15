@@ -66,7 +66,7 @@ public class AppUser extends BaseEntity {
     private String email;
 
     @NotBlank(message = "Password hash is required")
-    @Size(max = 255)
+    @Size(max = 512)
     @Column(
         name = "password_hash",
         nullable = false

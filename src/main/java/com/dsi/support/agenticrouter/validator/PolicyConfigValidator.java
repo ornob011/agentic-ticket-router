@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.validation;
+package com.dsi.support.agenticrouter.validator;
 
 import com.dsi.support.agenticrouter.entity.PolicyConfig;
 import com.dsi.support.agenticrouter.enums.ConfigValueType;

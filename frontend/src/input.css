@@ -164,7 +164,7 @@
 
 @layer base {
     html {
-        font-size: clamp(16px, 0.9vw + 13px, 18px);
+        font-size: clamp(16px, 0.9vw + 13px, 16px);
 
         -webkit-text-size-adjust: 100%;
         text-size-adjust: 100%;
