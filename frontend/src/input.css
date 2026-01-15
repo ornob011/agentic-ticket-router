@@ -220,6 +220,13 @@
         -ms-overflow-style: none;  /* IE and Edge */
         scrollbar-width: none;  /* Firefox */
     }
+
+    .force-visible {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        color: rgb(75 85 99) !important; /* Tailwind gray-600 */
+    }
 }
 
 /* Explicitly tell Tailwind where to scan for classes */
