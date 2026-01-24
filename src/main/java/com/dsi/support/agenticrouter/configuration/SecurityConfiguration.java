@@ -71,7 +71,7 @@ public class SecurityConfiguration {
                 .loginPage("/login")
                 .usernameParameter("username")
                 .passwordParameter("password")
-                .defaultSuccessUrl("/dashboard", true)
+                .defaultSuccessUrl("/", true)
                 .successHandler(postLoginRedirectHandler())
                 .permitAll()
             )
