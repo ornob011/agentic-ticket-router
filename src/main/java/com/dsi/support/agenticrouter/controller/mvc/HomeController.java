@@ -19,10 +19,7 @@ public class HomeController {
             return "redirect:/login";
         }
 
-        Long userId = Utils.getLoggedInUserId();
-
-        String redirectUrl = uriComponentsBuilder.path("/dashboard/{userId}")
-                                                 .buildAndExpand(userId)
+        String redirectUrl = uriComponentsBuilder.path("/dashboard")
                                                  .toUriString();
 
         return "redirect:" + redirectUrl;
