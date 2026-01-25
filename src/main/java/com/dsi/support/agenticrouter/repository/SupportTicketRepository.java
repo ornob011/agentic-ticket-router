@@ -2,7 +2,6 @@ package com.dsi.support.agenticrouter.repository;
 
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
-import com.dsi.support.agenticrouter.enums.TicketStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -73,19 +72,25 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
     @Query("""
         SELECT
             COUNT(ticket) AS totalCount,
-            SUM(
-                CASE
-                    WHEN ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.IN_PROGRESS
-                    THEN 1
-                    ELSE 0
-                END
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.IN_PROGRESS
+                        THEN 1
+                        ELSE 0
+                    END
+                ),
+                0
             ) AS inProgressCount,
-            SUM(
-                CASE
-                    WHEN ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.WAITING_CUSTOMER
-                    THEN 1
-                    ELSE 0
-                END
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.WAITING_CUSTOMER
+                        THEN 1
+                        ELSE 0
+                    END
+                ),
+                0
             ) AS waitingCustomerCount
         FROM SupportTicket ticket
         WHERE ticket.assignedAgent.id = :assignedAgentId
@@ -107,38 +112,50 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
 
     @Query("""
         SELECT
-            SUM(
-                CASE
-                    WHEN ticket.status IN (
-                        com.dsi.support.agenticrouter.enums.TicketStatus.RECEIVED,
-                        com.dsi.support.agenticrouter.enums.TicketStatus.TRIAGING,
-                        com.dsi.support.agenticrouter.enums.TicketStatus.ASSIGNED,
-                        com.dsi.support.agenticrouter.enums.TicketStatus.IN_PROGRESS
-                    )
-                    THEN 1
-                    ELSE 0
-                END
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN ticket.status IN (
+                            com.dsi.support.agenticrouter.enums.TicketStatus.RECEIVED,
+                            com.dsi.support.agenticrouter.enums.TicketStatus.TRIAGING,
+                            com.dsi.support.agenticrouter.enums.TicketStatus.ASSIGNED,
+                            com.dsi.support.agenticrouter.enums.TicketStatus.IN_PROGRESS
+                        )
+                        THEN 1
+                        ELSE 0
+                    END
+                ),
+                0
             ) AS openCount,
-            SUM(
-                CASE
-                    WHEN ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.WAITING_CUSTOMER
-                    THEN 1
-                    ELSE 0
-                END
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.WAITING_CUSTOMER
+                        THEN 1
+                        ELSE 0
+                    END
+                ),
+                0
             ) AS waitingCustomerCount,
-            SUM(
-                CASE
-                    WHEN ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.RESOLVED
-                    THEN 1
-                    ELSE 0
-                END
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.RESOLVED
+                        THEN 1
+                        ELSE 0
+                    END
+                ),
+                0
             ) AS resolvedCount,
-            SUM(
-                CASE
-                    WHEN ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.CLOSED
-                    THEN 1
-                    ELSE 0
-                END
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.CLOSED
+                        THEN 1
+                        ELSE 0
+                    END
+                ),
+                0
             ) AS closedCount
         FROM SupportTicket ticket
         WHERE ticket.customer.id = :customerId
@@ -146,4 +163,5 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
     CustomerTicketCounts countCustomerTicketCounts(
         @Param("customerId") Long customerId
     );
+
 }
