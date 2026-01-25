@@ -13,11 +13,6 @@ import java.util.List;
 
 public interface SupportTicketRepository extends JpaRepository<SupportTicket, Long> {
 
-    long countByCustomerIdAndStatus(
-        Long customerId,
-        TicketStatus status
-    );
-
     List<SupportTicket> findTop5ByCustomerIdOrderByLastActivityAtDesc(
         Long customerId
     );
@@ -97,5 +92,58 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         """)
     AgentTicketCounts countAgentTicketCounts(
         @Param("assignedAgentId") Long assignedAgentId
+    );
+
+    interface CustomerTicketCounts {
+
+        long getOpenCount();
+
+        long getWaitingCustomerCount();
+
+        long getResolvedCount();
+
+        long getClosedCount();
+    }
+
+    @Query("""
+        SELECT
+            SUM(
+                CASE
+                    WHEN ticket.status IN (
+                        com.dsi.support.agenticrouter.enums.TicketStatus.RECEIVED,
+                        com.dsi.support.agenticrouter.enums.TicketStatus.TRIAGING,
+                        com.dsi.support.agenticrouter.enums.TicketStatus.ASSIGNED,
+                        com.dsi.support.agenticrouter.enums.TicketStatus.IN_PROGRESS
+                    )
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS openCount,
+            SUM(
+                CASE
+                    WHEN ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.WAITING_CUSTOMER
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS waitingCustomerCount,
+            SUM(
+                CASE
+                    WHEN ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.RESOLVED
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS resolvedCount,
+            SUM(
+                CASE
+                    WHEN ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.CLOSED
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS closedCount
+        FROM SupportTicket ticket
+        WHERE ticket.customer.id = :customerId
+        """)
+    CustomerTicketCounts countCustomerTicketCounts(
+        @Param("customerId") Long customerId
     );
 }

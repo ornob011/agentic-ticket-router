@@ -1,7 +1,6 @@
 package com.dsi.support.agenticrouter.service.dashboard.section;
 
 import com.dsi.support.agenticrouter.dto.DashboardDto;
-import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import org.springframework.stereotype.Component;
 
@@ -19,41 +18,9 @@ public class CustomerDashboardSectionAssembler {
     }
 
     public DashboardDto.CustomerData buildCustomerSectionFor(Long customerId) {
-        long received = supportTicketRepository.countByCustomerIdAndStatus(
-            customerId,
-            TicketStatus.RECEIVED
-        );
-
-        long triaging = supportTicketRepository.countByCustomerIdAndStatus(
-            customerId,
-            TicketStatus.TRIAGING
-        );
-
-        long assigned = supportTicketRepository.countByCustomerIdAndStatus(
-            customerId,
-            TicketStatus.ASSIGNED
-        );
-
-        long inProgress = supportTicketRepository.countByCustomerIdAndStatus(
-            customerId,
-            TicketStatus.IN_PROGRESS
-        );
-
-        long currentlyOpenTickets = received + triaging + assigned + inProgress;
-
-        long ticketsWaitingForCustomer = supportTicketRepository.countByCustomerIdAndStatus(
-            customerId,
-            TicketStatus.WAITING_CUSTOMER
-        );
-
-        long ticketsResolved = supportTicketRepository.countByCustomerIdAndStatus(
-            customerId,
-            TicketStatus.RESOLVED
-        );
-
-        long ticketsClosed = supportTicketRepository.countByCustomerIdAndStatus(
-            customerId,
-            TicketStatus.CLOSED
+        SupportTicketRepository.CustomerTicketCounts counts;
+        counts = supportTicketRepository.countCustomerTicketCounts(
+            customerId
         );
 
         List<DashboardDto.TicketSummary> mostRecentCustomerTickets;
@@ -74,10 +41,10 @@ public class CustomerDashboardSectionAssembler {
                                                            .toList();
 
         return DashboardDto.CustomerData.builder()
-                                        .openTickets(currentlyOpenTickets)
-                                        .waitingOnMe(ticketsWaitingForCustomer)
-                                        .resolvedTickets(ticketsResolved)
-                                        .closedTickets(ticketsClosed)
+                                        .openTickets(counts.getOpenCount())
+                                        .waitingOnMe(counts.getWaitingCustomerCount())
+                                        .resolvedTickets(counts.getResolvedCount())
+                                        .closedTickets(counts.getClosedCount())
                                         .recentTickets(mostRecentCustomerTickets)
                                         .build();
     }
