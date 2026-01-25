@@ -26,20 +26,34 @@ public class AgentDashboardSectionAssembler {
     ) {
         Map<TicketQueue, Long> ticketsInEachQueue = new EnumMap<>(TicketQueue.class);
 
-        for (TicketQueue queue : TicketQueue.values()) {
-            long ticketsCurrentlyInQueue = supportTicketRepository.countByAssignedQueue(
-                queue
-            );
+        List<SupportTicketRepository.TicketQueueCount> groupedQueueCounts;
+        groupedQueueCounts = supportTicketRepository.countTicketsGroupedByAssignedQueue();
 
-            ticketsInEachQueue.put(
-                queue,
-                ticketsCurrentlyInQueue
+        Map<TicketQueue, Long> groupedCountsByQueue = new EnumMap<>(TicketQueue.class);
+
+        for (SupportTicketRepository.TicketQueueCount queueCount : groupedQueueCounts) {
+            groupedCountsByQueue.put(
+                queueCount.getQueue(),
+                queueCount.getCount()
             );
         }
 
-        long ticketsAssignedToAgent = supportTicketRepository.countByAssignedAgentId(
+        for (TicketQueue queue : TicketQueue.values()) {
+            ticketsInEachQueue.put(
+                queue,
+                groupedCountsByQueue.getOrDefault(
+                    queue,
+                    0L
+                )
+            );
+        }
+
+        SupportTicketRepository.AgentTicketCounts agentCounts;
+        agentCounts = supportTicketRepository.countAgentTicketCounts(
             agentId
         );
+
+        long ticketsAssignedToAgent = agentCounts.getTotalCount();
 
         List<DashboardDto.TicketSummary> mostRecentlyActiveAssignedTickets;
         mostRecentlyActiveAssignedTickets = supportTicketRepository.findTop5ByAssignedAgentIdOrderByLastActivityAtDesc(
@@ -62,12 +76,12 @@ public class AgentDashboardSectionAssembler {
 
         agentTicketCountsByStatus.put(
             TicketStatus.IN_PROGRESS,
-            supportTicketRepository.countByAssignedAgentIdAndStatus(agentId, TicketStatus.IN_PROGRESS)
+            agentCounts.getInProgressCount()
         );
 
         agentTicketCountsByStatus.put(
             TicketStatus.WAITING_CUSTOMER,
-            supportTicketRepository.countByAssignedAgentIdAndStatus(agentId, TicketStatus.WAITING_CUSTOMER)
+            agentCounts.getWaitingCustomerCount()
         );
 
         return DashboardDto.AgentData.builder()
