@@ -161,4 +161,15 @@ public class Utils {
         return errors;
     }
 
+    public static String getViewWithPrefix(
+        String viewName
+    ) {
+        return String.format(
+            "%s%s",
+            Constants.VIEW_PREFIX,
+            viewName
+        );
+    }
+
+
 }

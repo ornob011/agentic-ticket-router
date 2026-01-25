@@ -30,6 +30,8 @@ public class DashboardController {
         model.addAttribute("dashboard", dashboardView);
         model.addAttribute("currentPage", NavPage.DASHBOARD);
 
-        return "dashboard/index";
+        return Utils.getViewWithPrefix(
+            "dashboard"
+        );
     }
 }
