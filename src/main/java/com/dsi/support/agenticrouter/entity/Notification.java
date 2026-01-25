@@ -6,8 +6,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
-import org.hibernate.annotations.JdbcType;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -56,11 +54,9 @@ public class Notification extends BaseEntity {
 
     @NotNull(message = "Notification type is required")
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
         name = "notification_type",
-        nullable = false,
-        columnDefinition = "notification_type"
+        nullable = false
     )
     private NotificationType notificationType;
 

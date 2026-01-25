@@ -7,8 +7,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
-import org.hibernate.annotations.JdbcType;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 @Entity
 @Table(
@@ -51,13 +49,9 @@ public class PolicyConfig extends BaseEntity {
     @Enumerated(
         EnumType.STRING
     )
-    @JdbcType(
-        PostgreSQLEnumJdbcType.class
-    )
     @Column(
         name = "value_type",
-        nullable = false,
-        columnDefinition = "config_value_type"
+        nullable = false
     )
     private ConfigValueType valueType;
 

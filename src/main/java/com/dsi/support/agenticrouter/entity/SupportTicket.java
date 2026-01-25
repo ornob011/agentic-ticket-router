@@ -11,9 +11,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.Generated;
-import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import org.hibernate.generator.EventType;
 import org.hibernate.type.SqlTypes;
 
@@ -103,39 +101,31 @@ public class SupportTicket extends BaseEntity {
 
     @NotNull(message = "Status is required")
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
         name = "status",
-        nullable = false,
-        columnDefinition = "ticket_status"
+        nullable = false
     )
     @Builder.Default
     private TicketStatus status = TicketStatus.RECEIVED;
 
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
-        name = "current_category",
-        columnDefinition = "ticket_category"
+        name = "current_category"
     )
     private TicketCategory currentCategory;
 
     @NotNull(message = "Priority is required")
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
         name = "current_priority",
-        nullable = false,
-        columnDefinition = "ticket_priority"
+        nullable = false
     )
     @Builder.Default
     private TicketPriority currentPriority = TicketPriority.MEDIUM;
 
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
-        name = "assigned_queue",
-        columnDefinition = "ticket_queue"
+        name = "assigned_queue"
     )
     private TicketQueue assignedQueue;
 
