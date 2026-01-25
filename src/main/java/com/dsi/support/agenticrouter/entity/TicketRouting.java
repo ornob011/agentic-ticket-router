@@ -10,9 +10,7 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
@@ -68,41 +66,33 @@ public class TicketRouting extends BaseEntity {
 
     @NotNull(message = "Category is required")
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
         name = "category",
-        nullable = false,
-        columnDefinition = "ticket_category"
+        nullable = false
     )
     private TicketCategory category;
 
     @NotNull(message = "Priority is required")
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
         name = "priority",
-        nullable = false,
-        columnDefinition = "ticket_priority"
+        nullable = false
     )
     private TicketPriority priority;
 
     @NotNull(message = "Queue is required")
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
         name = "queue",
-        nullable = false,
-        columnDefinition = "ticket_queue"
+        nullable = false
     )
     private TicketQueue queue;
 
     @NotNull(message = "Next action is required")
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
         name = "next_action",
-        nullable = false,
-        columnDefinition = "next_action"
+        nullable = false
     )
     private NextAction nextAction;
 

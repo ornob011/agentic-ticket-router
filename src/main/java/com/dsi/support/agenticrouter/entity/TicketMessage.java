@@ -5,8 +5,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import org.hibernate.annotations.JdbcType;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.util.Objects;
 
@@ -53,11 +51,9 @@ public class TicketMessage extends BaseEntity {
 
     @NotNull(message = "Message kind is required")
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
         name = "message_kind",
-        nullable = false,
-        columnDefinition = "message_kind"
+        nullable = false
     )
     private MessageKind messageKind;
 

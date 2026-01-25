@@ -6,9 +6,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import org.hibernate.type.SqlTypes;
 
 import java.util.Objects;
@@ -55,11 +53,9 @@ public class AuditEvent extends BaseEntity {
 
     @NotNull(message = "Event type is required")
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
         name = "event_type",
-        nullable = false,
-        columnDefinition = "audit_event_type"
+        nullable = false
     )
     private AuditEventType eventType;
 

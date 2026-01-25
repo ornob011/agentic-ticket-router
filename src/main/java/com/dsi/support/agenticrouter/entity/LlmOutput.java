@@ -6,9 +6,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
-import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import org.hibernate.type.SqlTypes;
 
 import java.util.Objects;
@@ -78,11 +76,9 @@ public class LlmOutput extends BaseEntity {
 
     @NotNull(message = "Parse status is required")
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
         name = "parse_status",
-        nullable = false,
-        columnDefinition = "parse_status"
+        nullable = false
     )
     private ParseStatus parseStatus;
 

@@ -7,8 +7,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
-import org.hibernate.annotations.JdbcType;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -82,11 +80,9 @@ public class AppUser extends BaseEntity {
 
     @NotNull(message = "User role is required")
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
         name = "role",
-        nullable = false,
-        columnDefinition = "user_role"
+        nullable = false
     )
     private UserRole role;
 
