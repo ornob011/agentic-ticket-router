@@ -191,6 +191,29 @@
             <version>1.19.0</version>
         </dependency>
 
+        <!-- RESILIENCE / RETRY -->
+        <dependency>
+            <groupId>org.springframework.retry</groupId>
+            <artifactId>spring-retry</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-spring-boot3</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-circuitbreaker</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+
+        <!-- JSON SCHEMA VALIDATION -->
+        <dependency>
+            <groupId>com.networknt</groupId>
+            <artifactId>json-schema-validator</artifactId>
+            <version>1.5.3</version>
+        </dependency>
+
         <!-- ICU / USER AGENT -->
         <dependency>
             <groupId>com.ibm.icu</groupId>
