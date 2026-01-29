@@ -1,0 +1,438 @@
+package com.dsi.support.agenticrouter.service;
+
+import com.dsi.support.agenticrouter.dto.CreateTicketDto;
+import com.dsi.support.agenticrouter.entity.AppUser;
+import com.dsi.support.agenticrouter.entity.SupportTicket;
+import com.dsi.support.agenticrouter.entity.TicketMessage;
+import com.dsi.support.agenticrouter.enums.*;
+import com.dsi.support.agenticrouter.exception.DataNotFoundException;
+import com.dsi.support.agenticrouter.repository.AppUserRepository;
+import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
+import com.dsi.support.agenticrouter.service.routing.RouterOrchestrator;
+import com.dsi.support.agenticrouter.util.Utils;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.time.Instant;
+import java.util.*;
+import java.util.function.BiConsumer;
+
+// TODO: Fix the class
+
+@Service
+@Transactional
+@RequiredArgsConstructor
+@Slf4j
+public class TicketService {
+
+    private static final String BUSINESS_DRIVER_MANUAL_STATUS_CHANGE = "MANUAL_STATUS_CHANGE";
+    private static final String BUSINESS_DRIVER_UNSPECIFIED = "UNSPECIFIED";
+    private static final String BUSINESS_DRIVER_AGENT_REPLY = "AGENT_REPLY";
+
+    private static final BiConsumer<SupportTicket, Instant> NO_STATUS_SIDE_EFFECT = (supportTicket, statusChangeTimestamp) -> {
+    };
+
+    private static final Map<TicketStatus, BiConsumer<SupportTicket, Instant>> STATUS_SIDE_EFFECTS = new EnumMap<>(TicketStatus.class);
+
+    static {
+        STATUS_SIDE_EFFECTS.put(
+            TicketStatus.RESOLVED,
+            (supportTicket, statusChangeTimestamp) -> {
+                if (supportTicket.getResolvedAt() == null) {
+                    supportTicket.setResolvedAt(statusChangeTimestamp);
+                }
+            }
+        );
+
+        STATUS_SIDE_EFFECTS.put(
+            TicketStatus.CLOSED,
+            (supportTicket, statusChangeTimestamp) -> {
+                if (supportTicket.getClosedAt() == null) {
+                    supportTicket.setClosedAt(statusChangeTimestamp);
+                }
+            }
+        );
+    }
+
+    private final SupportTicketRepository supportTicketRepository;
+    private final TicketMessageRepository ticketMessageRepository;
+    private final NotificationService notificationService;
+    private final AuditService auditService;
+    private final RouterOrchestrator routerOrchestrator;
+    private final AppUserRepository appUserRepository;
+
+    @Transactional(readOnly = true)
+    public Page<SupportTicket> listCustomerTickets(
+        Long customerId,
+        Pageable pageable
+    ) {
+        return supportTicketRepository.findByCustomerIdOrderByCreatedAtDesc(
+            customerId,
+            pageable
+        );
+    }
+
+    public void createTicket(
+        CreateTicketDto createTicketDto,
+        Long customerId
+    ) {
+        AppUser customer = appUserRepository.findById(customerId)
+                                            .orElseThrow(
+                                                DataNotFoundException.supplier(
+                                                    AppUser.class,
+                                                    customerId
+                                                )
+                                            );
+
+        SupportTicket supportTicket = SupportTicket.builder()
+                                                   .customer(customer)
+                                                   .subject(createTicketDto.getSubject())
+                                                   .status(TicketStatus.RECEIVED)
+                                                   .lastActivityAt(Instant.now())
+                                                   .build();
+
+        supportTicket = supportTicketRepository.save(supportTicket);
+
+        TicketMessage initialTicketMessage = TicketMessage.builder()
+                                                          .ticket(supportTicket)
+                                                          .author(customer)
+                                                          .messageKind(MessageKind.CUSTOMER_MESSAGE)
+                                                          .content(createTicketDto.getContent())
+                                                          .visibleToCustomer(true)
+                                                          .build();
+
+        ticketMessageRepository.save(initialTicketMessage);
+
+        notificationService.createNotification(
+            customer.getId(),
+            NotificationType.TICKET_ACK,
+            String.format("Ticket Created: %s", supportTicket.getFormattedTicketNo()),
+            "Your support ticket has been received and will be reviewed shortly.",
+            supportTicket.getId()
+        );
+
+        auditService.recordEvent(
+            AuditEventType.TICKET_CREATED,
+            supportTicket.getId(),
+            customer.getId(),
+            String.format("Ticket created: %s", supportTicket.getSubject()),
+            null
+        );
+
+        routerOrchestrator.routeTicket(
+            supportTicket
+        );
+    }
+
+    public void addCustomerReply(
+        Long ticketId,
+        String content,
+        Long customerId
+    ) {
+        AppUser customer = appUserRepository.findById(customerId)
+                                            .orElseThrow(
+                                                DataNotFoundException.supplier(
+                                                    AppUser.class,
+                                                    customerId
+                                                )
+                                            );
+
+        SupportTicket supportTicket = supportTicketRepository.findById(ticketId)
+                                                             .orElseThrow(
+                                                                 DataNotFoundException.supplier(
+                                                                     SupportTicket.class,
+                                                                     ticketId
+                                                                 )
+                                                             );
+
+        TicketMessage ticketMessage = TicketMessage.builder()
+                                                   .ticket(supportTicket)
+                                                   .author(customer)
+                                                   .messageKind(MessageKind.CUSTOMER_MESSAGE)
+                                                   .content(content)
+                                                   .visibleToCustomer(true)
+                                                   .build();
+
+        ticketMessageRepository.save(ticketMessage);
+
+        supportTicket.updateLastActivity();
+
+        replyHandlers().getOrDefault(supportTicket.getStatus(), defaultReplyHandler())
+                       .accept(supportTicket, customer);
+
+        supportTicketRepository.save(supportTicket);
+    }
+
+    private interface ReplyHandler {
+        void accept(
+            SupportTicket supportTicket,
+            AppUser customer
+        );
+    }
+
+    private Map<TicketStatus, ReplyHandler> replyHandlers() {
+        EnumMap<TicketStatus, ReplyHandler> ticketStatusReplyHandlerEnumMap = new EnumMap<>(TicketStatus.class);
+
+        ticketStatusReplyHandlerEnumMap.put(
+            TicketStatus.WAITING_CUSTOMER, (supportTicket, customer) -> {
+                auditService.recordEvent(
+                    AuditEventType.MESSAGE_POSTED,
+                    supportTicket.getId(),
+                    customer.getId(),
+                    "Customer replied - triggering re-triage",
+                    null
+                );
+
+                routerOrchestrator.routeTicket(supportTicket);
+            }
+        );
+
+        ticketStatusReplyHandlerEnumMap.put(
+            TicketStatus.CLOSED,
+            reopenTicketHandler()
+        );
+
+        ticketStatusReplyHandlerEnumMap.put(
+            TicketStatus.AUTO_CLOSED_PENDING,
+            reopenTicketHandler()
+        );
+
+        return ticketStatusReplyHandlerEnumMap;
+    }
+
+    private ReplyHandler reopenTicketHandler() {
+        return (supportTicket, customer) -> {
+            supportTicket.setStatus(
+                TicketStatus.RECEIVED
+            );
+
+            supportTicket.incrementReopenCount();
+
+            auditService.recordEvent(
+                AuditEventType.TICKET_REOPENED,
+                supportTicket.getId(),
+                customer.getId(),
+                "Ticket reopened by customer reply",
+                null
+            );
+
+            routerOrchestrator.routeTicket(
+                supportTicket
+            );
+        };
+    }
+
+    private ReplyHandler defaultReplyHandler() {
+        return (supportTicket, customer) -> auditService.recordEvent(
+            AuditEventType.MESSAGE_POSTED,
+            supportTicket.getId(),
+            customer.getId(),
+            "Customer added reply",
+            null
+        );
+    }
+
+    public void addAgentReply(
+        Long ticketId,
+        String content
+    ) {
+        Long agentId = Utils.getLoggedInUserId();
+
+        AppUser agent = appUserRepository.findById(agentId)
+                                         .orElseThrow(
+                                             DataNotFoundException.supplier(
+                                                 AppUser.class,
+                                                 agentId
+                                             )
+                                         );
+
+        addAgentReply(
+            ticketId,
+            content,
+            agent,
+            BUSINESS_DRIVER_AGENT_REPLY
+        );
+    }
+
+    public void addAgentReply(
+        Long ticketId,
+        String content,
+        AppUser agent,
+        String businessDriver
+    ) {
+        Objects.requireNonNull(ticketId, "ticketId");
+        Objects.requireNonNull(agent, "agent");
+
+        SupportTicket supportTicket = supportTicketRepository.findById(ticketId)
+                                                             .orElseThrow(
+                                                                 DataNotFoundException.supplier(
+                                                                     SupportTicket.class,
+                                                                     ticketId
+                                                                 )
+                                                             );
+
+        if (!StringUtils.hasText(content)) {
+            return;
+        }
+
+        TicketMessage ticketMessage = TicketMessage.builder()
+                                                   .ticket(supportTicket)
+                                                   .author(agent)
+                                                   .messageKind(MessageKind.AGENT_MESSAGE)
+                                                   .content(content.trim())
+                                                   .visibleToCustomer(true)
+                                                   .build();
+
+        ticketMessageRepository.save(ticketMessage);
+
+        supportTicket.updateLastActivity();
+
+        String normalizedBusinessDriver = Optional.ofNullable(businessDriver)
+                                                  .map(String::trim)
+                                                  .filter(StringUtils::hasText)
+                                                  .orElse(BUSINESS_DRIVER_UNSPECIFIED);
+
+        auditService.recordEvent(
+            AuditEventType.MESSAGE_POSTED,
+            supportTicket.getId(),
+            agent.getId(),
+            String.format(
+                "Agent reply posted | driver=%s",
+                normalizedBusinessDriver
+            ),
+            null
+        );
+
+        notificationService.createNotification(
+            supportTicket.getCustomer().getId(),
+            NotificationType.NEW_MESSAGE,
+            String.format("New Reply: %s", supportTicket.getFormattedTicketNo()),
+            "An agent has replied to your ticket.",
+            supportTicket.getId()
+        );
+
+        supportTicketRepository.save(supportTicket);
+    }
+
+    public void changeTicketStatus(
+        Long ticketId,
+        TicketStatus targetStatus,
+        String reason
+    ) {
+        changeTicketStatus(ticketId,
+            targetStatus,
+            BUSINESS_DRIVER_MANUAL_STATUS_CHANGE,
+            reason);
+    }
+
+    public void changeTicketStatus(
+        Long ticketId,
+        TicketStatus targetStatus,
+        String businessDriver,
+        String reason
+    ) {
+        Objects.requireNonNull(ticketId, "ticketId");
+        Objects.requireNonNull(targetStatus, "targetStatus");
+
+        Long actorId = Utils.getLoggedInUserId();
+
+        AppUser actor = appUserRepository.findById(actorId)
+                                         .orElseThrow(
+                                             DataNotFoundException.supplier(
+                                                 AppUser.class,
+                                                 actorId
+                                             )
+                                         );
+
+        SupportTicket supportTicket = supportTicketRepository.findById(ticketId)
+                                                             .orElseThrow(
+                                                                 DataNotFoundException.supplier(
+                                                                     SupportTicket.class,
+                                                                     ticketId
+                                                                 )
+                                                             );
+
+        TicketStatus previousStatus = supportTicket.getStatus();
+        if (previousStatus == targetStatus) return;
+
+        Instant statusChangeTimestamp = Instant.now();
+
+        supportTicket.setStatus(targetStatus);
+        supportTicket.updateLastActivity();
+
+        STATUS_SIDE_EFFECTS.getOrDefault(targetStatus, NO_STATUS_SIDE_EFFECT)
+                           .accept(supportTicket, statusChangeTimestamp);
+
+        String normalizedBusinessDriver = Optional.ofNullable(businessDriver)
+                                                  .map(String::trim)
+                                                  .filter(StringUtils::hasText)
+                                                  .orElse(BUSINESS_DRIVER_UNSPECIFIED);
+
+        String normalizedReason = Optional.ofNullable(reason)
+                                          .map(String::trim)
+                                          .filter(StringUtils::hasText)
+                                          .orElse("-");
+
+        auditService.recordEvent(
+            AuditEventType.TICKET_STATUS_CHANGED,
+            supportTicket.getId(),
+            actor.getId(),
+            String.format(
+                "Status %s -> %s | driver=%s | reason=%s",
+                previousStatus, targetStatus, normalizedBusinessDriver, normalizedReason
+            ),
+            null
+        );
+
+        notificationService.createNotification(
+            supportTicket.getCustomer().getId(),
+            NotificationType.STATUS_CHANGE,
+            String.format("Status Updated: %s", supportTicket.getFormattedTicketNo()),
+            String.format("Your ticket status is now: %s", targetStatus),
+            supportTicket.getId()
+        );
+
+        supportTicketRepository.save(supportTicket);
+    }
+
+    @Transactional(readOnly = true)
+    public SupportTicket getTicket(
+        Long ticketId
+    ) {
+        return supportTicketRepository.findById(ticketId)
+                                      .orElseThrow(
+                                          DataNotFoundException.supplier(
+                                              SupportTicket.class,
+                                              ticketId
+                                          )
+                                      );
+    }
+
+    @Transactional(readOnly = true)
+    public Page<SupportTicket> listQueueTickets(
+        TicketQueue ticketQueue,
+        TicketStatus ticketStatus,
+        Pageable pageable
+    ) {
+        return supportTicketRepository.findQueueTickets(
+            ticketQueue,
+            ticketStatus,
+            pageable
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<TicketMessage> getTicketMessages(
+        Long ticketId
+    ) {
+        return ticketMessageRepository.findByTicket_IdOrderByCreatedAtAsc(
+            ticketId
+        );
+    }
+}
