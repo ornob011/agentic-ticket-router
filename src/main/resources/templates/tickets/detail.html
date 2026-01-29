@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/common-layout}">
+
+<head>
+    <title th:text="'Ticket: ' + ${ticket.formattedTicketNo}">Ticket Detail | SupportHub</title>
+</head>
+
+<body>
+    <div layout:fragment="contentBody" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div th:replace="~{fragments/flash-message :: flash-message-block}" th:remove="tag"></div>
+
+        <!-- Back Navigation -->
+        <div class="mb-6">
+            <a th:href="@{/tickets}"
+                class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors">
+                <i class="fas fa-arrow-left mr-2 text-xs"></i>
+                Back to My Tickets
+            </a>
+        </div>
+
+        <!-- Ticket Header -->
+        <div class="bg-white rounded-2xl shadow-sm p-8 mb-6">
+            <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+                <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-3">
+                        <h1 class="text-2xl font-bold text-gray-900" th:text="${ticket.formattedTicketNo}">Ticket Number
+                        </h1>
+                        <span
+                            th:classappend="${ticket.status.name() == 'RECEIVED' ? 'bg-blue-100 text-blue-800' : 
+                                               ticket.status.name() == 'TRIAGING' ? 'bg-yellow-100 text-yellow-800' :
+                                               ticket.status.name() == 'ASSIGNED' ? 'bg-green-100 text-green-800' :
+                                               ticket.status.name() == 'IN_PROGRESS' ? 'bg-indigo-100 text-indigo-800' :
+                                               ticket.status.name() == 'WAITING_CUSTOMER' ? 'bg-orange-100 text-orange-800' :
+                                               ticket.status.name() == 'RESOLVED' ? 'bg-emerald-100 text-emerald-800' :
+                                               ticket.status.name() == 'CLOSED' ? 'bg-gray-100 text-gray-800' :
+                                               ticket.status.name() == 'ESCALATED' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}"
+                            class="px-3 py-1 text-xs font-bold rounded-full" th:text="${ticket.status}">Status</span>
+                    </div>
+                    <h2 class="text-lg text-gray-700 font-medium mb-4" th:text="${ticket.subject}">Subject</h2>
+                    <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
+                        <div>
+                            <i class="far fa-calendar-alt mr-1 text-gray-400"></i>
+                            <span class="font-medium">Created:</span>
+                            <span th:text="${#temporals.format(ticket.createdAt, 'yyyy-MM-dd HH:mm')}">Date</span>
+                        </div>
+                        <div th:if="${ticket.assignedAgent}">
+                            <i class="far fa-user mr-1 text-gray-400"></i>
+                            <span class="font-medium">Assigned to:</span>
+                            <span th:text="${ticket.assignedAgent.fullName}">Agent</span>
+                        </div>
+                        <div th:if="${ticket.assignedQueue}">
+                            <i class="fas fa-inbox mr-1 text-gray-400"></i>
+                            <span class="font-medium">Queue:</span>
+                            <span th:text="${ticket.assignedQueue}">Queue</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <span th:classappend="${ticket.currentPriority.name() == 'CRITICAL' ? 'bg-red-100 text-red-800' :
+                                           ticket.currentPriority.name() == 'HIGH' ? 'bg-orange-100 text-orange-800' :
+                                           ticket.currentPriority.name() == 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                                           'bg-gray-100 text-gray-800'}"
+                        class="px-4 py-2 text-xs font-bold rounded-full"
+                        th:text="${ticket.currentPriority}">Priority</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conversation Thread -->
+        <div class="space-y-4 mb-8">
+            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <i class="fas fa-comments text-blue-600"></i>
+                Conversation
+            </h3>
+
+            <div th:each="message : ${messages}" th:classappend="${message.fromCustomer ? 'bg-blue-50 border-l-4 border-blue-500' : 
+                                      (message.systemGenerated ? 'bg-yellow-50 border-l-4 border-yellow-500' : 
+                                      'bg-green-50 border-l-4 border-green-500')}" class="rounded-xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-3">
+                        <div th:classappend="${message.fromCustomer ? 'bg-blue-600' :
+                                                 (message.systemGenerated ? 'bg-yellow-600' :
+                                                 'bg-green-600')}"
+                            class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                            <span th:if="${message.author != null}"
+                                th:text="${#strings.toUpperCase(#strings.substring(message.author.fullName, 0, 1))}">A</span>
+                            <i th:if="${message.author == null}" class="fas fa-robot"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-gray-900">
+                                <span th:if="${message.author != null}"
+                                    th:text="${message.author.fullName}">Author</span>
+                                <span th:if="${message.author == null}">System</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-xs text-gray-500">
+                                <span th:classappend="${message.fromCustomer ? 'bg-blue-200 text-blue-800' :
+                                                       (message.systemGenerated ? 'bg-yellow-200 text-yellow-800' :
+                                                       'bg-green-200 text-green-800')}"
+                                    class="px-2 py-0.5 font-bold rounded-full"
+                                    th:text="${message.messageKind}">Kind</span>
+                                <span>
+                                    <i class="far fa-clock mr-1"></i>
+                                    <span
+                                        th:text="${#temporals.format(message.createdAt, 'yyyy-MM-dd HH:mm')}">Time</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-gray-900 whitespace-pre-wrap leading-relaxed" th:text="${message.content}">
+                    Message content
+                </div>
+            </div>
+        </div>
+
+        <!-- Reply Form -->
+        <div th:if="${ticket.status.name() != 'CLOSED' && ticket.status.name() != 'AUTO_CLOSED_PENDING'}"
+            class="bg-white rounded-2xl shadow-sm p-8">
+            <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-reply text-gray-700"></i>
+                Add Reply
+            </h3>
+            <form th:action="@{/tickets/{id}/reply(id=${ticket.id})}" method="post" class="space-y-4">
+                <div>
+                    <textarea name="content" rows="6" required minlength="10" maxlength="10000"
+                        placeholder="Type your reply here..."
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y transition-all"></textarea>
+                </div>
+                <div>
+                    <button type="submit"
+                        class="px-8 py-3 bg-gray-900 hover:bg-black text-white font-semibold rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        Send Reply
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Closed Notice -->
+        <div th:if="${ticket.status.name() == 'CLOSED'}"
+            class="bg-blue-50 border border-blue-200 text-blue-800 px-6 py-4 rounded-xl">
+            <div class="flex items-start gap-3">
+                <i class="fas fa-info-circle text-blue-600 mt-0.5"></i>
+                <div>
+                    <p class="font-semibold">This ticket is closed.</p>
+                    <p class="text-sm mt-1">Replying will reopen it.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
