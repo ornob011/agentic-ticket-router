@@ -93,14 +93,14 @@
                                             Dashboard
                                         </a>
                                         <a
-                                            th:href="@{/customer/tickets}"
+                                            th:href="@{/tickets}"
                                             th:classappend="${currentPage == NavPage.TICKETS} ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'"
                                             class="px-3 lg:px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 whitespace-nowrap"
                                         >
                                             My Tickets
                                         </a>
                                         <a
-                                            th:href="@{/customer/tickets/new}"
+                                            th:href="@{/tickets/create/new}"
                                             th:classappend="${currentPage == NavPage.NEW_TICKET} ? 'bg-blue-100 text-blue-700' : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'"
                                             class="px-3 lg:px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200 inline-flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 whitespace-nowrap"
                                         >
@@ -636,13 +636,13 @@
                                         >Dashboard</a
                                     >
                                     <a
-                                        th:href="@{/customer/tickets}"
+                                        th:href="@{/tickets}"
                                         th:classappend="${currentPage == NavPage.TICKETS} ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'"
                                         class="block px-4 py-2.5 text-sm font-medium rounded-lg"
                                         >My Tickets</a
                                     >
                                     <a
-                                        th:href="@{/customer/tickets/new}"
+                                        th:href="@{/tickets/create/new}"
                                         th:classappend="${currentPage == NavPage.NEW_TICKET} ? 'bg-blue-100 text-blue-700' : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'"
                                         class="block px-4 py-2.5 text-sm font-medium rounded-lg"
                                         >+ New Ticket</a
