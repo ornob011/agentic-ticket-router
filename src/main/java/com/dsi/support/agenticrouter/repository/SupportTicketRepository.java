@@ -2,6 +2,9 @@ package com.dsi.support.agenticrouter.repository;
 
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
+import com.dsi.support.agenticrouter.enums.TicketStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -164,4 +167,18 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         @Param("customerId") Long customerId
     );
 
+    Page<SupportTicket> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
+
+    @Query("""
+            select supportTicket
+            from SupportTicket supportTicket
+            where (:queue is null or supportTicket.assignedQueue = :queue)
+              and (:status is null or supportTicket.status = :status)
+            order by supportTicket.currentPriority desc, supportTicket.lastActivityAt asc
+        """)
+    Page<SupportTicket> findQueueTickets(
+        @Param("queue") TicketQueue ticketQueue,
+        @Param("status") TicketStatus ticketStatus,
+        Pageable pageable
+    );
 }
