@@ -32,7 +32,7 @@
                     </button>
                     <a
                         sec:authorize="hasRole('CUSTOMER')"
-                        th:href="@{/customer/tickets/new}"
+                        th:href="@{/tickets/create/new}"
                         class="inline-flex items-center px-5 py-2.5 bg-gray-900 hover:bg-black text-white text-sm font-semibold rounded-xl shadow-sm transition-all"
                     >
                         <i class="fas fa-plus mr-2 text-[10px]"></i> New Ticket
@@ -69,7 +69,7 @@
 
                 <!-- Recent Tickets -->
                 <div
-                    th:replace="~{fragments/dashboard-cards :: ticket-list-card(title='Recent Tickets', tickets=${dashboard.customerData.recentTickets}, viewAllUrl='/customer/tickets')}"
+                    th:replace="~{fragments/dashboard-cards :: ticket-list-card(title='Recent Tickets', tickets=${dashboard.customerData.recentTickets}, viewAllUrl='/tickets')}"
                 ></div>
             </div>
 
