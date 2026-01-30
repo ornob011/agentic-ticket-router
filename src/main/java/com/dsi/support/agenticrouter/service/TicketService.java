@@ -1,14 +1,10 @@
 package com.dsi.support.agenticrouter.service;
 
 import com.dsi.support.agenticrouter.dto.CreateTicketDto;
-import com.dsi.support.agenticrouter.entity.AppUser;
-import com.dsi.support.agenticrouter.entity.SupportTicket;
-import com.dsi.support.agenticrouter.entity.TicketMessage;
+import com.dsi.support.agenticrouter.entity.*;
 import com.dsi.support.agenticrouter.enums.*;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
-import com.dsi.support.agenticrouter.repository.AppUserRepository;
-import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
-import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
+import com.dsi.support.agenticrouter.repository.*;
 import com.dsi.support.agenticrouter.service.routing.RouterOrchestrator;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +18,6 @@ import org.springframework.util.StringUtils;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.BiConsumer;
-
-// TODO: Fix the class
 
 @Service
 @Transactional
@@ -66,6 +60,8 @@ public class TicketService {
     private final AuditService auditService;
     private final RouterOrchestrator routerOrchestrator;
     private final AppUserRepository appUserRepository;
+    private final TicketRoutingRepository ticketRoutingRepository;
+    private final EscalationRepository escalationRepository;
 
     @Transactional(readOnly = true)
     public Page<SupportTicket> listCustomerTickets(
@@ -435,4 +431,111 @@ public class TicketService {
             ticketId
         );
     }
+
+    public void overrideRouting(
+        Long ticketId,
+        TicketQueue newQueue,
+        TicketPriority newPriority,
+        String reason
+    ) {
+        Objects.requireNonNull(ticketId, "ticketId");
+        Objects.requireNonNull(newQueue, "newQueue");
+        Objects.requireNonNull(newPriority, "newPriority");
+
+        SupportTicket ticket = supportTicketRepository.findById(ticketId)
+                                                      .orElseThrow(
+                                                          DataNotFoundException.supplier(
+                                                              SupportTicket.class,
+                                                              ticketId
+                                                          )
+                                                      );
+
+        TicketRouting latestRouting = ticketRoutingRepository.findByTicketIdOrderByCreatedAtDesc(ticketId)
+                                                             .stream()
+                                                             .findFirst()
+                                                             .orElseThrow(
+                                                                 () -> new IllegalStateException("No routing found for ticket: " + ticketId)
+                                                             );
+
+        Long overriddenById = Utils.getLoggedInUserId();
+
+        AppUser overriddenBy = appUserRepository.findById(overriddenById)
+                                                .orElseThrow(
+                                                    DataNotFoundException.supplier(
+                                                        AppUser.class,
+                                                        overriddenById
+                                                    )
+                                                );
+
+        latestRouting.setOverridden(true);
+        latestRouting.setOverrideReason(reason);
+        latestRouting.setOverriddenBy(overriddenBy);
+
+        ticketRoutingRepository.save(latestRouting);
+
+        ticket.setAssignedQueue(newQueue);
+        ticket.setCurrentPriority(newPriority);
+        ticket.updateLastActivity();
+
+        supportTicketRepository.save(ticket);
+
+        auditService.recordEvent(
+            AuditEventType.ROUTING_OVERRIDDEN,
+            ticketId,
+            Utils.getLoggedInUserId(),
+            String.format("Routing overridden: queue=%s, priority=%s, reason=%s",
+                newQueue,
+                newPriority,
+                reason
+            ),
+            null
+        );
+    }
+
+    public void resolveEscalation(
+        Long escalationId,
+        String resolutionNotes
+    ) {
+        Objects.requireNonNull(escalationId, "escalationId");
+        Objects.requireNonNull(resolutionNotes, "resolutionNotes");
+
+        Escalation escalation = escalationRepository.findById(escalationId)
+                                                    .orElseThrow(
+                                                        DataNotFoundException.supplier(
+                                                            Escalation.class,
+                                                            escalationId
+                                                        )
+                                                    );
+
+        if (escalation.isResolved()) {
+            throw new IllegalStateException("Escalation already resolved: " + escalationId);
+        }
+
+        AppUser resolver = appUserRepository.findById(Utils.getLoggedInUserId())
+                                            .orElseThrow(
+                                                DataNotFoundException.supplier(
+                                                    AppUser.class,
+                                                    Utils.getLoggedInUserId()
+                                                )
+                                            );
+        escalation.markResolved(
+            resolver,
+            resolutionNotes
+        );
+
+        escalationRepository.save(escalation);
+
+        auditService.recordEvent(
+            AuditEventType.ESCALATION_RESOLVED,
+            escalation.getTicket().getId(),
+            Utils.getLoggedInUserId(),
+            String.format("Escalation resolved: %s", resolutionNotes),
+            null
+        );
+    }
+
+    public List<Escalation> getPendingEscalations() {
+        return escalationRepository.findPendingEscalations();
+    }
 }
+
