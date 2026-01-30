@@ -4,107 +4,102 @@ import com.dsi.support.agenticrouter.entity.AppUser;
 import com.dsi.support.agenticrouter.entity.Notification;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.NotificationType;
+import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.NotificationRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
-// TODO: Fix the class
-
-/**
- * Service for managing in-app notifications.
- */
 @Service
 @Transactional
 @RequiredArgsConstructor
-@Slf4j
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final AppUserRepository appUserRepository;
     private final SupportTicketRepository supportTicketRepository;
 
-    /**
-     * Create a new notification for a user.
-     *
-     * @param recipientId User ID to receive notification
-     * @param type        Notification type
-     * @param title       Notification title
-     * @param body        Notification body
-     * @param ticketId    Related ticket ID (nullable)
-     * @return Created notification
-     */
-    public Notification createNotification(
+    public void createNotification(
         Long recipientId,
         NotificationType type,
         String title,
         String body,
         Long ticketId
     ) {
-        log.debug("Creating notification: recipientId={}, type={}, title={}",
-            recipientId, type, title);
-
         AppUser recipient = appUserRepository.findById(recipientId)
-                                             .orElseThrow(() -> new IllegalArgumentException("User not found: " + recipientId));
+                                             .orElseThrow(
+                                                 DataNotFoundException.supplier(
+                                                     AppUser.class,
+                                                     recipientId
+                                                 )
+                                             );
 
-        SupportTicket ticket = ticketId != null ? supportTicketRepository.findById(ticketId).orElse(null) : null;
+        SupportTicket supportTicket = supportTicketRepository.findById(ticketId)
+                                                             .orElseThrow(
+                                                                 DataNotFoundException.supplier(
+                                                                     SupportTicket.class,
+                                                                     ticketId
+                                                                 )
+                                                             );
 
         Notification notification = Notification.builder()
                                                 .recipient(recipient)
                                                 .notificationType(type)
                                                 .title(title)
                                                 .body(body)
-                                                .ticket(ticket)
+                                                .ticket(supportTicket)
                                                 .read(false)
                                                 .build();
 
-        return notificationRepository.save(notification);
+        notificationRepository.save(notification);
     }
 
-    /**
-     * Get unread notifications for a user.
-     *
-     * @param userId User ID
-     * @return List of unread notifications
-     */
     @Transactional(readOnly = true)
-    public List<Notification> getUnreadNotifications(Long userId) {
-        return notificationRepository.findByRecipient_IdAndReadFalseOrderByCreatedAtDesc(userId);
+    public List<Notification> getUnreadNotifications(
+        Long userId
+    ) {
+        return notificationRepository.findByRecipient_IdAndReadFalseOrderByCreatedAtDesc(
+            userId
+        );
     }
 
-    /**
-     * Mark a notification as read.
-     *
-     * @param notificationId Notification ID
-     * @param userId         User ID (for authorization check)
-     */
-    public void markAsRead(Long notificationId, Long userId) {
+    public void markAsRead(
+        Long notificationId,
+        Long userId
+    ) {
         notificationRepository.findById(notificationId)
-                              .ifPresent(notification -> {
-                                  if (notification.getRecipient().getId().equals(userId)) {
-                                      notification.setRead(true);
-                                      notificationRepository.save(notification);
-                                      log.debug("Marked notification {} as read for user {}", notificationId, userId);
-                                  } else {
-                                      log.warn("User {} attempted to mark notification {} belonging to another user",
-                                          userId, notificationId);
+                              .ifPresent(
+                                  notification -> {
+                                      if (notification.getRecipient().getId().equals(userId)) {
+                                          notification.setRead(true);
+                                          notificationRepository.save(notification);
+                                      }
                                   }
-                              });
+                              );
     }
 
-    /**
-     * Get notification count for a user.
-     *
-     * @param userId User ID
-     * @return Count of unread notifications
-     */
     @Transactional(readOnly = true)
-    public long getUnreadCount(Long userId) {
-        return notificationRepository.countByRecipientIdAndReadFalse(userId);
+    public long getUnreadCount(
+        Long userId
+    ) {
+        return notificationRepository.countByRecipientIdAndReadFalse(
+            userId
+        );
+    }
+
+    @Transactional
+    public void deleteReadNotificationsOlderThan(
+        Instant before
+    ) {
+        List<Notification> oldNotifications = notificationRepository.findOldReadNotifications(
+            before
+        );
+
+        notificationRepository.deleteAll(oldNotifications);
     }
 }
