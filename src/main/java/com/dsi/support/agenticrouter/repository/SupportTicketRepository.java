@@ -23,6 +23,16 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         Long assignedAgentId
     );
 
+    List<SupportTicket> findByLastActivityAtBeforeAndStatusIn(
+        Instant before,
+        List<TicketStatus> statuses
+    );
+
+    List<SupportTicket> findByStatusInAndLastActivityAtBefore(
+        List<TicketStatus> statuses,
+        Instant before
+    );
+
     @Query("""
         SELECT COUNT(ticket)
         FROM SupportTicket ticket
@@ -181,4 +191,6 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         @Param("status") TicketStatus ticketStatus,
         Pageable pageable
     );
+
+
 }
