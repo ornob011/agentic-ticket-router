@@ -25,10 +25,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// TODO: Fix the class
-
 @Controller
-@RequestMapping("/agent")
 @PreAuthorize("hasAnyRole('AGENT', 'SUPERVISOR', 'ADMIN')")
 @RequiredArgsConstructor
 @Slf4j
@@ -37,32 +34,7 @@ public class AgentController {
     private final TicketService ticketService;
     private final MessageSource messageSource;
 
-    @GetMapping("/dashboard")
-    public String dashboard(
-        @RequestParam(required = false) TicketQueue queue,
-        @RequestParam(required = false) TicketStatus status,
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size,
-        Model model
-    ) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<SupportTicket> tickets = ticketService.listQueueTickets(
-            queue,
-            status,
-            pageable
-        );
-
-        model.addAttribute("tickets", tickets);
-        model.addAttribute("selectedQueue", queue);
-        model.addAttribute("selectedStatus", status);
-        model.addAttribute("availableQueues", TicketQueue.values());
-        model.addAttribute("availableStatuses", TicketStatus.values());
-        model.addAttribute("currentPage", page);
-
-        return "agent/dashboard";
-    }
-
-    @GetMapping("/tickets/{ticketId}")
+    @GetMapping("/agent/tickets/{ticketId}")
     public String viewTicket(
         @PathVariable Long ticketId,
         Model model
@@ -76,7 +48,7 @@ public class AgentController {
         return "agent/ticket-detail";
     }
 
-    @PostMapping("/tickets/{ticketId}/reply")
+    @PostMapping("/agent/tickets/{ticketId}/reply")
     public String addReply(
         @PathVariable Long ticketId,
         @ModelAttribute("replyDto") AgentReplyDto agentReplyDto,
@@ -110,7 +82,7 @@ public class AgentController {
         return "redirect:/agent/tickets/" + ticketId;
     }
 
-    @PostMapping("/tickets/{ticketId}/status")
+    @PostMapping("/agent/tickets/{ticketId}/status")
     @PreAuthorize("hasAnyRole('SUPERVISOR', 'ADMIN')")
     public String changeStatus(
         @PathVariable Long ticketId,
@@ -145,19 +117,27 @@ public class AgentController {
         return "redirect:/agent/tickets/" + ticketId;
     }
 
-    @GetMapping("/queue/{queue}")
+    @GetMapping("/agent/queue/{queue}")
     public String queueInbox(
         @PathVariable TicketQueue queue,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size,
         Model model
     ) {
-        return dashboard(
+        Pageable pageable = PageRequest.of(page, size);
+        Page<SupportTicket> tickets = ticketService.listQueueTickets(
             queue,
             null,
-            page,
-            size,
-            model
+            pageable
         );
+
+        model.addAttribute("tickets", tickets);
+        model.addAttribute("selectedQueue", queue);
+        model.addAttribute("selectedStatus", null);
+        model.addAttribute("availableQueues", TicketQueue.values());
+        model.addAttribute("availableStatuses", TicketStatus.values());
+        model.addAttribute("currentPage", page);
+
+        return "agent/queue";
     }
 }
