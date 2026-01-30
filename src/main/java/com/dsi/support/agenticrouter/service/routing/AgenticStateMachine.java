@@ -13,7 +13,6 @@ import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.AuditService;
 import com.dsi.support.agenticrouter.service.NotificationService;
-import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,13 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
-// TODO: Fix the class
-
-/**
- * Executes agentic actions based on routing decisions.
- * This is the "action layer" that translates routing intent into system
- * changes.
- */
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -40,198 +32,185 @@ public class AgenticStateMachine {
     private final NotificationService notificationService;
     private final AuditService auditService;
 
-    /**
-     * Execute action based on routing decision.
-     *
-     * @param ticket  Ticket to act on
-     * @param routing Routing decision
-     */
-    public void executeAction(SupportTicket ticket, TicketRouting routing) {
-        log.info("Executing action {} for ticket {}",
-            routing.getNextAction(), ticket.getFormattedTicketNo());
-
-        switch (routing.getNextAction()) {
-            case ASSIGN_QUEUE -> assignQueue(ticket, routing);
-            case ASK_CLARIFYING -> askClarifyingQuestion(ticket, routing);
-            case AUTO_REPLY -> sendAutoReply(ticket, routing);
-            case ESCALATE -> escalateTicket(ticket, routing);
-            case HUMAN_REVIEW -> routeToHumanReview(ticket, routing);
-            default -> log.warn("Unknown next action: {}", routing.getNextAction());
+    public void executeAction(
+        SupportTicket supportTicket,
+        TicketRouting ticketRouting
+    ) {
+        switch (ticketRouting.getNextAction()) {
+            case ASSIGN_QUEUE -> assignQueue(supportTicket, ticketRouting);
+            case ASK_CLARIFYING -> askClarifyingQuestion(supportTicket, ticketRouting);
+            case AUTO_REPLY -> sendAutoReply(supportTicket, ticketRouting);
+            case ESCALATE -> escalateTicket(supportTicket, ticketRouting);
+            case HUMAN_REVIEW -> routeToHumanReview(supportTicket, ticketRouting);
         }
     }
 
-    /**
-     * Assign ticket to queue and transition to ASSIGNED status.
-     */
-    private void assignQueue(SupportTicket ticket, TicketRouting routing) {
-        log.info("Assigning ticket {} to queue {}",
-            ticket.getFormattedTicketNo(), routing.getQueue());
+    private void assignQueue(
+        SupportTicket supportTicket,
+        TicketRouting ticketRouting
+    ) {
+        supportTicket.setAssignedQueue(ticketRouting.getQueue());
+        supportTicket.setStatus(TicketStatus.ASSIGNED);
 
-        ticket.setAssignedQueue(routing.getQueue());
-        ticket.setStatus(TicketStatus.ASSIGNED);
-
-        if (ticket.getFirstAssignedAt() == null) {
-            ticket.setFirstAssignedAt(Instant.now());
+        if (supportTicket.getFirstAssignedAt() == null) {
+            supportTicket.setFirstAssignedAt(Instant.now());
         }
 
-        supportTicketRepository.save(ticket);
+        supportTicketRepository.save(supportTicket);
 
         auditService.recordEvent(
             AuditEventType.QUEUE_ASSIGNED,
-            ticket.getId(),
-            Utils.getLoggedInUserId(),
-            String.format("Ticket assigned to queue: %s (confidence: %s)",
-                routing.getQueue(), routing.getConfidence()),
-            null);
-
-        // Notify agents in queue (simplified - would query agents by queue in real
-        // impl)
-        log.debug("Would notify agents in queue: {}", routing.getQueue());
+            supportTicket.getId(),
+            null,
+            String.format(
+                "Ticket assigned to queue: %s (confidence: %s)",
+                ticketRouting.getQueue(),
+                ticketRouting.getConfidence()
+            ),
+            null
+        );
     }
 
-    /**
-     * Post clarifying question and wait for customer response.
-     */
-    private void askClarifyingQuestion(SupportTicket ticket, TicketRouting routing) {
-        log.info("Posting clarifying question for ticket {}", ticket.getFormattedTicketNo());
+    private void askClarifyingQuestion(
+        SupportTicket supportTicket,
+        TicketRouting ticketRouting
+    ) {
+        if (ticketRouting.getClarifyingQuestion() == null || ticketRouting.getClarifyingQuestion().isBlank()) {
+            routeToHumanReview(
+                supportTicket,
+                ticketRouting
+            );
 
-        if (routing.getClarifyingQuestion() == null || routing.getClarifyingQuestion().isBlank()) {
-            log.warn("No clarifying question provided, falling back to HUMAN_REVIEW");
-            routeToHumanReview(ticket, routing);
             return;
         }
 
-        // Post system message with question
-        TicketMessage message = TicketMessage.builder()
-                                             .ticket(ticket)
-                                             .author(null) // System message
-                                             .messageKind(MessageKind.CLARIFYING_QUESTION)
-                                             .content(routing.getClarifyingQuestion())
-                                             .visibleToCustomer(true)
-                                             .build();
+        TicketMessage ticketMessage = TicketMessage.builder()
+                                                   .ticket(supportTicket)
+                                                   .author(null)
+                                                   .messageKind(MessageKind.CLARIFYING_QUESTION)
+                                                   .content(ticketRouting.getClarifyingQuestion())
+                                                   .visibleToCustomer(true)
+                                                   .build();
 
-        ticketMessageRepository.save(message);
+        ticketMessageRepository.save(ticketMessage);
 
-        // Transition to waiting for customer
-        ticket.setStatus(TicketStatus.WAITING_CUSTOMER);
-        supportTicketRepository.save(ticket);
+        supportTicket.setStatus(TicketStatus.WAITING_CUSTOMER);
+        supportTicketRepository.save(supportTicket);
 
-        // Notify customer
         notificationService.createNotification(
-            ticket.getCustomer().getId(),
+            supportTicket.getCustomer().getId(),
             NotificationType.NEW_MESSAGE,
-            "Clarification Needed: " + ticket.getFormattedTicketNo(),
+            "Clarification Needed: " + supportTicket.getFormattedTicketNo(),
             "We need more information to help with your ticket.",
-            ticket.getId());
+            supportTicket.getId()
+        );
 
         auditService.recordEvent(
             AuditEventType.MESSAGE_POSTED,
-            ticket.getId(),
-            Utils.getLoggedInUserId(),
+            supportTicket.getId(),
+            null,
             "System posted clarifying question",
-            null);
+            null
+        );
     }
 
-    /**
-     * Send automated reply and resolve ticket.
-     */
-    private void sendAutoReply(SupportTicket ticket, TicketRouting routing) {
-        log.info("Sending auto-reply for ticket {}", ticket.getFormattedTicketNo());
-
-        if (routing.getDraftReply() == null || routing.getDraftReply().isBlank()) {
-            log.warn("No draft reply provided, falling back to queue assignment");
-            assignQueue(ticket, routing);
+    private void sendAutoReply(
+        SupportTicket supportTicket,
+        TicketRouting ticketRouting
+    ) {
+        if (ticketRouting.getDraftReply() == null || ticketRouting.getDraftReply().isBlank()) {
+            assignQueue(
+                supportTicket,
+                ticketRouting
+            );
             return;
         }
 
-        // Post auto-reply message
-        TicketMessage message = TicketMessage.builder()
-                                             .ticket(ticket)
-                                             .author(null) // System message
-                                             .messageKind(MessageKind.AUTO_REPLY)
-                                             .content(routing.getDraftReply())
-                                             .visibleToCustomer(true)
-                                             .build();
+        TicketMessage ticketMessage = TicketMessage.builder()
+                                                   .ticket(supportTicket)
+                                                   .author(null)
+                                                   .messageKind(MessageKind.AUTO_REPLY)
+                                                   .content(ticketRouting.getDraftReply())
+                                                   .visibleToCustomer(true)
+                                                   .build();
 
-        ticketMessageRepository.save(message);
+        ticketMessageRepository.save(ticketMessage);
 
-        // Mark as resolved
-        ticket.setStatus(TicketStatus.RESOLVED);
-        ticket.setResolvedAt(Instant.now());
-        supportTicketRepository.save(ticket);
+        supportTicket.setStatus(TicketStatus.RESOLVED);
+        supportTicket.setResolvedAt(Instant.now());
 
-        // Notify customer
+        supportTicketRepository.save(supportTicket);
+
         notificationService.createNotification(
-            ticket.getCustomer().getId(),
+            supportTicket.getCustomer().getId(),
             NotificationType.STATUS_CHANGE,
-            "Ticket Resolved: " + ticket.getFormattedTicketNo(),
+            "Ticket Resolved: " + supportTicket.getFormattedTicketNo(),
             "Your ticket has been automatically resolved. If you need further assistance, please reply.",
-            ticket.getId());
+            supportTicket.getId()
+        );
 
         auditService.recordEvent(
             AuditEventType.MESSAGE_POSTED,
-            ticket.getId(),
-            Utils.getLoggedInUserId(),
+            supportTicket.getId(),
+            null,
             "System sent auto-reply and resolved ticket",
-            null);
+            null
+        );
     }
 
-    /**
-     * Escalate ticket to supervisor/specialized team.
-     */
-    private void escalateTicket(SupportTicket ticket, TicketRouting routing) {
-        log.warn("Escalating ticket {}", ticket.getFormattedTicketNo());
-
-        // Create escalation record
-        String reason = String.format("Auto-escalated: category=%s, queue=%s, tags=%s",
-            routing.getCategory(),
-            routing.getQueue(),
-            routing.getRationaleTags());
+    private void escalateTicket(
+        SupportTicket supportTicket,
+        TicketRouting ticketRouting
+    ) {
+        String reason = String.format(
+            "Auto-escalated: category=%s, queue=%s, tags=%s",
+            ticketRouting.getCategory(),
+            ticketRouting.getQueue(),
+            ticketRouting.getRationaleTags()
+        );
 
         Escalation escalation = Escalation.builder()
-                                          .ticket(ticket)
+                                          .ticket(supportTicket)
                                           .reason(reason)
                                           .resolved(false)
                                           .build();
 
         escalationRepository.save(escalation);
 
-        // Update ticket
-        ticket.setStatus(TicketStatus.ESCALATED);
-        ticket.setEscalated(true);
-        ticket.setAssignedQueue(routing.getQueue());
-        supportTicketRepository.save(ticket);
+        supportTicket.setStatus(TicketStatus.ESCALATED);
+        supportTicket.setEscalated(true);
+        supportTicket.setAssignedQueue(ticketRouting.getQueue());
 
-        // Notify supervisors (simplified)
+        supportTicketRepository.save(supportTicket);
+
         auditService.recordEvent(
             AuditEventType.ESCALATION_CREATED,
-            ticket.getId(),
+            supportTicket.getId(),
             null,
             "Ticket escalated: " + reason,
-            null);
-
-        log.debug("Would notify supervisors about escalation");
+            null
+        );
     }
 
-    /**
-     * Route to human review queue (low confidence or critical).
-     */
-    private void routeToHumanReview(SupportTicket ticket, TicketRouting routing) {
-        log.info("Routing ticket {} to human review", ticket.getFormattedTicketNo());
+    private void routeToHumanReview(
+        SupportTicket supportTicket,
+        TicketRouting ticketRouting
+    ) {
+        supportTicket.setStatus(TicketStatus.TRIAGING);
+        supportTicket.setAssignedQueue(ticketRouting.getQueue());
 
-        // Keep in TRIAGING status - requires supervisor review
-        ticket.setStatus(TicketStatus.TRIAGING);
-        ticket.setAssignedQueue(routing.getQueue());
-        supportTicketRepository.save(ticket);
+        supportTicketRepository.save(supportTicket);
 
         auditService.recordEvent(
             AuditEventType.POLICY_GATE_TRIGGERED,
-            ticket.getId(),
-            Utils.getLoggedInUserId(),
-            String.format("Routed to human review: confidence=%s, category=%s",
-                routing.getConfidence(), routing.getCategory()),
-            null);
-
-        log.debug("Would notify supervisors about ticket needing review");
+            supportTicket.getId(),
+            null,
+            String.format(
+                "Routed to human review: confidence=%s, category=%s",
+                ticketRouting.getConfidence(),
+                ticketRouting.getCategory()
+            ),
+            null
+        );
     }
 }
