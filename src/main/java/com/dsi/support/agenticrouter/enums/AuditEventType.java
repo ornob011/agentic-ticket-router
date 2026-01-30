@@ -15,6 +15,7 @@ public enum AuditEventType {
     QUEUE_ASSIGNED("Ticket assigned to queue"),
     AGENT_ASSIGNED("Ticket assigned to specific agent"),
     ESCALATION_CREATED("Escalation created"),
+    ESCALATION_RESOLVED("Escalation resolved"),
     PRIORITY_CHANGED("Priority changed"),
     NOTIFICATION_SENT("Notification sent to user"),
     SLA_BREACH("SLA threshold breached"),
