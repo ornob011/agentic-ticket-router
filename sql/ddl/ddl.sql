@@ -30,6 +30,7 @@ DROP TYPE IF EXISTS parse_status CASCADE;
 DROP TYPE IF EXISTS audit_event_type CASCADE;
 DROP TYPE IF EXISTS notification_type CASCADE;
 DROP TYPE IF EXISTS config_value_type CASCADE;
+DROP TYPE IF EXISTS llm_output_type CASCADE;
 
 -- Drop sequences
 DROP SEQUENCE IF EXISTS support_ticket_ticket_no_seq CASCADE;
@@ -149,6 +150,15 @@ CREATE TYPE config_value_type AS ENUM (
   'STRING',
   'JSON'
   );
+
+CREATE TYPE llm_output_type AS ENUM (
+  'ROUTING',
+  'ANALYSIS_TICKET_DETAILS',
+  'ANALYSIS_CUSTOMER_INFO',
+  'ANALYSIS_CONVERSATION_HISTORY',
+  'ANALYSIS_TECHNICAL_DETAILS',
+  'ANALYSIS_ACTIONS_REQUIRED'
+);
 
 -- =====================================================
 -- REFERENCE TABLES
@@ -391,6 +401,7 @@ CREATE TABLE llm_output
 
   ticket_id        BIGINT       NOT NULL,
   model_tag        VARCHAR(100) NOT NULL,
+  output_type      llm_output_type NOT NULL DEFAULT 'ROUTING',
   raw_request      JSONB        NOT NULL,
   raw_response     JSONB,
   parse_status     parse_status NOT NULL,
@@ -409,6 +420,7 @@ CREATE INDEX idx_llm_output_ticket_id ON llm_output (ticket_id);
 CREATE INDEX idx_llm_output_created_at ON llm_output (created_at);
 CREATE INDEX idx_llm_output_parse_status ON llm_output (parse_status);
 CREATE INDEX idx_llm_output_model_tag ON llm_output (model_tag);
+CREATE INDEX idx_llm_output_type ON llm_output (output_type);
 
 COMMENT ON TABLE llm_output IS 'LLM inference requests and responses for ticket analysis';
 
@@ -602,5 +614,6 @@ COMMENT ON TYPE next_action IS 'AI-recommended next action for ticket';
 COMMENT ON TYPE message_kind IS 'Type of message (customer, agent, system, etc.)';
 COMMENT ON TYPE parse_status IS 'LLM output parsing and validation status';
 COMMENT ON TYPE audit_event_type IS 'Types of auditable events in the system';
+COMMENT ON TYPE llm_output_type IS 'Type of LLM output: ROUTING (for routing decisions) or ANALYSIS_* (for ticket section analysis)';
 COMMENT ON TYPE notification_type IS 'Types of user notifications';
 COMMENT ON TYPE config_value_type IS 'Data type for policy configuration values';
