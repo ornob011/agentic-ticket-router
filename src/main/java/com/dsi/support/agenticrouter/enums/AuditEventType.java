@@ -23,7 +23,9 @@ public enum AuditEventType {
     TICKET_REOPENED("Ticket reopened"),
     POLICY_GATE_TRIGGERED("Policy gate triggered"),
     MODEL_INFERENCE_FAILED("Model inference failed"),
-    MANUAL_INTERVENTION("Manual intervention by staff");
+    MANUAL_INTERVENTION("Manual intervention by staff"),
+    TICKET_ANALYSIS_EXECUTED("Ticket analysis executed"),
+    TICKET_ANALYSIS_FAILED("Ticket analysis failed");
 
     private static final Set<AuditEventType> SYSTEM_GENERATED =
         EnumSet.of(

@@ -77,4 +77,34 @@ public class AuditService {
             ticketId
         );
     }
+
+    public void recordTicketAnalysis(
+        Long ticketId,
+        String section,
+        boolean success,
+        String errorMessage
+    ) {
+        Objects.requireNonNull(ticketId, "ticketId");
+        Objects.requireNonNull(section, "section");
+
+        AuditEventType eventType = AuditEventType.TICKET_ANALYSIS_FAILED;
+
+        if (success) {
+            eventType = AuditEventType.TICKET_ANALYSIS_EXECUTED;
+        }
+
+        String description = String.format("Ticket section '%s' analysis failed: %s", section, errorMessage);
+
+        if (success) {
+            description = String.format("Ticket section '%s' analyzed successfully", section);
+        }
+
+        recordEvent(
+            eventType,
+            ticketId,
+            null,
+            description,
+            null
+        );
+    }
 }

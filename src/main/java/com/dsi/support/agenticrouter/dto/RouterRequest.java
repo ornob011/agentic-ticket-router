@@ -22,4 +22,12 @@ public class RouterRequest {
     private String initialMessage;
 
     private String conversationHistory;
+
+    private String customerInfoAnalysis;
+
+    private String conversationAnalysis;
+
+    private String technicalAnalysis;
+
+    private String actionsAnalysis;
 }

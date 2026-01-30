@@ -87,7 +87,11 @@ public class OllamaRouterService {
                                                                                 .param("customerName", request.getCustomerName())
                                                                                 .param("customerTier", request.getCustomerTier())
                                                                                 .param("initialMessage", request.getInitialMessage())
-                                                                                .param("conversationHistory", request.getConversationHistory()))
+                                                                                .param("conversationHistory", request.getConversationHistory())
+                                                                                .param("customerAnalysis", request.getCustomerInfoAnalysis())
+                                                                                .param("conversationAnalysis", request.getConversationAnalysis())
+                                                                                .param("technicalAnalysis", request.getTechnicalAnalysis())
+                                                                                .param("actionsAnalysis", request.getActionsAnalysis()))
                                           .call()
                                           .chatResponse();
 
@@ -154,6 +158,7 @@ public class OllamaRouterService {
             LlmOutput output = LlmOutput.builder()
                                         .ticket(supportTicket)
                                         .modelTag(modelTag)
+                                        .outputType(LlmOutputType.ROUTING)
                                         .rawRequest(requestJson)
                                         .rawResponse(responseJson)
                                         .parseStatus(parseStatus)

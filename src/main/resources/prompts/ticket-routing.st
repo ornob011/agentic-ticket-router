@@ -9,6 +9,12 @@ TICKET INFORMATION:
 CONVERSATION HISTORY:
 {conversationHistory}
 
+TICKET ANALYSIS:
+{customerAnalysis}
+{conversationAnalysis}
+{technicalAnalysis}
+{actionsAnalysis}
+
 ROUTING INSTRUCTIONS:
 Analyze the ticket and respond with ONLY a valid JSON object (no additional text) with these exact fields:
 {
@@ -27,5 +33,6 @@ IMPORTANT RULES:
 - If uncertain or confidence < 0.7, use next_action=HUMAN_REVIEW
 - confidence must be between 0.0 and 1.0
 - Only use the exact enum values listed above
+- Use the TICKET ANALYSIS sections above to inform your routing decision
 
 Respond with ONLY the JSON object, no markdown formatting, no explanations.
