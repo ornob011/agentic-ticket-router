@@ -4,8 +4,10 @@ import com.dsi.support.agenticrouter.dto.AgentReplyDto;
 import com.dsi.support.agenticrouter.dto.ChangeTicketStatusDto;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.entity.TicketMessage;
+import com.dsi.support.agenticrouter.enums.NavPage;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
+import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.service.TicketService;
 import com.dsi.support.agenticrouter.util.Utils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,6 +35,7 @@ public class AgentController {
 
     private final TicketService ticketService;
     private final MessageSource messageSource;
+    private final SupportTicketRepository supportTicketRepository;
 
     @GetMapping("/agent/tickets/{ticketId}")
     public String viewTicket(
@@ -65,7 +68,7 @@ public class AgentController {
             model.addAttribute("ticket", supportTicket);
             model.addAttribute("messages", ticketMessages);
 
-            return "agent/tickets/detail";
+            return "agent/ticket-detail";
         }
 
         ticketService.addAgentReply(
@@ -99,7 +102,7 @@ public class AgentController {
             model.addAttribute("messages", ticketMessages);
             model.addAttribute("changeStatusDto", changeTicketStatusDto);
 
-            return "agent/tickets/detail";
+            return "agent/ticket-detail";
         }
 
         ticketService.changeTicketStatus(
@@ -137,6 +140,88 @@ public class AgentController {
         model.addAttribute("availableQueues", TicketQueue.values());
         model.addAttribute("availableStatuses", TicketStatus.values());
         model.addAttribute("currentPage", page);
+
+        return "agent/queue";
+    }
+
+    @PostMapping("/agent/tickets/{ticketId}/assign")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'ADMIN')")
+    public String assignTicket(
+        @PathVariable Long ticketId,
+        @RequestParam Long agentId,
+        HttpServletRequest request
+    ) {
+        ticketService.assignAgent(ticketId, agentId);
+
+        Utils.setSuccessMessageCode(
+            request,
+            messageSource,
+            "ticket.assign.success"
+        );
+
+        return "redirect:/agent/queue/" + ticketService.getTicket(ticketId).getAssignedQueue();
+    }
+
+    @PostMapping("/agent/tickets/{ticketId}/release")
+    public String releaseTicket(
+        @PathVariable Long ticketId,
+        HttpServletRequest request
+    ) {
+        ticketService.releaseAgent(ticketId);
+
+        Utils.setSuccessMessageCode(
+            request,
+            messageSource,
+            "ticket.release.success"
+        );
+
+        return "redirect:/agent/queue/" + ticketService.getTicket(ticketId).getAssignedQueue();
+    }
+
+    @GetMapping("/agent/unassigned/{queue}")
+    public String viewUnassigned(
+        @PathVariable TicketQueue queue,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size,
+        Model model
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<SupportTicket> tickets = supportTicketRepository.findUnassignedTicketsInQueue(
+            queue,
+            List.of(TicketStatus.ASSIGNED),
+            pageable
+        );
+
+        model.addAttribute("tickets", tickets);
+        model.addAttribute("selectedQueue", queue);
+        model.addAttribute("availableQueues", TicketQueue.values());
+        model.addAttribute("currentPage", page);
+
+        return "agent/queue";
+    }
+
+    @GetMapping("/agent/dashboard")
+    public String agentDashboard(
+        @RequestParam(required = false) TicketQueue queue,
+        @RequestParam(required = false) TicketStatus status,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size,
+        Model model
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<SupportTicket> tickets = ticketService.listQueueTickets(
+            queue,
+            status,
+            pageable
+        );
+
+        model.addAttribute("tickets", tickets);
+        model.addAttribute("selectedQueue", queue);
+        model.addAttribute("selectedStatus", status);
+        model.addAttribute("availableQueues", TicketQueue.values());
+        model.addAttribute("availableStatuses", TicketStatus.values());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("currentPage", NavPage.QUEUE);
 
         return "agent/queue";
     }

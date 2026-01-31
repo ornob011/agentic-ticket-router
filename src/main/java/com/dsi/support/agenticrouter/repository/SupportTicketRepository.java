@@ -192,5 +192,18 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         Pageable pageable
     );
 
+    @Query("""
+        SELECT supportTicket
+        FROM SupportTicket supportTicket
+        WHERE supportTicket.assignedAgent.id IS NULL
+          AND supportTicket.assignedQueue = :queue
+          AND supportTicket.status IN :statuses
+        ORDER BY supportTicket.currentPriority DESC, supportTicket.createdAt ASC
+        """)
+    Page<SupportTicket> findUnassignedTicketsInQueue(
+        @Param("queue") TicketQueue queue,
+        @Param("statuses") List<TicketStatus> statuses,
+        Pageable pageable
+    );
 
 }

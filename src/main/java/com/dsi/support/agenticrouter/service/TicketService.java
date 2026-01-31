@@ -537,5 +537,95 @@ public class TicketService {
     public List<Escalation> getPendingEscalations() {
         return escalationRepository.findPendingEscalations();
     }
+
+    public void assignAgent(
+        Long ticketId,
+        Long agentId
+    ) {
+        Objects.requireNonNull(ticketId, "ticketId");
+        Objects.requireNonNull(agentId, "agentId");
+
+        SupportTicket supportTicket = supportTicketRepository.findById(ticketId)
+                                                             .orElseThrow(
+                                                                 DataNotFoundException.supplier(
+                                                                     SupportTicket.class,
+                                                                     ticketId
+                                                                 )
+                                                             );
+
+        AppUser agent = appUserRepository.findById(agentId)
+                                         .orElseThrow(
+                                             DataNotFoundException.supplier(
+                                                 AppUser.class,
+                                                 agentId
+                                             )
+                                         );
+
+        if (!agent.getRole().equals(UserRole.AGENT) &&
+            !agent.getRole().equals(UserRole.SUPERVISOR) &&
+            !agent.getRole().equals(UserRole.ADMIN)) {
+            throw new IllegalArgumentException("User must be an agent, supervisor, or admin");
+        }
+
+        AppUser previousAgent = supportTicket.getAssignedAgent();
+        supportTicket.setAssignedAgent(agent);
+        supportTicket.updateLastActivity();
+
+        if (supportTicket.getStatus() == TicketStatus.ASSIGNED) {
+            supportTicket.setStatus(TicketStatus.IN_PROGRESS);
+        }
+
+        supportTicketRepository.save(supportTicket);
+
+        String description = previousAgent != null
+            ? String.format("Agent reassigned: %s -> %s", previousAgent.getFullName(), agent.getFullName())
+            : String.format("Agent assigned: %s", agent.getFullName());
+
+        auditService.recordEvent(
+            AuditEventType.AGENT_ASSIGNED,
+            ticketId,
+            agentId,
+            description,
+            null
+        );
+
+        notificationService.createNotification(
+            agent.getId(),
+            NotificationType.ASSIGNED_TO_YOU,
+            "New Assignment: " + supportTicket.getFormattedTicketNo(),
+            "You have been assigned to this ticket.",
+            ticketId
+        );
+    }
+
+    public void releaseAgent(Long ticketId) {
+        Objects.requireNonNull(ticketId, "ticketId");
+
+        SupportTicket supportTicket = supportTicketRepository.findById(ticketId)
+                                                             .orElseThrow(
+                                                                 DataNotFoundException.supplier(
+                                                                     SupportTicket.class,
+                                                                     ticketId
+                                                                 )
+                                                             );
+
+        AppUser previousAgent = supportTicket.getAssignedAgent();
+        if (previousAgent == null) {
+            return;
+        }
+
+        supportTicket.setAssignedAgent(null);
+        supportTicket.setStatus(TicketStatus.ASSIGNED);
+        supportTicket.updateLastActivity();
+        supportTicketRepository.save(supportTicket);
+
+        auditService.recordEvent(
+            AuditEventType.AGENT_ASSIGNED,
+            ticketId,
+            Utils.getLoggedInUserId(),
+            String.format("Agent released: %s", previousAgent.getFullName()),
+            null
+        );
+    }
 }
 

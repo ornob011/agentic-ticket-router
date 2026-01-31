@@ -2,19 +2,15 @@ package com.dsi.support.agenticrouter.service.analysis;
 
 import com.dsi.support.agenticrouter.dto.TicketAnalysisRequest;
 import com.dsi.support.agenticrouter.dto.TicketAnalysisResult;
-import com.dsi.support.agenticrouter.entity.LlmOutput;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.LlmOutputType;
 import com.dsi.support.agenticrouter.enums.ParseStatus;
 import com.dsi.support.agenticrouter.enums.TicketAnalysis;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.prompts.TicketAnalysisPrompts;
-import com.dsi.support.agenticrouter.repository.LlmOutputRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.service.AuditService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.dsi.support.agenticrouter.service.LlmOutputService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -33,10 +29,9 @@ public class TicketAnalysisService {
 
     private final OllamaChatModel ollamaChatModel;
     private final TicketAnalysisPrompts ticketAnalysisPrompts;
-    private final LlmOutputRepository llmOutputRepository;
     private final SupportTicketRepository supportTicketRepository;
-    private final ObjectMapper objectMapper;
     private final AuditService auditService;
+    private final LlmOutputService llmOutputService;
 
     private ChatClient chatClient;
 
@@ -73,7 +68,7 @@ public class TicketAnalysisService {
                                      .call()
                                      .content();
 
-            persistLlmOutput(
+            llmOutputService.persistAnalysisOutput(
                 supportTicket,
                 request.getContent(),
                 responseText,
@@ -83,12 +78,7 @@ public class TicketAnalysisService {
                 0
             );
 
-            auditService.recordTicketAnalysis(
-                supportTicket.getId(),
-                ticketAnalysis.name(),
-                true,
-                null
-            );
+            auditService.recordTicketAnalysis(supportTicket.getId(), ticketAnalysis.name(), true, null);
 
             return TicketAnalysisResult.builder()
                                        .section(ticketAnalysis)
@@ -96,9 +86,9 @@ public class TicketAnalysisService {
                                        .build();
 
         } catch (Exception exception) {
-            log.error("Failed to analyze TicketAnalysis({}) for Ticket({})", ticketAnalysis, request.getTicketId(), exception);
+            log.error("Failed to analyze ticket section {} for ticket {}", ticketAnalysis, request.getTicketId(), exception);
 
-            persistLlmOutput(
+            llmOutputService.persistAnalysisOutput(
                 supportTicket,
                 request.getContent(),
                 null,
@@ -108,12 +98,7 @@ public class TicketAnalysisService {
                 0
             );
 
-            auditService.recordTicketAnalysis(
-                supportTicket.getId(),
-                ticketAnalysis.name(),
-                false,
-                exception.getMessage()
-            );
+            auditService.recordTicketAnalysis(supportTicket.getId(), ticketAnalysis.name(), false, exception.getMessage());
 
             return TicketAnalysisResult.builder()
                                        .section(ticketAnalysis)
@@ -123,9 +108,7 @@ public class TicketAnalysisService {
         }
     }
 
-    private LlmOutputType mapTicketSectionToOutputType(
-        TicketAnalysis ticketAnalysis
-    ) {
+    private LlmOutputType mapTicketSectionToOutputType(TicketAnalysis ticketAnalysis) {
         return switch (ticketAnalysis) {
             case TICKET_DETAILS -> LlmOutputType.ANALYSIS_TICKET_DETAILS;
             case CUSTOMER_INFORMATION -> LlmOutputType.ANALYSIS_CUSTOMER_INFO;
@@ -133,43 +116,5 @@ public class TicketAnalysisService {
             case TECHNICAL_DETAILS -> LlmOutputType.ANALYSIS_TECHNICAL_DETAILS;
             case ACTIONS_REQUIRED -> LlmOutputType.ANALYSIS_ACTIONS_REQUIRED;
         };
-    }
-
-    private void persistLlmOutput(
-        SupportTicket supportTicket,
-        String requestContent,
-        String responseContent,
-        LlmOutputType outputType,
-        ParseStatus parseStatus,
-        String errorMessage,
-        long latencyMs
-    ) {
-        try {
-            JsonNode requestJson = objectMapper.readTree(
-                objectMapper.writeValueAsString(requestContent)
-            );
-
-            JsonNode responseJson = null;
-            if (Objects.nonNull(responseContent)) {
-                responseJson = objectMapper.readTree(responseContent);
-            }
-
-            LlmOutput output = LlmOutput.builder()
-                                        .ticket(supportTicket)
-                                        .modelTag("analyzer")
-                                        .outputType(outputType)
-                                        .rawRequest(requestJson)
-                                        .rawResponse(responseJson)
-                                        .parseStatus(parseStatus)
-                                        .errorMessage(errorMessage)
-                                        .latencyMs(latencyMs)
-                                        .repairAttempts(0)
-                                        .build();
-
-            llmOutputRepository.save(output);
-
-        } catch (JsonProcessingException exception) {
-            throw new IllegalStateException(exception);
-        }
     }
 }
