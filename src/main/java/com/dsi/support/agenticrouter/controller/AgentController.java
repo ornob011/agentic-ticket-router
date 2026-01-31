@@ -4,7 +4,6 @@ import com.dsi.support.agenticrouter.dto.AgentReplyDto;
 import com.dsi.support.agenticrouter.dto.ChangeTicketStatusDto;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.entity.TicketMessage;
-import com.dsi.support.agenticrouter.enums.NavPage;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
@@ -196,32 +195,6 @@ public class AgentController {
         model.addAttribute("selectedQueue", queue);
         model.addAttribute("availableQueues", TicketQueue.values());
         model.addAttribute("currentPage", page);
-
-        return "agent/queue";
-    }
-
-    @GetMapping("/agent/dashboard")
-    public String agentDashboard(
-        @RequestParam(required = false) TicketQueue queue,
-        @RequestParam(required = false) TicketStatus status,
-        @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size,
-        Model model
-    ) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<SupportTicket> tickets = ticketService.listQueueTickets(
-            queue,
-            status,
-            pageable
-        );
-
-        model.addAttribute("tickets", tickets);
-        model.addAttribute("selectedQueue", queue);
-        model.addAttribute("selectedStatus", status);
-        model.addAttribute("availableQueues", TicketQueue.values());
-        model.addAttribute("availableStatuses", TicketStatus.values());
-        model.addAttribute("currentPage", page);
-        model.addAttribute("currentPage", NavPage.QUEUE);
 
         return "agent/queue";
     }
