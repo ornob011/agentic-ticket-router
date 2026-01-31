@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/common-layout}">
+
+<head>
+    <title th:text="'Agent: ' + ${ticket.formattedTicketNo}">Ticket Detail | SupportHub</title>
+</head>
+
+<body>
+    <div layout:fragment="contentBody" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div th:replace="~{fragments/flash-message :: flash-message-block}" th:remove="tag"></div>
+
+        <div class="mb-6">
+            <a th:href="@{/agent/queue(queue=${ticket.assignedQueue})}"
+                class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors">
+                <i class="fas fa-arrow-left mr-2 text-xs"></i>
+                Back to Queue
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm p-8">
+                    <h3 class="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+                        <i class="fas fa-ticket-alt text-blue-600"></i>
+                        Ticket Information
+                    </h3>
+
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Ticket Number</label>
+                                <p class="text-gray-900 font-medium" th:text="${ticket.formattedTicketNo}">TKT-00000001</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Status</label>
+                                <span th:classappend="${ticket.status.name() == 'RECEIVED' ? 'bg-blue-100 text-blue-800' : 
+                                                   ticket.status.name() == 'TRIAGING' ? 'bg-yellow-100 text-yellow-800' :
+                                                   ticket.status.name() == 'ASSIGNED' ? 'bg-green-100 text-green-800' :
+                                                   ticket.status.name() == 'IN_PROGRESS' ? 'bg-indigo-100 text-indigo-800' :
+                                                   ticket.status.name() == 'WAITING_CUSTOMER' ? 'bg-orange-100 text-orange-800' :
+                                                   ticket.status.name() == 'RESOLVED' ? 'bg-emerald-100 text-emerald-800' :
+                                                   ticket.status.name() == 'CLOSED' ? 'bg-gray-100 text-gray-800' :
+                                                   ticket.status.name() == 'ESCALATED' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}"
+                                      class="px-3 py-1 text-xs font-bold rounded-full"
+                                      th:text="${ticket.status}">Status</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Customer</label>
+                                <p class="text-gray-900 font-medium" th:text="${ticket.customer.fullName}">Customer Name</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Created</label>
+                                <p class="text-gray-600" th:text="${#temporals.format(ticket.createdAt, 'yyyy-MM-dd HH:mm')}">Date</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Queue</label>
+                                <span th:if="${ticket.assignedQueue}"
+                                      class="px-3 py-1 text-xs font-bold rounded-full bg-purple-100 text-purple-800"
+                                      th:text="${ticket.assignedQueue}">Queue</span>
+                                <span th:unless="${ticket.assignedQueue}" class="text-gray-400 italic">Unassigned</span>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Priority</label>
+                                <span th:classappend="${ticket.currentPriority.name() == 'CRITICAL' ? 'bg-red-100 text-red-800' :
+                                                   ticket.currentPriority.name() == 'HIGH' ? 'bg-orange-100 text-orange-800' :
+                                                   ticket.currentPriority.name() == 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                                                   'bg-gray-100 text-gray-800'}"
+                                      class="px-3 py-1 text-xs font-bold rounded-full"
+                                      th:text="${ticket.currentPriority}">Priority</span>
+                            </div>
+                        </div>
+
+                        <div th:if="${ticket.assignedAgent}">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Assigned Agent</label>
+                            <p class="text-gray-900 font-medium" th:text="${ticket.assignedAgent.fullName}">Agent Name</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Subject</label>
+                            <p class="text-gray-900 font-medium" th:text="${ticket.subject}">Ticket subject text</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Last Activity</label>
+                            <p class="text-gray-600" th:text="${#temporals.format(ticket.lastActivityAt, 'yyyy-MM-dd HH:mm')}">Date</p>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-200 pt-6 mt-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <i class="fas fa-reply text-blue-600"></i>
+                            Add Agent Reply
+                        </h3>
+                        <form method="post" class="space-y-4">
+                            <div>
+                                <textarea name="content" rows="6" required minlength="10" maxlength="10000"
+                                          placeholder="Type your response to the customer..."
+                                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y transition-all"></textarea>
+                            </div>
+                            <div>
+                                <button type="submit"
+                                        class="w-full px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                    <i class="fas fa-paper-plane mr-2"></i>
+                                    Send Response
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="flex gap-2 mt-4">
+                            <button th:action="@{/agent/tickets/{id}/status(id=${ticket.id})}"
+                                    class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-all">
+                                <i class="fas fa-exchange-alt mr-2"></i>
+                                Change Status
+                            </button>
+                            <button th:action="@{/agent/tickets/{id}/release(id=${ticket.id})}"
+                                    class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-all">
+                                <i class="fas fa-user-times mr-2"></i>
+                                Release Ticket
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-1 space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm p-8">
+                    <h3 class="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+                        <i class="fas fa-cogs text-blue-600"></i>
+                        Routing History
+                    </h3>
+
+                    <div class="space-y-4" th:if="${latestRouting != null}">
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Category</label>
+                                    <span class="text-gray-900 font-medium" th:text="${latestRouting.category}">Category</span>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Queue</label>
+                                    <span class="text-gray-900 font-medium" th:text="${latestRouting.queue}">Queue</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Priority</label>
+                                    <span class="text-gray-900 font-medium" th:text="${latestRouting.priority}">Priority</span>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Next Action</label>
+                                    <span class="text-gray-900 font-medium" th:text="${latestRouting.nextAction}">NextAction</span>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Confidence</label>
+                                <div class="flex items-center gap-2">
+                                    <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                        <div class="h-2 rounded-full transition-all duration-300"
+                                             th:style="'width: ' + (${latestRouting.confidence * 100}) + '%'"></div>
+                                    </div>
+                                    <span class="text-gray-900 font-medium" th:text="${#numbers.formatDecimal(latestRouting.confidence, '#,##0.00')}">Confidence</span>
+                                </div>
+                            </div>
+                            <div th:if="${latestRouting.clarifyingQuestion != null and not #strings.isEmpty(latestRouting.clarifyingQuestion)}">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Clarifying Question</label>
+                                <p class="text-gray-600 italic" th:text="${latestRouting.clarifyingQuestion}">Question text</p>
+                            </div>
+                            <div th:if="${latestRouting.draftReply != null and not #strings.isEmpty(latestRouting.draftReply)}">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Draft Reply</label>
+                                <p class="text-gray-600 italic" th:text="${latestRouting.draftReply}">Draft reply</p>
+                            </div>
+                            <div th:if="${not #lists.isEmpty(latestRouting.rationaleTags)}">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Rationale Tags</label>
+                                <div class="flex flex-wrap gap-2">
+                                    <span th:each="tag : ${latestRouting.rationaleTags}"
+                                          class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">Tag</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 text-xs text-gray-500">
+                                <i class="far fa-clock mr-1"></i>
+                                <span th:text="${#temporals.format(latestRouting.createdAt, 'yyyy-MM-dd HH:mm:ss')}">Date</span>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 pt-6 mt-6" th:if="${latestRouting.overridden}">
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <div class="flex items-start gap-2 mb-3">
+                                    <i class="fas fa-exclamation-triangle text-red-600"></i>
+                                    <div>
+                                        <p class="font-semibold text-red-900">Routing Override</p>
+                                        <p class="text-sm text-red-700">This routing was manually overridden</p>
+                                    </div>
+                                </div>
+                                <div th:if="${latestRouting.overrideReason != null}">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Override Reason</label>
+                                    <p class="text-gray-600" th:text="${latestRouting.overrideReason}">Reason</p>
+                                </div>
+                                <div th:if="${latestRouting.overriddenBy != null}">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Overridden By</label>
+                                    <p class="text-gray-900 font-medium" th:text="${latestRouting.overriddenBy.fullName}">Agent name</p>
+                                </div>
+                                <div class="flex items-center gap-2 text-xs text-gray-500 mt-2">
+                                    <i class="far fa-clock mr-1"></i>
+                                    <span th:text="${#temporals.format(latestRouting.updatedAt, 'yyyy-MM-dd HH:mm:ss')}">Date</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-200 pt-6 mt-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <i class="fas fa-sliders-h text-blue-600"></i>
+                            Override Routing
+                        </h3>
+                        <form method="post" class="space-y-4">
+                            <div sec:authorize="hasAnyRole('SUPERVISOR', 'ADMIN')">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Assign Agent</label>
+                                <select name="agentId" id="agentId"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                                    <option value="">Select Agent</option>
+                                    <option th:each="agent : ${availableAgents}"
+                                            th:value="${agent.id}"
+                                            th:text="${agent.fullName}">Agent Name</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Change Queue</label>
+                                <select name="queue"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                                    <option value="">Select Queue</option>
+                                    <option th:each="q : ${availableQueues}"
+                                            th:value="${q}"
+                                            th:selected="${q == latestRouting.queue}"
+                                            th:text="${q}">Queue</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Change Priority</label>
+                                <select name="priority"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                                    <option th:each="p : ${availablePriorities}"
+                                            th:value="${p}"
+                                            th:selected="${p == latestRouting.priority}"
+                                            th:text="${p}">Priority</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Override Reason</label>
+                                <input type="text" name="reason" maxlength="500"
+                                       placeholder="Explain why you're overriding the AI routing..."
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                            </div>
+
+                            <div>
+                                <button type="submit"
+                                        class="w-full px-8 py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2">
+                                    <i class="fas fa-edit mr-2"></i>
+                                    Override Routing
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4" th:unless="${latestRouting.overridden}">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-info-circle text-yellow-600"></i>
+                                <p class="text-sm text-yellow-800">
+                                    <span class="font-semibold">No override has been applied</span>
+                                    <span> for this ticket. You can override the AI routing above.</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm p-8">
+                    <h3 class="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+                        <i class="fas fa-comments text-blue-600"></i>
+                        Conversation
+                    </h3>
+
+                    <div class="space-y-4" th:if="${!messages.isEmpty()}">
+                        <div th:each="message : ${messages}"
+                             th:classappend="${message.fromCustomer ? 'bg-blue-50 border-l-4 border-blue-500' : 
+                                               (message.systemGenerated ? 'bg-yellow-50 border-l-4 border-yellow-500' : 
+                                               'bg-green-50 border-l-4 border-green-500')}"
+                             class="rounded-xl p-6 shadow-sm">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div th:classappend="${message.author != null ? 'bg-blue-600' : 
+                                                         (message.systemGenerated ? 'bg-yellow-600' : 
+                                                         'bg-green-600')}"
+                                         class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                        <span th:if="${message.author != null}"
+                                              th:text="${#strings.toUpperCase(#strings.substring(message.author.fullName, 0, 1))}">A</span>
+                                        <i th:if="${message.author == null}" class="fas fa-robot"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-900">
+                                            <span th:if="${message.author != null}"
+                                                  th:text="${message.author.fullName}">Author</span>
+                                            <span th:if="${message.author == null}">System</span>
+                                        </div>
+                                        <div class="flex items-center gap-2 text-xs text-gray-500">
+                                            <span th:classappend="${message.fromCustomer ? 'bg-blue-200 text-blue-800' : 
+                                                                   (message.systemGenerated ? 'bg-yellow-200 text-yellow-800' : 
+                                                                   'bg-green-200 text-green-800')}"
+                                                  class="px-2 py-0.5 font-bold rounded-full"
+                                                  th:text="${message.messageKind}">Kind</span>
+                                            <span>
+                                                <i class="far fa-clock mr-1"></i>
+                                                <span th:text="${#temporals.format(message.createdAt, 'yyyy-MM-dd HH:mm')}">Time</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-gray-900 whitespace-pre-wrap leading-relaxed" th:text="${message.content}">Message content</div>
+                        </div>
+                    </div>
+
+                    <div class="text-center text-gray-500 italic" th:if="${messages.isEmpty()}">
+                        <i class="fas fa-comments text-3xl mb-4 text-gray-300"></i>
+                        <p>No messages yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
