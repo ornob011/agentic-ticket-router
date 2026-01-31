@@ -51,8 +51,7 @@ public record DashboardDto(
         long totalUsers,
         long totalTickets,
         String activeModelTag,
-        double routingSuccessRate,
-        long recentAuditEvents
+        double routingSuccessRate
     ) {
     }
 
