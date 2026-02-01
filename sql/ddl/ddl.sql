@@ -623,4 +623,3 @@ COMMENT ON TYPE parse_status IS 'LLM output parsing and validation status';
 COMMENT ON TYPE audit_event_type IS 'Types of auditable events in the system';
 COMMENT ON TYPE llm_output_type IS 'Type of LLM output: ROUTING (for routing decisions) or ANALYSIS_* (for ticket section analysis)';
 COMMENT ON TYPE notification_type IS 'Types of user notifications';
-COMMENT ON TYPE config_value_type IS 'Data type for policy configuration values';
