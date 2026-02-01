@@ -10,6 +10,7 @@ import com.dsi.support.agenticrouter.repository.AuditEventRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,12 +57,15 @@ public class AuditService {
                                            );
         }
 
+        String correlationId = MDC.get("correlationId");
+
         AuditEvent auditEvent = AuditEvent.builder()
                                           .eventType(eventType)
                                           .ticket(supportTicket)
                                           .performedBy(performedBy)
                                           .description(description)
                                           .payload(payload)
+                                          .correlationId(correlationId)
                                           .build();
 
         auditEventRepository.save(auditEvent);

@@ -538,6 +538,39 @@ public class TicketService {
         return escalationRepository.findPendingEscalations();
     }
 
+    @Transactional(readOnly = true)
+    public Page<Escalation> listEscalationsByResolved(
+        boolean resolved,
+        Pageable pageable
+    ) {
+        if (resolved) {
+            return escalationRepository.findByResolvedTrue(pageable);
+        } else {
+            return escalationRepository.findByResolvedFalse(pageable);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Escalation> listAllEscalations(Pageable pageable) {
+        return escalationRepository.findAll(pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Escalation getEscalationById(Long escalationId) {
+        return escalationRepository.findById(escalationId)
+                                     .orElseThrow(
+                                         DataNotFoundException.supplier(
+                                             Escalation.class,
+                                             escalationId
+                                         )
+                                     );
+    }
+
+    @Transactional(readOnly = true)
+    public List<TicketRouting> getTicketRoutingHistory(Long ticketId) {
+        return ticketRoutingRepository.findByTicketIdOrderByCreatedAtDesc(ticketId);
+    }
+
     public void assignAgent(
         Long ticketId,
         Long agentId

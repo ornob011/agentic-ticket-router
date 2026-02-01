@@ -4,6 +4,9 @@ import com.dsi.support.agenticrouter.dto.AgentReplyDto;
 import com.dsi.support.agenticrouter.dto.ChangeTicketStatusDto;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.entity.TicketMessage;
+import com.dsi.support.agenticrouter.entity.TicketRouting;
+import com.dsi.support.agenticrouter.enums.NavPage;
+import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
@@ -43,8 +46,13 @@ public class AgentController {
     ) {
         SupportTicket ticket = ticketService.getTicket(ticketId);
 
+        List<TicketRouting> routingHistory = ticketService.getTicketRoutingHistory(ticketId);
+        TicketRouting latestRouting = routingHistory.isEmpty() ? null : routingHistory.get(0);
+        
         model.addAttribute("ticket", ticket);
         model.addAttribute("messages", ticketService.getTicketMessages(ticketId));
+        model.addAttribute("latestRouting", latestRouting);
+        model.addAttribute("routingHistory", routingHistory);
         model.addAttribute("availableStatuses", TicketStatus.values());
 
         return "agent/ticket-detail";
@@ -197,5 +205,27 @@ public class AgentController {
         model.addAttribute("currentPage", page);
 
         return "agent/queue";
+    }
+
+    @GetMapping("/agent/review-queue")
+    @PreAuthorize("hasAnyRole('SUPERVISOR', 'ADMIN')")
+    public String reviewQueue(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "20") int size,
+        Model model
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<SupportTicket> triagingTickets = supportTicketRepository.findByStatusAndAssignedQueueIsNull(
+            TicketStatus.TRIAGING,
+            pageable
+        );
+
+        model.addAttribute("tickets", triagingTickets);
+        model.addAttribute("currentPage", NavPage.REVIEW_QUEUE);
+        model.addAttribute("availablePriorities", TicketPriority.values());
+        model.addAttribute("availableQueues", TicketQueue.values());
+        model.addAttribute("currentPage", page);
+
+        return "agent/review-queue";
     }
 }

@@ -154,13 +154,46 @@
                         System Administration
                     </h2>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        <div
-                            th:replace="~{fragments/dashboard-cards :: stat-card(title='Total Users', value=${dashboard.adminData.totalUsers}, icon='users', color='cyan')}"
-                        ></div>
-                        <div
-                            th:replace="~{fragments/dashboard-cards :: stat-card(title='Total Tickets', value=${dashboard.adminData.totalTickets}, icon='ticket-alt', color='teal')}"
-                        ></div>
-                        <!-- Routing Success Rate formatted as percentage -->
+                        <div class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
+                                        Total Users
+                                    </p>
+                                    <h3
+                                        class="text-2xl font-semibold text-gray-800"
+                                        th:text="${dashboard.adminData.totalUsers}"
+                                    >
+                                        100
+                                    </h3>
+                                </div>
+                                <div
+                                    class="w-12 h-12 flex items-center justify-center rounded-xl bg-cyan-50 text-cyan-500 flex-shrink-0"
+                                >
+                                    <i class="fas fa-users text-lg"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
+                                        Total Tickets
+                                    </p>
+                                    <h3
+                                        class="text-2xl font-semibold text-gray-800"
+                                        th:text="${dashboard.adminData.totalTickets}"
+                                    >
+                                        1,250
+                                    </h3>
+                                </div>
+                                <div
+                                    class="w-12 h-12 flex items-center justify-center rounded-xl bg-teal-50 text-teal-500 flex-shrink-0"
+                                >
+                                    <i class="fas fa-ticket-alt text-lg"></i>
+                                </div>
+                            </div>
+                        </div>
                         <div class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
                             <div class="flex items-start justify-between gap-4">
                                 <div class="flex-1 min-w-0">
@@ -178,6 +211,28 @@
                                     class="w-12 h-12 flex items-center justify-center rounded-xl bg-green-50 text-green-500 flex-shrink-0"
                                 >
                                     <i class="fas fa-robot text-lg"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
+                                        Avg Routing Latency
+                                    </p>
+                                    <h3 class="text-2xl font-semibold text-gray-800">
+                                        <th:block th:if="${dashboard.adminData.avgRoutingLatency != null}">
+                                            <span th:text="${dashboard.adminData.avgRoutingLatency}">1500</span> ms
+                                        </th:block>
+                                        <th:block th:if="${dashboard.adminData.avgRoutingLatency == null}">
+                                            N/A
+                                        </th:block>
+                                    </h3>
+                                </div>
+                                <div
+                                    class="w-12 h-12 flex items-center justify-center rounded-xl bg-indigo-50 text-indigo-500 flex-shrink-0"
+                                >
+                                    <i class="fas fa-tachometer-alt text-lg"></i>
                                 </div>
                             </div>
                         </div>

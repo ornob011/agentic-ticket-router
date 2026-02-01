@@ -207,4 +207,9 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         Pageable pageable
     );
 
+    Page<SupportTicket> findByStatusAndAssignedQueueIsNull(
+        @Param("status") TicketStatus status,
+        Pageable pageable
+    );
+
 }

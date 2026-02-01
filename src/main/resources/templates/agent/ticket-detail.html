@@ -279,9 +279,93 @@
                                 </p>
                             </div>
                         </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-200 pt-6 mt-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <i class="fas fa-history text-blue-600"></i>
+                            Routing History <span th:if="${routingHistory != null}" class="text-sm font-normal text-gray-500" th:text="'(' + ${routingHistory.size} + ' versions)'">(N versions)</span>
+                        </h3>
+
+                        <div th:if="${routingHistory != null and not routingHistory.empty}" class="space-y-3">
+                            <div th:each="routing, iterStat : ${routingHistory}"
+                                 th:classappend="${iterStat.index == 0} ? '' : 'border-t border-gray-200 pt-3'"
+                                 class="rounded-lg p-4" 
+                                 th:attr="classappend=${iterStat.index == 0 ? 'bg-blue-50' : 'bg-gray-50'}">
+                                <div class="flex items-start justify-between mb-2">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-3 mb-1">
+                                            <span class="text-sm font-bold text-gray-900" th:text="'v' + ${routing.version}">v1</span>
+                                            <span class="text-xs text-gray-500" th:text="${#temporals.format(routing.createdAt, 'yyyy-MM-dd HH:mm')}">2024-01-15 10:30</span>
+                                        </div>
+                                        <div th:if="${routing.overridden}" class="inline-flex items-center px-2 py-0.5 text-xs font-bold rounded-full bg-orange-100 text-orange-800">
+                                            <i class="fas fa-undo mr-1"></i>
+                                            Overridden
+                                        </div>
+                                        <div th:if="${routing.policyGateTriggered}" class="inline-flex items-center px-2 py-0.5 text-xs font-bold rounded-full bg-red-100 text-red-800">
+                                            <i class="fas fa-shield-alt mr-1"></i>
+                                            Policy Gate
+                                        </div>
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        <span th:if="${routing.applied}" class="text-green-600 font-medium">
+                                            <i class="fas fa-check-circle mr-1"></i>
+                                            Applied
+                                        </span>
+                                        <span th:if="${not routing.applied}" class="text-gray-400">
+                                            Not applied
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                    <div>
+                                        <span class="text-xs text-gray-500 font-medium">Category</span>
+                                        <p class="text-gray-900 font-medium" th:text="${routing.category}">Category</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs text-gray-500 font-medium">Priority</span>
+                                        <p class="text-gray-900 font-medium" th:text="${routing.priority}">Priority</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs text-gray-500 font-medium">Queue</span>
+                                        <p class="text-gray-900 font-medium" th:text="${routing.queue}">Queue</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs text-gray-500 font-medium">Next Action</span>
+                                        <p class="text-gray-900 font-medium" th:text="${routing.nextAction}">Action</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3 flex items-center gap-4">
+                                    <div>
+                                        <span class="text-xs text-gray-500 font-medium">Confidence</span>
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-24 bg-gray-200 rounded-full h-2">
+                                                <div class="h-2 rounded-full"
+                                                     th:style="'width: ' + (${routing.confidence * 100}) + '%'"
+                                                     th:classappend="${routing.confidence >= 0.8} ? 'bg-green-500' : routing.confidence >= 0.6} ? 'bg-blue-500' : routing.confidence >= 0.4} ? 'bg-yellow-500' : 'bg-red-500'"></div>
+                                            </div>
+                                            <span class="text-sm font-medium text-gray-900" th:text="${#numbers.formatDecimal(routing.confidence, '#,##0.00')}">0.85</span>
+                                        </div>
+                                    </div>
+                                    <div th:if="${routing.overridden and routing.overrideReason != null}" class="flex-1">
+                                        <span class="text-xs text-gray-500 font-medium">Override Reason</span>
+                                        <p class="text-sm text-gray-600 italic" th:text="${routing.overrideReason}">Reason</p>
+                                    </div>
+                                    <div th:if="${routing.overridden and routing.overriddenBy != null}" class="flex-1">
+                                        <span class="text-xs text-gray-500 font-medium">Overridden By</span>
+                                        <p class="text-sm text-gray-900" th:text="${routing.overriddenBy.fullName}">Agent Name</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div th:if="${routingHistory == null or routingHistory.empty}" class="text-center py-8">
+                            <i class="fas fa-history text-3xl text-gray-200 mb-3"></i>
+                            <p class="text-sm text-gray-500">No routing history available</p>
+                        </div>
                     </div>
                 </div>
-
+ 
                 <div class="bg-white rounded-2xl shadow-sm p-8">
                     <h3 class="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
                         <i class="fas fa-comments text-blue-600"></i>
