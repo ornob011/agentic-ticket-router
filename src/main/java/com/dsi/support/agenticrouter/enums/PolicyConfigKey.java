@@ -1,10 +1,10 @@
 package com.dsi.support.agenticrouter.enums;
 
 import lombok.Getter;
-import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigDecimal;
 import java.util.Objects;
+import java.util.function.Function;
 
 @Getter
 public enum PolicyConfigKey {
@@ -29,69 +29,38 @@ public enum PolicyConfigKey {
         this.description = description;
     }
 
+    private static <T> T getValue(
+        BigDecimal value,
+        T defaultValue,
+        Function<BigDecimal, T> converter
+    ) {
+        if (Objects.isNull(value)) {
+            return defaultValue;
+        }
+
+        return converter.apply(value);
+    }
+
     public static int getIntValue(
         BigDecimal value,
         int defaultValue
     ) {
-        if (Objects.isNull(value)) {
-            return defaultValue;
-        }
-
-        return value.intValue();
-    }
-
-    public static long getLongValue(
-        BigDecimal value,
-        long defaultValue
-    ) {
-        if (Objects.isNull(value)) {
-            return defaultValue;
-        }
-
-        return value.longValue();
-    }
-
-    public static double getDoubleValue(
-        BigDecimal value,
-        double defaultValue
-    ) {
-        if (Objects.isNull(value)) {
-            return defaultValue;
-        }
-
-        return value.doubleValue();
+        return getValue(
+            value,
+            defaultValue,
+            BigDecimal::intValue
+        );
     }
 
     public static BigDecimal getBigDecimalValue(
         BigDecimal value,
         BigDecimal defaultValue
     ) {
-        if (Objects.isNull(value)) {
-            return defaultValue;
-        }
-
-        return value;
+        return getValue(
+            value,
+            defaultValue,
+            Function.identity()
+        );
     }
 
-    public static boolean getBooleanValue(
-        BigDecimal value,
-        boolean defaultValue
-    ) {
-        if (Objects.isNull(value)) {
-            return defaultValue;
-        }
-
-        return value.compareTo(BigDecimal.ZERO) != 0;
-    }
-
-    public static String getStringValue(
-        String value,
-        String defaultValue
-    ) {
-        if (StringUtils.isBlank(value)) {
-            return defaultValue;
-        }
-
-        return value;
-    }
 }
