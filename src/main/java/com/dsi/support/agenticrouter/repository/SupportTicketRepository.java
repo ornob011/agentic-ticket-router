@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.List;
 
 public interface SupportTicketRepository extends JpaRepository<SupportTicket, Long> {
@@ -29,7 +30,7 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
     );
 
     List<SupportTicket> findByStatusInAndLastActivityAtBefore(
-        List<TicketStatus> statuses,
+        EnumSet<TicketStatus> statuses,
         Instant before
     );
 

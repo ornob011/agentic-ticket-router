@@ -3,6 +3,7 @@ package com.dsi.support.agenticrouter.service.routing;
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.PolicyConfig;
 import com.dsi.support.agenticrouter.enums.*;
+import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.PolicyConfigRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -38,8 +39,12 @@ public class PolicyEngine {
         }
 
         if (TicketPriority.CRITICAL.equals(routerResponse.getPriority())) {
-            BigDecimal criticalMinConf = getConfigValue(
-                "CRITICAL_MIN_CONF",
+            BigDecimal configValue = policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.CRITICAL_MIN_CONF)
+                                                            .map(PolicyConfig::getConfigValue)
+                                                            .orElseThrow(DataNotFoundException::new);
+
+            BigDecimal criticalMinConf = PolicyConfigKey.getBigDecimalValue(
+                configValue,
                 BigDecimal.valueOf(0.85)
             );
 
@@ -49,8 +54,12 @@ public class PolicyEngine {
             }
         }
 
-        BigDecimal autoRouteThreshold = getConfigValue(
-            "AUTO_ROUTE_THRESHOLD",
+        BigDecimal configValue = policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.AUTO_ROUTE_THRESHOLD)
+                                                        .map(PolicyConfig::getConfigValue)
+                                                        .orElseThrow(DataNotFoundException::new);
+
+        BigDecimal autoRouteThreshold = PolicyConfigKey.getBigDecimalValue(
+            configValue,
             BigDecimal.valueOf(0.70)
         );
 
@@ -73,16 +82,5 @@ public class PolicyEngine {
                              .anyMatch(
                                  tag -> SecurityTag.getDangerousTags().contains(tag.toUpperCase())
                              );
-    }
-
-    private BigDecimal getConfigValue(
-        String key,
-        BigDecimal defaultValue
-    ) {
-        return policyConfigRepository.findByConfigKeyAndActiveTrue(key)
-                                     .map(PolicyConfig::getConfigValue)
-                                     .map(Double::parseDouble)
-                                     .map(BigDecimal::new)
-                                     .orElse(defaultValue);
     }
 }

@@ -1,11 +1,15 @@
 package com.dsi.support.agenticrouter.service;
 
+import com.dsi.support.agenticrouter.entity.PolicyConfig;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.AuditEventType;
 import com.dsi.support.agenticrouter.enums.NotificationType;
+import com.dsi.support.agenticrouter.enums.PolicyConfigKey;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
+import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.PolicyConfigRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.List;
 
 @Service
@@ -25,18 +30,24 @@ public class SlaSchedulerService {
     private final NotificationService notificationService;
     private final AuditService auditService;
 
-    private static final Long SYSTEM_USER_ID = -1L;
-
     @Scheduled(cron = "0 0 * * * ?")
     @Transactional
     public void checkCustomerResponseTimeout() {
         log.info("Checking customer response timeouts");
 
-        int slaHours = getConfigIntValue("SLA_CUSTOMER_RESPONSE_HOURS", 48);
+        int slaHours = PolicyConfigKey.getIntValue(
+            policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.SLA_CUSTOMER_RESPONSE_HOURS)
+                                  .map(PolicyConfig::getConfigValue)
+                                  .orElseThrow(DataNotFoundException::new),
+            48
+        );
+
         Instant slaThreshold = Instant.now().minusSeconds(slaHours * 3600L);
 
         List<SupportTicket> waitingTickets = supportTicketRepository.findByStatusInAndLastActivityAtBefore(
-            List.of(TicketStatus.WAITING_CUSTOMER),
+            EnumSet.of(
+                TicketStatus.WAITING_CUSTOMER
+            ),
             slaThreshold
         );
 
@@ -48,7 +59,7 @@ public class SlaSchedulerService {
             auditService.recordEvent(
                 AuditEventType.SLA_BREACH,
                 ticket.getId(),
-                SYSTEM_USER_ID,
+                Utils.getLoggedInUserId(),
                 String.format("SLA breach: Waiting customer for %d hours", slaHours),
                 null
             );
@@ -57,7 +68,7 @@ public class SlaSchedulerService {
                 ticket.getCustomer().getId(),
                 NotificationType.SLA_REMINDER,
                 "Action Required: " + ticket.getFormattedTicketNo(),
-                "Your ticket requires your response. Please provide the requested information.",
+                "Your ticket requires your response. Please provide requested information.",
                 ticket.getId()
             );
 
@@ -66,7 +77,7 @@ public class SlaSchedulerService {
                     ticket.getAssignedAgent().getId(),
                     NotificationType.SLA_REMINDER,
                     "Customer SLA Breach: " + ticket.getFormattedTicketNo(),
-                    "Customer has not responded within the SLA timeframe.",
+                    "Customer has not responded within SLA timeframe.",
                     ticket.getId()
                 );
             }
@@ -78,7 +89,13 @@ public class SlaSchedulerService {
     @Scheduled(cron = "0 0 * * * ?")
     @Transactional
     public void checkAgentSlaBreach() {
-        int slaHours = getConfigIntValue("SLA_AGENT_RESPONSE_HOURS", 24);
+        int slaHours = PolicyConfigKey.getIntValue(
+            policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.SLA_AGENT_RESPONSE_HOURS)
+                                  .map(PolicyConfig::getConfigValue)
+                                  .orElseThrow(DataNotFoundException::new),
+            24
+        );
+
         Instant slaThreshold = Instant.now().minusSeconds(slaHours * 3600L);
 
         long breachCount = supportTicketRepository.countSlaBreaches(slaThreshold);
@@ -87,7 +104,11 @@ public class SlaSchedulerService {
             log.warn("SLA breaches detected: {} tickets", breachCount);
 
             List<SupportTicket> breachedTickets = supportTicketRepository.findByStatusInAndLastActivityAtBefore(
-                List.of(TicketStatus.ASSIGNED, TicketStatus.IN_PROGRESS, TicketStatus.ESCALATED),
+                EnumSet.of(
+                    TicketStatus.ASSIGNED,
+                    TicketStatus.IN_PROGRESS,
+                    TicketStatus.ESCALATED
+                ),
                 slaThreshold
             );
 
@@ -108,14 +129,27 @@ public class SlaSchedulerService {
     @Scheduled(cron = "0 0 2 * * ?")
     @Transactional
     public void checkInactivityAutoClose() {
-        int warningDays = getConfigIntValue("AUTO_CLOSE_WARNING_DAYS", 3);
-        int finalDays = getConfigIntValue("AUTO_CLOSE_FINAL_DAYS", 7);
+        int warningDays = PolicyConfigKey.getIntValue(
+            policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.AUTO_CLOSE_WARNING_DAYS)
+                                  .map(PolicyConfig::getConfigValue)
+                                  .orElseThrow(DataNotFoundException::new),
+            3
+        );
+
+        int finalDays = PolicyConfigKey.getIntValue(
+            policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.AUTO_CLOSE_FINAL_DAYS)
+                                  .map(PolicyConfig::getConfigValue)
+                                  .orElseThrow(DataNotFoundException::new),
+            7
+        );
 
         Instant warningThreshold = Instant.now().minusSeconds(warningDays * 86400L);
         Instant finalThreshold = Instant.now().minusSeconds(finalDays * 86400L);
 
         List<SupportTicket> resolvedStale = supportTicketRepository.findByStatusInAndLastActivityAtBefore(
-            List.of(TicketStatus.RESOLVED),
+            EnumSet.of(
+                TicketStatus.RESOLVED
+            ),
             warningThreshold
         );
 
@@ -128,7 +162,7 @@ public class SlaSchedulerService {
                 auditService.recordEvent(
                     AuditEventType.AUTO_CLOSE_TRIGGERED,
                     ticket.getId(),
-                    SYSTEM_USER_ID,
+                    Utils.getLoggedInUserId(),
                     "Auto-closed after inactivity",
                     null
                 );
@@ -149,7 +183,7 @@ public class SlaSchedulerService {
                 auditService.recordEvent(
                     AuditEventType.AUTO_CLOSE_TRIGGERED,
                     ticket.getId(),
-                    SYSTEM_USER_ID,
+                    Utils.getLoggedInUserId(),
                     "Auto-close warning sent",
                     null
                 );
@@ -171,14 +205,5 @@ public class SlaSchedulerService {
         SupportTicket supportTicket
     ) {
         return TicketStatus.AUTO_CLOSED_PENDING.equals(supportTicket.getStatus());
-    }
-
-    private int getConfigIntValue(
-        String key,
-        int defaultValue
-    ) {
-        return policyConfigRepository.findByConfigKeyAndActiveTrue(key)
-                                     .map(config -> Integer.parseInt(config.getConfigValue()))
-                                     .orElse(defaultValue);
     }
 }
