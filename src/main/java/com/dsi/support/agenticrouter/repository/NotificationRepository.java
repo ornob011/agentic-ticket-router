@@ -15,11 +15,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("""
         SELECT notification
         FROM Notification notification
-        WHERE notification.createdAt < :before AND notification.read = false
+        WHERE notification.createdAt < :before AND notification.read = true
         """)
     List<Notification> findOldReadNotifications(@Param("before") Instant before);
-
-    void markAllAsReadByRecipientId(Long recipientId);
 
     long countByRecipientIdAndRead(Long recipientId, boolean read);
 
