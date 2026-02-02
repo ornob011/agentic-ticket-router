@@ -1,5 +1,6 @@
 -- =====================================================
 -- Agentic Router Support Ticket System - PostgreSQL DDL
+-- (NO Postgres ENUM types; uses VARCHAR + CHECK constraints)
 -- =====================================================
 
 -- Drop existing objects (in reverse dependency order)
@@ -18,155 +19,8 @@ DROP TABLE IF EXISTS customer_tier CASCADE;
 DROP TABLE IF EXISTS country CASCADE;
 DROP TABLE IF EXISTS language CASCADE;
 
--- Drop existing types
-DROP TYPE IF EXISTS user_role CASCADE;
-DROP TYPE IF EXISTS ticket_status CASCADE;
-DROP TYPE IF EXISTS ticket_category CASCADE;
-DROP TYPE IF EXISTS ticket_priority CASCADE;
-DROP TYPE IF EXISTS ticket_queue CASCADE;
-DROP TYPE IF EXISTS next_action CASCADE;
-DROP TYPE IF EXISTS message_kind CASCADE;
-DROP TYPE IF EXISTS parse_status CASCADE;
-DROP TYPE IF EXISTS audit_event_type CASCADE;
-DROP TYPE IF EXISTS notification_type CASCADE;
-DROP TYPE IF EXISTS config_key_type CASCADE;
-DROP TYPE IF EXISTS llm_output_type CASCADE;
-
 -- Drop sequences
 DROP SEQUENCE IF EXISTS support_ticket_ticket_no_seq CASCADE;
-
--- =====================================================
--- ENUM TYPES
--- =====================================================
-
-CREATE TYPE user_role AS ENUM (
-  'CUSTOMER',
-  'AGENT',
-  'SUPERVISOR',
-  'ADMIN'
-  );
-
-CREATE TYPE ticket_status AS ENUM (
-  'RECEIVED',
-  'TRIAGING',
-  'WAITING_CUSTOMER',
-  'ASSIGNED',
-  'IN_PROGRESS',
-  'RESOLVED',
-  'ESCALATED',
-  'AUTO_CLOSED_PENDING',
-  'CLOSED'
-  );
-
-CREATE TYPE ticket_category AS ENUM (
-  'BILLING',
-  'TECHNICAL',
-  'ACCOUNT',
-  'SHIPPING',
-  'SECURITY',
-  'OTHER'
-  );
-
-CREATE TYPE ticket_priority AS ENUM (
-  'CRITICAL',
-  'HIGH',
-  'MEDIUM',
-  'LOW'
-  );
-
-CREATE TYPE ticket_queue AS ENUM (
-  'BILLING_Q',
-  'TECH_Q',
-  'OPS_Q',
-  'SECURITY_Q',
-  'ACCOUNT_Q',
-  'GENERAL_Q'
-  );
-
-CREATE TYPE next_action AS ENUM (
-  'AUTO_REPLY',
-  'ASK_CLARIFYING',
-  'ASSIGN_QUEUE',
-  'ESCALATE',
-  'HUMAN_REVIEW'
-  );
-
-CREATE TYPE message_kind AS ENUM (
-  'CUSTOMER_MESSAGE',
-  'AGENT_MESSAGE',
-  'SYSTEM_MESSAGE',
-  'CLARIFYING_QUESTION',
-  'AUTO_REPLY',
-  'INTERNAL_NOTE'
-  );
-
-CREATE TYPE parse_status AS ENUM (
-  'SUCCESS',
-  'INVALID_JSON',
-  'INVALID_ENUM',
-  'SCHEMA_VIOLATION',
-  'REPAIR_ATTEMPTED',
-  'REPAIR_SUCCESS',
-  'REPAIR_FAILED',
-  'TIMEOUT',
-  'MODEL_ERROR'
-  );
-
-CREATE TYPE audit_event_type AS ENUM (
-  'TICKET_CREATED',
-  'TICKET_STATUS_CHANGED',
-  'MESSAGE_POSTED',
-  'ROUTING_EXECUTED',
-  'ROUTING_OVERRIDDEN',
-  'QUEUE_ASSIGNED',
-  'AGENT_ASSIGNED',
-  'ESCALATION_CREATED',
-  'PRIORITY_CHANGED',
-  'NOTIFICATION_SENT',
-  'SLA_BREACH',
-  'AUTO_CLOSE_TRIGGERED',
-  'TICKET_REOPENED',
-  'POLICY_GATE_TRIGGERED',
-  'MODEL_INFERENCE_FAILED',
-  'MANUAL_INTERVENTION'
-  );
-
-CREATE TYPE notification_type AS ENUM (
-  'TICKET_ACK',
-  'STATUS_CHANGE',
-  'NEW_MESSAGE',
-  'SLA_REMINDER',
-  'ESCALATION',
-  'AUTO_CLOSE_WARNING',
-  'TICKET_REOPENED',
-  'ASSIGNED_TO_YOU'
-  );
-
-CREATE TYPE config_key_type AS ENUM (
-  'AUTO_ROUTE_THRESHOLD',
-  'CRITICAL_MIN_CONF',
-  'ROUTER_REPAIR_MAX_RETRIES',
-  'SLA_ASSIGNED_HOURS_HIGH',
-  'WAITING_CUSTOMER_REMINDER_HOURS',
-  'INACTIVITY_AUTO_CLOSE_DAYS',
-  'SLA_CUSTOMER_RESPONSE_HOURS',
-  'SLA_AGENT_RESPONSE_HOURS',
-  'AUTO_CLOSE_WARNING_DAYS',
-  'AUTO_CLOSE_FINAL_DAYS',
-  'MAX_ATTACHMENT_BYTES',
-  'AUTO_CLOSE_ENABLED',
-  'DEFAULT_QUEUE',
-  'ROUTER_MODEL_PARAMS'
-  );
-
-CREATE TYPE llm_output_type AS ENUM (
-  'ROUTING',
-  'ANALYSIS_TICKET_DETAILS',
-  'ANALYSIS_CUSTOMER_INFO',
-  'ANALYSIS_CONVERSATION_HISTORY',
-  'ANALYSIS_TECHNICAL_DETAILS',
-  'ANALYSIS_ACTIONS_REQUIRED'
-);
 
 -- =====================================================
 -- REFERENCE TABLES
@@ -233,11 +87,15 @@ CREATE TABLE app_user
   email          VARCHAR(100) NOT NULL UNIQUE,
   password_hash  VARCHAR(512) NOT NULL,
   full_name      VARCHAR(100),
-  role           user_role    NOT NULL,
+  role           VARCHAR(20)  NOT NULL,
+
   active         BOOLEAN      NOT NULL DEFAULT true,
   email_verified BOOLEAN      NOT NULL DEFAULT false,
   last_login_at  TIMESTAMPTZ,
-  last_login_ip  VARCHAR(45)
+  last_login_ip  VARCHAR(45),
+
+  CONSTRAINT chk_app_user_role
+    CHECK (role IN ('CUSTOMER','AGENT','SUPERVISOR','ADMIN'))
 );
 
 CREATE UNIQUE INDEX idx_app_user_email ON app_user (email);
@@ -294,14 +152,31 @@ CREATE TABLE policy_config
   updated_at    TIMESTAMPTZ     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   created_by    VARCHAR(100),
   updated_by    VARCHAR(100),
-
-  config_key    config_key_type NOT NULL UNIQUE,
+  config_key    VARCHAR(100)    NOT NULL UNIQUE,
   config_value  NUMERIC(20, 6),
   description   TEXT,
   active        BOOLEAN         NOT NULL DEFAULT true,
   default_value NUMERIC(20, 6),
   min_value     NUMERIC(20, 6),
-  max_value     NUMERIC(20, 6)
+  max_value     NUMERIC(20, 6),
+
+  CONSTRAINT chk_policy_config_key
+    CHECK (config_key IN (
+                          'AUTO_ROUTE_THRESHOLD',
+                          'CRITICAL_MIN_CONF',
+                          'ROUTER_REPAIR_MAX_RETRIES',
+                          'SLA_ASSIGNED_HOURS_HIGH',
+                          'WAITING_CUSTOMER_REMINDER_HOURS',
+                          'INACTIVITY_AUTO_CLOSE_DAYS',
+                          'SLA_CUSTOMER_RESPONSE_HOURS',
+                          'SLA_AGENT_RESPONSE_HOURS',
+                          'AUTO_CLOSE_WARNING_DAYS',
+                          'AUTO_CLOSE_FINAL_DAYS',
+                          'MAX_ATTACHMENT_BYTES',
+                          'AUTO_CLOSE_ENABLED',
+                          'DEFAULT_QUEUE',
+                          'ROUTER_MODEL_PARAMS'
+      ))
 );
 
 CREATE INDEX idx_policy_config_active ON policy_config (active);
@@ -359,10 +234,10 @@ CREATE TABLE support_ticket
   ticket_no                 BIGINT          NOT NULL UNIQUE DEFAULT nextval('support_ticket_ticket_no_seq'),
   customer_id               BIGINT          NOT NULL,
   subject                   VARCHAR(255)    NOT NULL,
-  status                    ticket_status   NOT NULL        DEFAULT 'RECEIVED',
-  current_category          ticket_category,
-  current_priority          ticket_priority NOT NULL        DEFAULT 'MEDIUM',
-  assigned_queue            ticket_queue,
+  status                    VARCHAR(40)     NOT NULL        DEFAULT 'RECEIVED',
+  current_category          VARCHAR(30),
+  current_priority          VARCHAR(20)     NOT NULL        DEFAULT 'MEDIUM',
+  assigned_queue            VARCHAR(30),
   assigned_agent_id         BIGINT,
   last_activity_at          TIMESTAMPTZ     NOT NULL        DEFAULT CURRENT_TIMESTAMP,
   first_assigned_at         TIMESTAMPTZ,
@@ -378,6 +253,43 @@ CREATE TABLE support_ticket
     REFERENCES app_user (id) ON DELETE RESTRICT,
   CONSTRAINT fk_support_ticket_assigned_agent FOREIGN KEY (assigned_agent_id)
     REFERENCES app_user (id) ON DELETE SET NULL,
+
+  CONSTRAINT chk_support_ticket_status
+    CHECK (status IN (
+                      'RECEIVED',
+                      'TRIAGING',
+                      'WAITING_CUSTOMER',
+                      'ASSIGNED',
+                      'IN_PROGRESS',
+                      'RESOLVED',
+                      'ESCALATED',
+                      'AUTO_CLOSED_PENDING',
+                      'CLOSED'
+      )),
+
+  CONSTRAINT chk_support_ticket_category
+    CHECK (current_category IS NULL OR current_category IN (
+                                                            'BILLING',
+                                                            'TECHNICAL',
+                                                            'ACCOUNT',
+                                                            'SHIPPING',
+                                                            'SECURITY',
+                                                            'OTHER'
+      )),
+
+  CONSTRAINT chk_support_ticket_priority
+    CHECK (current_priority IN ('CRITICAL','HIGH','MEDIUM','LOW')),
+
+  CONSTRAINT chk_support_ticket_queue
+    CHECK (assigned_queue IS NULL OR assigned_queue IN (
+                                                        'BILLING_Q',
+                                                        'TECH_Q',
+                                                        'OPS_Q',
+                                                        'SECURITY_Q',
+                                                        'ACCOUNT_Q',
+                                                        'GENERAL_Q'
+      )),
+
   CONSTRAINT chk_support_ticket_confidence_range
     CHECK (latest_routing_confidence IS NULL OR
            (latest_routing_confidence >= 0 AND latest_routing_confidence <= 1))
@@ -408,10 +320,11 @@ CREATE TABLE llm_output
 
   ticket_id        BIGINT       NOT NULL,
   model_tag        VARCHAR(100) NOT NULL,
-  output_type      llm_output_type NOT NULL DEFAULT 'ROUTING',
+  output_type      VARCHAR(60)  NOT NULL DEFAULT 'ROUTING',
   raw_request      JSONB        NOT NULL,
   raw_response     JSONB,
-  parse_status     parse_status NOT NULL,
+  parse_status     VARCHAR(40)  NOT NULL,
+
   error_message    TEXT,
   latency_ms       BIGINT,
   repair_attempts  INT          NOT NULL DEFAULT 0,
@@ -420,7 +333,30 @@ CREATE TABLE llm_output
   inference_config JSONB,
 
   CONSTRAINT fk_llm_output_ticket FOREIGN KEY (ticket_id)
-    REFERENCES support_ticket (id) ON DELETE CASCADE
+    REFERENCES support_ticket (id) ON DELETE CASCADE,
+
+  CONSTRAINT chk_llm_output_type
+    CHECK (output_type IN (
+                           'ROUTING',
+                           'ANALYSIS_TICKET_DETAILS',
+                           'ANALYSIS_CUSTOMER_INFO',
+                           'ANALYSIS_CONVERSATION_HISTORY',
+                           'ANALYSIS_TECHNICAL_DETAILS',
+                           'ANALYSIS_ACTIONS_REQUIRED'
+      )),
+
+  CONSTRAINT chk_llm_parse_status
+    CHECK (parse_status IN (
+                            'SUCCESS',
+                            'INVALID_JSON',
+                            'INVALID_ENUM',
+                            'SCHEMA_VIOLATION',
+                            'REPAIR_ATTEMPTED',
+                            'REPAIR_SUCCESS',
+                            'REPAIR_FAILED',
+                            'TIMEOUT',
+                            'MODEL_ERROR'
+      ))
 );
 
 CREATE INDEX idx_llm_output_ticket_id ON llm_output (ticket_id);
@@ -443,7 +379,7 @@ CREATE TABLE ticket_message
 
   ticket_id           BIGINT       NOT NULL,
   author_id           BIGINT,
-  message_kind        message_kind NOT NULL,
+  message_kind        VARCHAR(40)  NOT NULL,
   content             TEXT         NOT NULL,
   visible_to_customer BOOLEAN      NOT NULL DEFAULT true,
   llm_output_id       BIGINT,
@@ -455,7 +391,17 @@ CREATE TABLE ticket_message
   CONSTRAINT fk_ticket_message_author FOREIGN KEY (author_id)
     REFERENCES app_user (id) ON DELETE SET NULL,
   CONSTRAINT fk_ticket_message_llm_output FOREIGN KEY (llm_output_id)
-    REFERENCES llm_output (id) ON DELETE SET NULL
+    REFERENCES llm_output (id) ON DELETE SET NULL,
+
+  CONSTRAINT chk_ticket_message_kind
+    CHECK (message_kind IN (
+                            'CUSTOMER_MESSAGE',
+                            'AGENT_MESSAGE',
+                            'SYSTEM_MESSAGE',
+                            'CLARIFYING_QUESTION',
+                            'AUTO_REPLY',
+                            'INTERNAL_NOTE'
+      ))
 );
 
 CREATE INDEX idx_ticket_message_ticket_id ON ticket_message (ticket_id);
@@ -477,10 +423,10 @@ CREATE TABLE ticket_routing
   ticket_id             BIGINT          NOT NULL,
   version               INT             NOT NULL,
   llm_output_id         BIGINT,
-  category              ticket_category NOT NULL,
-  priority              ticket_priority NOT NULL,
-  queue                 ticket_queue    NOT NULL,
-  next_action           next_action     NOT NULL,
+  category              VARCHAR(30)     NOT NULL,
+  priority              VARCHAR(20)     NOT NULL,
+  queue                 VARCHAR(30)     NOT NULL,
+  next_action           VARCHAR(30)     NOT NULL,
   confidence            NUMERIC(5, 4)   NOT NULL,
   clarifying_question   TEXT,
   draft_reply           TEXT,
@@ -499,8 +445,21 @@ CREATE TABLE ticket_routing
     REFERENCES llm_output (id) ON DELETE SET NULL,
   CONSTRAINT fk_ticket_routing_overridden_by FOREIGN KEY (overridden_by_id)
     REFERENCES app_user (id) ON DELETE SET NULL,
+
   CONSTRAINT chk_ticket_routing_confidence_range
-    CHECK (confidence >= 0 AND confidence <= 1)
+    CHECK (confidence >= 0 AND confidence <= 1),
+
+  CONSTRAINT chk_ticket_routing_category
+    CHECK (category IN ('BILLING','TECHNICAL','ACCOUNT','SHIPPING','SECURITY','OTHER')),
+
+  CONSTRAINT chk_ticket_routing_priority
+    CHECK (priority IN ('CRITICAL','HIGH','MEDIUM','LOW')),
+
+  CONSTRAINT chk_ticket_routing_queue
+    CHECK (queue IN ('BILLING_Q','TECH_Q','OPS_Q','SECURITY_Q','ACCOUNT_Q','GENERAL_Q')),
+
+  CONSTRAINT chk_ticket_routing_next_action
+    CHECK (next_action IN ('AUTO_REPLY','ASK_CLARIFYING','ASSIGN_QUEUE','ESCALATE','HUMAN_REVIEW'))
 );
 
 CREATE INDEX idx_ticket_routing_ticket_id ON ticket_routing (ticket_id);
@@ -551,9 +510,8 @@ CREATE TABLE audit_event
   updated_at      TIMESTAMPTZ      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   created_by      VARCHAR(100),
   updated_by      VARCHAR(100),
-
   ticket_id       BIGINT,
-  event_type      audit_event_type NOT NULL,
+  event_type      VARCHAR(50)      NOT NULL,
   performed_by_id BIGINT,
   description     TEXT             NOT NULL,
   payload         JSONB,
@@ -564,7 +522,27 @@ CREATE TABLE audit_event
   CONSTRAINT fk_audit_event_ticket FOREIGN KEY (ticket_id)
     REFERENCES support_ticket (id) ON DELETE CASCADE,
   CONSTRAINT fk_audit_event_performed_by FOREIGN KEY (performed_by_id)
-    REFERENCES app_user (id) ON DELETE SET NULL
+    REFERENCES app_user (id) ON DELETE SET NULL,
+
+  CONSTRAINT chk_audit_event_type
+    CHECK (event_type IN (
+                          'TICKET_CREATED',
+                          'TICKET_STATUS_CHANGED',
+                          'MESSAGE_POSTED',
+                          'ROUTING_EXECUTED',
+                          'ROUTING_OVERRIDDEN',
+                          'QUEUE_ASSIGNED',
+                          'AGENT_ASSIGNED',
+                          'ESCALATION_CREATED',
+                          'PRIORITY_CHANGED',
+                          'NOTIFICATION_SENT',
+                          'SLA_BREACH',
+                          'AUTO_CLOSE_TRIGGERED',
+                          'TICKET_REOPENED',
+                          'POLICY_GATE_TRIGGERED',
+                          'MODEL_INFERENCE_FAILED',
+                          'MANUAL_INTERVENTION'
+      ))
 );
 
 CREATE INDEX idx_audit_event_ticket_id ON audit_event (ticket_id);
@@ -584,9 +562,8 @@ CREATE TABLE notification
   updated_at        TIMESTAMPTZ       NOT NULL DEFAULT CURRENT_TIMESTAMP,
   created_by        VARCHAR(100),
   updated_by        VARCHAR(100),
-
   recipient_id      BIGINT            NOT NULL,
-  notification_type notification_type NOT NULL,
+  notification_type VARCHAR(40)       NOT NULL,
   title             VARCHAR(255)      NOT NULL,
   body              TEXT              NOT NULL,
   ticket_id         BIGINT,
@@ -597,7 +574,19 @@ CREATE TABLE notification
   CONSTRAINT fk_notification_recipient FOREIGN KEY (recipient_id)
     REFERENCES app_user (id) ON DELETE CASCADE,
   CONSTRAINT fk_notification_ticket FOREIGN KEY (ticket_id)
-    REFERENCES support_ticket (id) ON DELETE CASCADE
+    REFERENCES support_ticket (id) ON DELETE CASCADE,
+
+  CONSTRAINT chk_notification_type
+    CHECK (notification_type IN (
+                                 'TICKET_ACK',
+                                 'STATUS_CHANGE',
+                                 'NEW_MESSAGE',
+                                 'SLA_REMINDER',
+                                 'ESCALATION',
+                                 'AUTO_CLOSE_WARNING',
+                                 'TICKET_REOPENED',
+                                 'ASSIGNED_TO_YOU'
+      ))
 );
 
 CREATE INDEX idx_notification_recipient_id ON notification (recipient_id);
@@ -609,17 +598,9 @@ CREATE INDEX idx_notification_ticket_id ON notification (ticket_id);
 COMMENT ON TABLE notification IS 'User notifications for ticket events and system updates';
 
 -- =====================================================
--- COMMENTS ON ENUMS
+-- NOTE
 -- =====================================================
-
-COMMENT ON TYPE user_role IS 'User roles: CUSTOMER, AGENT, SUPERVISOR, ADMIN';
-COMMENT ON TYPE ticket_status IS 'Ticket lifecycle states';
-COMMENT ON TYPE ticket_category IS 'Ticket classification categories';
-COMMENT ON TYPE ticket_priority IS 'Ticket priority levels';
-COMMENT ON TYPE ticket_queue IS 'Agent queues for ticket routing';
-COMMENT ON TYPE next_action IS 'AI-recommended next action for ticket';
-COMMENT ON TYPE message_kind IS 'Type of message (customer, agent, system, etc.)';
-COMMENT ON TYPE parse_status IS 'LLM output parsing and validation status';
-COMMENT ON TYPE audit_event_type IS 'Types of auditable events in the system';
-COMMENT ON TYPE llm_output_type IS 'Type of LLM output: ROUTING (for routing decisions) or ANALYSIS_* (for ticket section analysis)';
-COMMENT ON TYPE notification_type IS 'Types of user notifications';
+-- This schema is intentionally designed to work cleanly with:
+--   @Enumerated(EnumType.STRING)
+-- in Hibernate/JPA without needing Postgres enum casting.
+-- DB constraints still enforce valid values.

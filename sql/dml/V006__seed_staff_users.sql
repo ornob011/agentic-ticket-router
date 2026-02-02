@@ -31,9 +31,9 @@ VALUES
    'admin',
    'ornob011+10@gmail.com',
    '$2a$10$TXPqY8Kc5qwJZ8Hd.vLx7eXxGJ3QC8aF.WZvJhKLmN9pQRsTuVwWy',
-   'System Administrator',
-   'ADMIN'::user_role,
-   TRUE,
+    'System Administrator',
+    'ADMIN',
+    TRUE,
    TRUE),
 
   -- SUPERVISOR USER
@@ -45,9 +45,9 @@ VALUES
    'supervisor1',
    'ornob011+11@gmail.com',
    '$2a$10$TXPqY8Kc5qwJZ8Hd.vLx7eXxGJ3QC8aF.WZvJhKLmN9pQRsTuVwWy',
-   'Jane Supervisor',
-   'SUPERVISOR'::user_role,
-   TRUE,
+    'Jane Supervisor',
+    'SUPERVISOR',
+    TRUE,
    TRUE),
 
   -- AGENT USERS (multiple for different queues)
@@ -59,9 +59,9 @@ VALUES
    'agent_billing',
    'ornob011+12@gmail.com',
    '$2a$10$TXPqY8Kc5qwJZ8Hd.vLx7eXxGJ3QC8aF.WZvJhKLmN9pQRsTuVwWy',
-   'Bob Billing Agent',
-   'AGENT'::user_role,
-   TRUE,
+    'Bob Billing Agent',
+    'AGENT',
+    TRUE,
    TRUE),
 
   (0,
@@ -72,9 +72,9 @@ VALUES
    'agent_tech',
    'ornob011+13@gmail.com',
    '$2a$10$TXPqY8Kc5qwJZ8Hd.vLx7eXxGJ3QC8aF.WZvJhKLmN9pQRsTuVwWy',
-   'Alice Technical Agent',
-   'AGENT'::user_role,
-   TRUE,
+    'Alice Technical Agent',
+    'AGENT',
+    TRUE,
    TRUE),
 
   (0,
@@ -85,9 +85,9 @@ VALUES
    'agent_security',
    'ornob011+14@gmail.com',
    '$2a$10$TXPqY8Kc5qwJZ8Hd.vLx7eXxGJ3QC8aF.WZvJhKLmN9pQRsTuVwWy',
-   'Charlie Security Agent',
-   'AGENT'::user_role,
-   TRUE,
+    'Charlie Security Agent',
+    'AGENT',
+    TRUE,
    TRUE),
 
   (0,
@@ -98,9 +98,9 @@ VALUES
    'agent_general',
    'ornob011+15@gmail.com',
    '$2a$10$TXPqY8Kc5qwJZ8Hd.vLx7eXxGJ3QC8aF.WZvJhKLmN9pQRsTuVwWy',
-   'Diana General Agent',
-   'AGENT'::user_role,
-   TRUE,
+    'Diana General Agent',
+    'AGENT',
+    TRUE,
    TRUE)
 ON CONFLICT (username)
   DO UPDATE SET email          = EXCLUDED.email,
