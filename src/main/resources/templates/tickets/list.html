@@ -10,101 +10,91 @@
     <div layout:fragment="contentBody" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div th:replace="~{fragments/flash-message :: flash-message-block}" th:remove="tag"></div>
 
-        <!-- Header -->
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">My Support Tickets</h1>
-                <p class="text-gray-600 mt-2">Track and manage all your support requests.</p>
+                <h1 class="text-3xl font-medium text-text-primary">My Support Tickets</h1>
+                <p class="text-text-muted mt-2">Track and manage all your support requests.</p>
             </div>
             <div>
                 <a th:href="@{/tickets/create/new}"
-                    class="inline-flex items-center px-6 py-3 bg-gray-900 hover:bg-black text-white font-semibold rounded-xl shadow-sm transition-all">
+                    class="inline-flex items-center px-6 py-3 bg-primary hover:bg-primary-hover text-white font-medium rounded-xl shadow-sm transition-all">
                     <i class="fas fa-plus mr-2 text-xs"></i>
                     New Ticket
                 </a>
             </div>
         </div>
 
-        <!-- Empty State -->
-        <div th:if="${tickets.isEmpty()}" class="bg-white rounded-2xl shadow-sm p-16 text-center">
-            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <i class="fas fa-ticket-alt text-3xl text-gray-400"></i>
+        <div th:if="${tickets.isEmpty()}" class="bg-surface border border-subtle rounded-2xl shadow-sm p-16 text-center">
+            <div class="w-20 h-20 bg-surface-alt rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-ticket-alt text-3xl text-text-subtle"></i>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-2">No tickets yet</h3>
-            <p class="text-gray-500 mb-6">Get started by creating your first support ticket.</p>
+            <h3 class="text-xl font-medium text-text-primary mb-2">No tickets yet</h3>
+            <p class="text-text-muted mb-6">Get started by creating your first support ticket.</p>
             <a th:href="@{/tickets/create/new}"
-                class="inline-flex items-center px-6 py-3 bg-gray-900 hover:bg-black text-white font-semibold rounded-xl transition-all">
+                class="inline-flex items-center px-6 py-3 bg-primary hover:bg-primary-hover text-white font-medium rounded-xl shadow-sm transition-all">
                 <i class="fas fa-plus mr-2 text-xs"></i>
                 Create Your First Ticket
             </a>
         </div>
 
-        <!-- Tickets List -->
-        <div th:unless="${tickets.isEmpty()}" class="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div th:unless="${tickets.isEmpty()}" class="bg-surface border border-subtle rounded-2xl shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
+                <table class="min-w-full divide-y divide-subtle">
+                    <thead class="bg-surface-alt">
                         <tr>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                Ticket #</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                Subject</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                Status</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                Priority</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                Created</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                Last Activity</th>
-                            <th class="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                Actions</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-widest text-text-muted">
+                                Ticket #
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-widest text-text-muted">
+                                Subject
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-widest text-text-muted">
+                                Status
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-widest text-text-muted">
+                                Priority
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-widest text-text-muted">
+                                Created
+                            </th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-widest text-text-muted">
+                                Last Activity
+                            </th>
+                            <th class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-widest text-text-muted">
+                                Actions
+                            </th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        <tr th:each="ticket : ${tickets}" class="hover:bg-gray-50 transition-colors">
+                    <tbody class="divide-y divide-subtle">
+                        <tr th:each="ticket : ${tickets}" class="hover:bg-surface-alt transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <a th:href="@{/tickets/{id}(id=${ticket.id})}" th:text="${ticket.formattedTicketNo}"
-                                    class="text-blue-600 hover:text-blue-800 font-semibold">TKT-00000001</a>
+                                    class="text-primary hover:text-primary-hover font-semibold">TKT-00000001</a>
                             </td>
                             <td class="px-6 py-4">
                                 <div th:text="${ticket.subject}"
-                                    class="text-sm text-gray-900 font-medium max-w-md truncate">Subject</div>
+                                    class="text-sm text-text-primary font-medium max-w-md truncate">Subject</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span
-                                    th:classappend="${ticket.status.name() == 'RECEIVED' ? 'bg-blue-100 text-blue-800' : 
-                                                       ticket.status.name() == 'TRIAGING' ? 'bg-yellow-100 text-yellow-800' :
-                                                       ticket.status.name() == 'ASSIGNED' ? 'bg-green-100 text-green-800' :
-                                                       ticket.status.name() == 'IN_PROGRESS' ? 'bg-indigo-100 text-indigo-800' :
-                                                       ticket.status.name() == 'WAITING_CUSTOMER' ? 'bg-orange-100 text-orange-800' :
-                                                       ticket.status.name() == 'RESOLVED' ? 'bg-emerald-100 text-emerald-800' :
-                                                       ticket.status.name() == 'CLOSED' ? 'bg-gray-100 text-gray-800' :
-                                                       ticket.status.name() == 'ESCALATED' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}"
-                                    class="px-3 py-1 text-xs font-bold rounded-full"
-                                    th:text="${ticket.status}">Status</span>
+                                <div th:replace="~{fragments/badges :: statusBadge(status=${ticket.status})}"></div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span th:classappend="${ticket.currentPriority.name() == 'CRITICAL' ? 'bg-red-100 text-red-800' :
-                                                       ticket.currentPriority.name() == 'HIGH' ? 'bg-orange-100 text-orange-800' :
-                                                       ticket.currentPriority.name() == 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                                                       'bg-gray-100 text-gray-800'}"
-                                    class="px-3 py-1 text-xs font-bold rounded-full"
-                                    th:text="${ticket.currentPriority}">Priority</span>
+                                <div th:replace="~{fragments/badges :: priorityBadge(priority=${ticket.currentPriority})}"></div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                <i class="far fa-calendar-alt mr-1 text-gray-400"></i>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-text-muted">
+                                <i class="far fa-calendar-alt mr-1 text-text-subtle"></i>
                                 <span
                                     th:text="${#temporals.format(ticket.createdAt, 'yyyy-MM-dd HH:mm')}">Created</span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                <i class="far fa-clock mr-1 text-gray-400"></i>
-                                <span th:text="${#temporals.format(ticket.lastActivityAt, 'yyyy-MM-dd HH:mm')}">Last
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-text-muted">
+                                <i class="far fa-clock mr-1 text-text-subtle"></i>
+                                <span
+                                    th:text="${#temporals.format(ticket.lastActivityAt, 'yyyy-MM-dd HH:mm')}">Last
                                     Activity</span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <a th:href="@{/tickets/{id}(id=${ticket.id})}"
-                                    class="text-blue-600 hover:text-blue-900 font-semibold">
+                                    class="text-primary hover:text-primary-hover font-semibold">
                                     View <i class="fas fa-arrow-right ml-1 text-xs"></i>
                                 </a>
                             </td>
@@ -113,37 +103,37 @@
                 </table>
             </div>
 
-            <!-- Pagination -->
             <div th:if="${tickets.totalPages > 1}"
-                class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
-                <div class="flex-1 flex justify-between sm:hidden">
-                    <a th:if="${currentPage > 0}" th:href="@{/tickets(page=${currentPage - 1})}"
-                        class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-semibold rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-all">
+                class="bg-surface-alt px-6 py-4 flex items-center justify-between border-t border-subtle">
+                <div class="text-sm text-text-secondary">
+                    Showing
+                    <span class="font-medium" th:text="${(tickets.number * tickets.size) + 1}">1</span>
+                    to
+                    <span
+                        class="font-medium"
+                        th:text="${(tickets.number * tickets.size) + tickets.numberOfElements}"
+                        >20</span
+                    >
+                    of
+                    <span class="font-medium" th:text="${tickets.totalElements}">100</span> results
+                </div>
+                <div class="flex gap-2">
+                    <a th:if="${tickets.hasPrevious()}" th:href="@{/tickets(page=${tickets.number - 1})}"
+                       class="px-4 py-2 text-sm font-medium text-text-secondary bg-surface border border-subtle rounded-lg hover:bg-surface-alt">
                         Previous
                     </a>
-                    <a th:if="${currentPage < tickets.totalPages - 1}" th:href="@{/tickets(page=${currentPage + 1})}"
-                        class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-semibold rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-all">
+                    <span th:if="${not tickets.hasPrevious()}"
+                          class="px-4 py-2 text-sm font-medium text-text-subtle bg-surface-alt border border-subtle rounded-lg">
+                        Previous
+                    </span>
+                    <a th:if="${tickets.hasNext()}" th:href="@{/tickets(page=${tickets.number + 1})}"
+                       class="px-4 py-2 text-sm font-medium text-text-secondary bg-surface border border-subtle rounded-lg hover:bg-surface-alt">
                         Next
                     </a>
-                </div>
-                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                    <div>
-                        <p class="text-sm text-gray-600 font-medium">
-                            Page <span class="font-bold" th:text="${currentPage + 1}">1</span> of
-                            <span class="font-bold" th:text="${tickets.totalPages}">1</span>
-                        </p>
-                    </div>
-                    <div class="flex gap-2">
-                        <a th:if="${currentPage > 0}" th:href="@{/tickets(page=${currentPage - 1})}"
-                            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-semibold rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-all">
-                            <i class="fas fa-chevron-left mr-2 text-xs"></i> Previous
-                        </a>
-                        <a th:if="${currentPage < tickets.totalPages - 1}"
-                            th:href="@{/tickets(page=${currentPage + 1})}"
-                            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-semibold rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-all">
-                            Next <i class="fas fa-chevron-right ml-2 text-xs"></i>
-                        </a>
-                    </div>
+                    <span th:if="${not tickets.hasNext()}"
+                          class="px-4 py-2 text-sm font-medium text-text-subtle bg-surface-alt border border-subtle rounded-lg">
+                        Next
+                    </span>
                 </div>
             </div>
         </div>

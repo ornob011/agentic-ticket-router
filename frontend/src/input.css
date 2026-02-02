@@ -1,139 +1,109 @@
 @import "tailwindcss";
 
 @theme {
-    /* Base colors */
-    --color-base: #ffffff;
-    --color-base-50: #f9fafb;
-    --color-base-100: #f3f4f6;
-    --color-base-200: #e5e7eb;
-    --color-base-300: #d1d5db;
-    --color-base-400: #9ca3af;
-    --color-base-500: #6b7280;
-    --color-base-600: #4b5563;
-    --color-base-700: #374151;
-    --color-base-800: #1f2937;
-    --color-base-900: #111827;
-    --color-base-content: #1f2937;
+    /* Canvas & Surface Colors */
+    --color-canvas: #FAFAFA;
+    --color-surface: #FFFFFF;
+    --color-surface-alt: #F7F7F7;
+    --color-subtle: #E8E8E8;
 
-    /* Primary colors */
-    --color-primary: #3b82f6;
-    --color-primary-50: #eff6ff;
-    --color-primary-100: #dbeafe;
-    --color-primary-200: #bfdbfe;
-    --color-primary-300: #93c5fd;
-    --color-primary-400: #60a5fa;
-    --color-primary-500: #3b82f6;
-    --color-primary-600: #2563eb;
-    --color-primary-700: #1d4ed8;
-    --color-primary-800: #1e40af;
-    --color-primary-900: #1e3a8a;
-    --color-primary-focus: #2563eb;
-    --color-primary-content: #ffffff;
+    /* Text Colors (NO BLACK) */
+    --color-text-primary: #171717;
+    --color-text-secondary: #525252;
+    --color-text-muted: #737373;
+    --color-text-subtle: #A3A3A3;
 
-    /* Secondary colors */
-    --color-secondary: #8b5cf6;
-    --color-secondary-50: #f5f3ff;
-    --color-secondary-100: #ede9fe;
-    --color-secondary-200: #ddd6fe;
-    --color-secondary-300: #c4b5fd;
-    --color-secondary-400: #a78bfa;
-    --color-secondary-500: #8b5cf6;
-    --color-secondary-600: #7c3aed;
-    --color-secondary-700: #6d28d9;
-    --color-secondary-800: #5b21b6;
-    --color-secondary-900: #4c1d95;
-    --color-secondary-focus: #7c3aed;
-    --color-secondary-content: #ffffff;
+    /* Primary Color - Steel Blue */
+    --color-primary: #4682b4;
+    --color-primary-50: #f0f4f8;
+    --color-primary-100: #e0e9f1;
+    --color-primary-200: #c1d4e3;
+    --color-primary-300: #a2bfd5;
+    --color-primary-400: #83a9c7;
+    --color-primary-500: #4682b4;
+    --color-primary-600: #3a6ba0;
+    --color-primary-700: #2e558c;
+    --color-primary-800: #224078;
+    --color-primary-900: #162b64;
+    --color-primary-light: #6ea3d4;
+    --color-primary-hover: #3a6ba0;
 
-    /* Accent colors */
-    --color-accent: #f472b6;
-    --color-accent-50: #fdf2f8;
-    --color-accent-100: #fce7f3;
-    --color-accent-200: #fbcfe8;
-    --color-accent-300: #f9a8d4;
-    --color-accent-400: #f472b6;
-    --color-accent-500: #ec4899;
-    --color-accent-600: #db2777;
-    --color-accent-700: #be185d;
-    --color-accent-800: #9d174d;
-    --color-accent-900: #831843;
-    --color-accent-focus: #db2777;
-    --color-accent-content: #ffffff;
+    /* Secondary Color - Lighter Steel Blue */
+    --color-secondary: #6ea3d4;
+    --color-secondary-50: #f4f8fb;
+    --color-secondary-100: #e9f1f7;
+    --color-secondary-200: #d3e4ef;
+    --color-secondary-300: #bcd7e6;
+    --color-secondary-400: #a6cadd;
+    --color-secondary-500: #6ea3d4;
+    --color-secondary-600: #5a8bbe;
+    --color-secondary-700: #4673a8;
+    --color-secondary-800: #325b92;
+    --color-secondary-900: #1e437c;
 
-    /* Neutral colors */
-    --color-neutral: #6b7280;
-    --color-neutral-50: #f9fafb;
-    --color-neutral-100: #f3f4f6;
-    --color-neutral-200: #e5e7eb;
-    --color-neutral-300: #d1d5db;
-    --color-neutral-400: #9ca3af;
-    --color-neutral-500: #6b7280;
-    --color-neutral-600: #4b5563;
-    --color-neutral-700: #374151;
-    --color-neutral-800: #1f2937;
-    --color-neutral-900: #111827;
-    --color-neutral-focus: #4b5563;
-    --color-neutral-content: #ffffff;
+    /* Info Color - Indigo (focus ring only) */
+    --color-info: #6366f1;
+    --color-info-50: #eef2ff;
+    --color-info-100: #e0e7ff;
+    --color-info-200: #c7d2fe;
+    --color-info-300: #a5b4fc;
+    --color-info-400: #818cf8;
+    --color-info-500: #6366f1;
+    --color-info-600: #4f46e5;
+    --color-info-700: #4338ca;
+    --color-info-800: #3730a3;
+    --color-info-900: #312e81;
+    --color-info-light: #a5b4fc;
+    --color-info-lightest: #eef2ff;
+    --color-info-dark: #4338ca;
 
-    /* Info colors */
-    --color-info: #3b82f6;
-    --color-info-50: #eff6ff;
-    --color-info-100: #dbeafe;
-    --color-info-200: #bfdbfe;
-    --color-info-300: #93c5fd;
-    --color-info-400: #60a5fa;
-    --color-info-500: #3b82f6;
-    --color-info-600: #2563eb;
-    --color-info-700: #1d4ed8;
-    --color-info-800: #1e40af;
-    --color-info-900: #1e3a8a;
-    --color-info-focus: #2563eb;
-    --color-info-content: #ffffff;
+    /* Success Color - Sea Green */
+    --color-success: #2e8b57;
+    --color-success-50: #f0f9f4;
+    --color-success-100: #d4edda;
+    --color-success-200: #a8d5ba;
+    --color-success-300: #7cbd9a;
+    --color-success-400: #5ca47a;
+    --color-success-500: #2e8b57;
+    --color-success-600: #247146;
+    --color-success-700: #1a5735;
+    --color-success-800: #103d24;
+    --color-success-900: #062313;
+    --color-success-light: #a8d5ba;
+    --color-success-lightest: #f0f9f4;
+    --color-success-dark: #1a5735;
 
-    /* Success colors */
-    --color-success: #10b981;
-    --color-success-50: #ecfdf5;
-    --color-success-100: #d1fae5;
-    --color-success-200: #a7f3d0;
-    --color-success-300: #6ee7b7;
-    --color-success-400: #34d399;
-    --color-success-500: #10b981;
-    --color-success-600: #059669;
-    --color-success-700: #047857;
-    --color-success-800: #065f46;
-    --color-success-900: #064e3b;
-    --color-success-focus: #059669;
-    --color-success-content: #ffffff;
+    /* Warning Color - Dark Orange */
+    --color-warning: #ea580c;
+    --color-warning-50: #fff7ed;
+    --color-warning-100: #ffedd5;
+    --color-warning-200: #fed7aa;
+    --color-warning-300: #fdba74;
+    --color-warning-400: #fb923c;
+    --color-warning-500: #ea580c;
+    --color-warning-600: #c2410c;
+    --color-warning-700: #9a3412;
+    --color-warning-800: #7c2d12;
+    --color-warning-900: #5e2608;
+    --color-warning-light: #fed7aa;
+    --color-warning-lightest: #fff7ed;
+    --color-warning-dark: #9a3412;
 
-    /* Warning colors */
-    --color-warning: #f59e0b;
-    --color-warning-50: #fffbeb;
-    --color-warning-100: #fef3c7;
-    --color-warning-200: #fde68a;
-    --color-warning-300: #fcd34d;
-    --color-warning-400: #fbbf24;
-    --color-warning-500: #f59e0b;
-    --color-warning-600: #d97706;
-    --color-warning-700: #b45309;
-    --color-warning-800: #92400e;
-    --color-warning-900: #78350f;
-    --color-warning-focus: #d97706;
-    --color-warning-content: #ffffff;
-
-    /* Error colors */
-    --color-error: #ef4444;
-    --color-error-50: #fef2f2;
-    --color-error-100: #fee2e2;
-    --color-error-200: #fecaca;
-    --color-error-300: #fca5a5;
-    --color-error-400: #f87171;
-    --color-error-500: #ef4444;
-    --color-error-600: #dc2626;
-    --color-error-700: #b91c1c;
-    --color-error-800: #991b1b;
-    --color-error-900: #7f1d1d;
-    --color-error-focus: #dc2626;
-    --color-error-content: #ffffff;
+    /* Error Color - Rose Red */
+    --color-error: #e11d48;
+    --color-error-50: #fff1f2;
+    --color-error-100: #ffe4e6;
+    --color-error-200: #fecdd3;
+    --color-error-300: #fda4af;
+    --color-error-400: #fb7185;
+    --color-error-500: #e11d48;
+    --color-error-600: #be123c;
+    --color-error-700: #9f1239;
+    --color-error-800: #881337;
+    --color-error-900: #4c0519;
+    --color-error-light: #fecdd3;
+    --color-error-lightest: #fff1f2;
+    --color-error-dark: #9f1239;
 
     /* Border Radius tokens to enable rounded-* utilities */
     --border-radius-none: 0px;
@@ -143,11 +113,6 @@
     --border-radius-lg: 0.5rem;
     --border-radius-xl: 0.75rem;
     --border-radius-full: 9999px;
-
-    /* Custom colors */
-    --color-section-header: #51d988;
-    --color-primary-button: #017b30;
-    --color-docs-header: #36c6d3;
 
     /* Fonts */
     --font-family-sans: 'Kalpurush', 'Noto Sans Bengali', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -190,7 +155,7 @@
     }
 
     :focus-visible {
-        outline: 2px solid var(--color-primary);
+        outline: 2px solid var(--color-info);
         outline-offset: 3px;
     }
 

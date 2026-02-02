@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-    <body>
-        <h2
-            th:fragment="header(step, title)"
-            class="text-base font-semibold text-gray-900 flex items-center gap-2 pb-2 border-b border-gray-100"
-        >
-            <span
-                class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs font-bold flex items-center justify-center"
-                th:text="${step}"
-                >1</span
-            >
-            <span th:text="${title}">Section Title</span>
-        </h2>
-    </body>
+<body>
+<div
+    th:fragment="header(step, title)"
+    class="flex items-center justify-between pb-3 border-b border-subtle"
+>
+            <span class="text-xs font-semibold uppercase tracking-widest text-text-muted">
+                [[${title}]]
+            </span>
+            <span class="text-xs font-semibold uppercase tracking-widest text-text-muted">
+                [[${step}]]
+            </span>
+</div>
+</body>
 </html>

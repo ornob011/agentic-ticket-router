@@ -1,155 +1,249 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-    xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layouts/common-layout}">
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/common-layout}">
 
 <head>
     <title th:text="'Ticket: ' + ${ticket.formattedTicketNo}">Ticket Detail | SupportHub</title>
 </head>
 
 <body>
-    <div layout:fragment="contentBody" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div th:replace="~{fragments/flash-message :: flash-message-block}" th:remove="tag"></div>
+<div layout:fragment="contentBody" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div th:replace="~{fragments/flash-message :: flash-message-block}" th:remove="tag"></div>
 
-        <!-- Back Navigation -->
-        <div class="mb-6">
-            <a th:href="@{/tickets}"
-                class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors">
-                <i class="fas fa-arrow-left mr-2 text-xs"></i>
-                Back to My Tickets
-            </a>
-        </div>
+    <!-- Top bar: breadcrumb + title -->
+    <div class="mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-col gap-2">
+                <a th:href="@{/tickets}"
+                   class="inline-flex items-center text-sm text-text-secondary hover:text-text-primary font-medium transition-colors">
+                    <i class="fas fa-arrow-left mr-2 text-xs"></i>
+                    Back to My Tickets
+                </a>
 
-        <!-- Ticket Header -->
-        <div class="bg-white rounded-2xl shadow-sm p-8 mb-6">
-            <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-                <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-3">
-                        <h1 class="text-2xl font-bold text-gray-900" th:text="${ticket.formattedTicketNo}">Ticket Number
-                        </h1>
-                        <span
-                            th:classappend="${ticket.status.name() == 'RECEIVED' ? 'bg-blue-100 text-blue-800' : 
-                                               ticket.status.name() == 'TRIAGING' ? 'bg-yellow-100 text-yellow-800' :
-                                               ticket.status.name() == 'ASSIGNED' ? 'bg-green-100 text-green-800' :
-                                               ticket.status.name() == 'IN_PROGRESS' ? 'bg-indigo-100 text-indigo-800' :
-                                               ticket.status.name() == 'WAITING_CUSTOMER' ? 'bg-orange-100 text-orange-800' :
-                                               ticket.status.name() == 'RESOLVED' ? 'bg-emerald-100 text-emerald-800' :
-                                               ticket.status.name() == 'CLOSED' ? 'bg-gray-100 text-gray-800' :
-                                               ticket.status.name() == 'ESCALATED' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}"
-                            class="px-3 py-1 text-xs font-bold rounded-full" th:text="${ticket.status}">Status</span>
-                    </div>
-                    <h2 class="text-lg text-gray-700 font-medium mb-4" th:text="${ticket.subject}">Subject</h2>
-                    <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600">
-                        <div>
-                            <i class="far fa-calendar-alt mr-1 text-gray-400"></i>
-                            <span class="font-medium">Created:</span>
-                            <span th:text="${#temporals.format(ticket.createdAt, 'yyyy-MM-dd HH:mm')}">Date</span>
-                        </div>
-                        <div th:if="${ticket.assignedAgent}">
-                            <i class="far fa-user mr-1 text-gray-400"></i>
-                            <span class="font-medium">Assigned to:</span>
-                            <span th:text="${ticket.assignedAgent.fullName}">Agent</span>
-                        </div>
-                        <div th:if="${ticket.assignedQueue}">
-                            <i class="fas fa-inbox mr-1 text-gray-400"></i>
-                            <span class="font-medium">Queue:</span>
-                            <span th:text="${ticket.assignedQueue}">Queue</span>
-                        </div>
-                    </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-text-primary"
+                        th:text="${ticket.subject}">
+                        Ticket Subject
+                    </h1>
                 </div>
-                <div class="flex flex-wrap gap-2">
-                    <span th:classappend="${ticket.currentPriority.name() == 'CRITICAL' ? 'bg-red-100 text-red-800' :
-                                           ticket.currentPriority.name() == 'HIGH' ? 'bg-orange-100 text-orange-800' :
-                                           ticket.currentPriority.name() == 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                                           'bg-gray-100 text-gray-800'}"
-                        class="px-4 py-2 text-xs font-bold rounded-full"
-                        th:text="${ticket.currentPriority}">Priority</span>
+
+                <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-text-muted">
+                    <div class="inline-flex items-center gap-2">
+                        <i class="far fa-hashtag text-text-subtle"></i>
+                        <span class="font-medium text-text-primary" th:text="${ticket.formattedTicketNo}">TCK-00001</span>
+                    </div>
+
+                    <div class="inline-flex items-center gap-2">
+                        <i class="far fa-calendar-alt text-text-subtle"></i>
+                        <span>
+                            Created
+                            <span class="font-medium text-text-primary"
+                                  th:text="${#temporals.format(ticket.createdAt, 'yyyy-MM-dd HH:mm')}">Date</span>
+                        </span>
+                    </div>
+
+                    <div class="inline-flex items-center gap-2" th:if="${ticket.assignedAgent}">
+                        <i class="far fa-user text-text-subtle"></i>
+                        <span>
+                            Assigned to
+                            <span class="font-medium text-text-primary"
+                                  th:text="${ticket.assignedAgent.fullName}">Agent</span>
+                        </span>
+                    </div>
+
+                    <div class="inline-flex items-center gap-2" th:if="${ticket.assignedQueue}">
+                        <i class="fas fa-inbox text-text-subtle"></i>
+                        <span>
+                            Queue
+                            <span class="font-medium text-text-primary"
+                                  th:text="${ticket.assignedQueue}">Queue</span>
+                        </span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Conversation Thread -->
-        <div class="space-y-4 mb-8">
-            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <i class="fas fa-comments text-blue-600"></i>
-                Conversation
-            </h3>
-
-            <div th:each="message : ${messages}" th:classappend="${message.fromCustomer ? 'bg-blue-50 border-l-4 border-blue-500' : 
-                                      (message.systemGenerated ? 'bg-yellow-50 border-l-4 border-yellow-500' : 
-                                      'bg-green-50 border-l-4 border-green-500')}" class="rounded-xl p-6 shadow-sm">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-3">
-                        <div th:classappend="${message.fromCustomer ? 'bg-blue-600' :
-                                                 (message.systemGenerated ? 'bg-yellow-600' :
-                                                 'bg-green-600')}"
-                            class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                            <span th:if="${message.author != null}"
-                                th:text="${#strings.toUpperCase(#strings.substring(message.author.fullName, 0, 1))}">A</span>
-                            <i th:if="${message.author == null}" class="fas fa-robot"></i>
-                        </div>
-                        <div>
-                            <div class="font-semibold text-gray-900">
-                                <span th:if="${message.author != null}"
-                                    th:text="${message.author.fullName}">Author</span>
-                                <span th:if="${message.author == null}">System</span>
-                            </div>
-                            <div class="flex items-center gap-2 text-xs text-gray-500">
-                                <span th:classappend="${message.fromCustomer ? 'bg-blue-200 text-blue-800' :
-                                                       (message.systemGenerated ? 'bg-yellow-200 text-yellow-800' :
-                                                       'bg-green-200 text-green-800')}"
-                                    class="px-2 py-0.5 font-bold rounded-full"
-                                    th:text="${message.messageKind}">Kind</span>
-                                <span>
-                                    <i class="far fa-clock mr-1"></i>
-                                    <span
-                                        th:text="${#temporals.format(message.createdAt, 'yyyy-MM-dd HH:mm')}">Time</span>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="text-gray-900 whitespace-pre-wrap leading-relaxed" th:text="${message.content}">
-                    Message content
-                </div>
-            </div>
-        </div>
-
-        <!-- Reply Form -->
-        <div th:if="${ticket.status.name() != 'CLOSED' && ticket.status.name() != 'AUTO_CLOSED_PENDING'}"
-            class="bg-white rounded-2xl shadow-sm p-8">
-            <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <i class="fas fa-reply text-gray-700"></i>
-                Add Reply
-            </h3>
-            <form th:action="@{/tickets/{id}/reply(id=${ticket.id})}" method="post" class="space-y-4">
-                <div>
-                    <textarea name="content" rows="6" required minlength="10" maxlength="10000"
-                        placeholder="Type your reply here..."
-                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y transition-all"></textarea>
-                </div>
-                <div>
-                    <button type="submit"
-                        class="px-8 py-3 bg-gray-900 hover:bg-black text-white font-semibold rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                        <i class="fas fa-paper-plane mr-2"></i>
-                        Send Reply
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Closed Notice -->
-        <div th:if="${ticket.status.name() == 'CLOSED'}"
-            class="bg-blue-50 border border-blue-200 text-blue-800 px-6 py-4 rounded-xl">
-            <div class="flex items-start gap-3">
-                <i class="fas fa-info-circle text-blue-600 mt-0.5"></i>
-                <div>
-                    <p class="font-semibold">This ticket is closed.</p>
-                    <p class="text-sm mt-1">Replying will reopen it.</p>
-                </div>
+            <!-- Status + priority cluster (kept tokens) -->
+            <div class="flex items-center gap-3">
+                <div th:replace="~{fragments/badges :: statusBadge(status=${ticket.status})}"></div>
+                <div th:replace="~{fragments/badges :: priorityBadge(priority=${ticket.currentPriority})}"></div>
             </div>
         </div>
     </div>
-</body>
 
+    <!-- Main layout: conversation + reply (left) / details (right) -->
+    <div class="grid grid-cols-12 gap-6">
+        <!-- Left column -->
+        <div class="col-span-12 lg:col-span-8 space-y-6">
+
+            <!-- Conversation card -->
+            <section class="bg-surface border border-subtle rounded-2xl shadow-sm overflow-hidden">
+                <div class="px-6 sm:px-8 py-5 border-b border-subtle">
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-surface-alt border border-subtle flex items-center justify-center">
+                                <i class="fas fa-comments text-primary"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-semibold text-text-primary">Conversation</h2>
+                                <p class="text-sm text-text-muted">Latest updates and replies in one timeline.</p>
+                            </div>
+                        </div>
+
+                        <!-- Optional “micro-actions” placeholder (no JS needed) -->
+                        <div class="hidden sm:flex items-center gap-2 text-sm text-text-secondary">
+                            <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-alt border border-subtle">
+                                <i class="far fa-clock text-text-subtle"></i>
+                                <span>Sorted by time</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-4 sm:px-6 lg:px-8">
+                    <div class="space-y-4" th:each="message : ${messages}">
+                        <div th:replace="~{fragments/conversation-bubble :: conversationBubble(
+                                fromCustomer=${message.fromCustomer},
+                                systemGenerated=${message.systemGenerated},
+                                author=${message.author},
+                                authorFullName=${message.author != null ? message.author.fullName : null},
+                                createdAt=${#temporals.format(message.createdAt, 'yyyy-MM-dd HH:mm')},
+                                messageKind=${message.messageKind},
+                                content=${message.content}
+                            )}"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reply composer -->
+            <section th:if="${ticket.status.name() != 'CLOSED' && ticket.status.name() != 'AUTO_CLOSED_PENDING'}"
+                     class="bg-surface border border-subtle rounded-2xl shadow-sm overflow-hidden">
+                <div class="px-6 sm:px-8 py-5 border-b border-subtle">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-surface-alt border border-subtle flex items-center justify-center">
+                            <i class="fas fa-reply text-primary"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-semibold text-text-primary">Add reply</h2>
+                            <p class="text-sm text-text-muted">Be specific. Include steps, screenshots, or order IDs when relevant.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <form th:action="@{/tickets/{id}/reply(id=${ticket.id})}" method="post" class="px-6 sm:px-8 py-6 space-y-4">
+                    <div class="bg-surface-alt border border-subtle rounded-2xl p-4">
+                        <textarea name="content"
+                                  rows="7"
+                                  required
+                                  minlength="10"
+                                  maxlength="10000"
+                                  placeholder="Type your reply here..."
+                                  class="w-full bg-transparent text-text-primary focus:outline-none resize-y leading-relaxed"></textarea>
+                        <div class="mt-3 flex items-center justify-between text-xs text-text-muted">
+                            <span class="inline-flex items-center gap-2">
+                                <i class="far fa-lightbulb text-text-subtle"></i>
+                                <span>Tip: include what you expected vs what happened.</span>
+                            </span>
+                            <span>10–10000 chars</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
+                        <button type="submit"
+                                class="inline-flex items-center justify-center px-6 py-3 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-info focus:ring-offset-2">
+                            <i class="fas fa-paper-plane mr-2"></i>
+                            Send reply
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Closed notice -->
+            <section th:if="${ticket.status.name() == 'CLOSED'}"
+                     class="bg-info-lightest border border-info-light text-info px-6 py-5 rounded-2xl">
+                <div class="flex items-start gap-3">
+                    <i class="fas fa-info-circle text-info mt-0.5"></i>
+                    <div>
+                        <p class="font-semibold text-info-dark">This ticket is closed.</p>
+                        <p class="text-sm text-info">Replying will reopen it.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Right column (sticky details) -->
+        <aside class="col-span-12 lg:col-span-4">
+            <div class="lg:sticky lg:top-6 space-y-6">
+                <section class="bg-surface border border-subtle rounded-2xl shadow-sm overflow-hidden">
+                    <div class="px-6 py-5 border-b border-subtle">
+                        <h3 class="text-base font-semibold text-text-primary flex items-center gap-2">
+                            <i class="fas fa-clipboard-list text-primary"></i>
+                            Ticket details
+                        </h3>
+                        <p class="text-sm text-text-muted mt-1">Fast context without digging.</p>
+                    </div>
+
+                    <div class="px-6 py-6 space-y-4">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <div th:replace="~{fragments/badges :: statusBadge(status=${ticket.status})}"></div>
+                            <div th:replace="~{fragments/badges :: priorityBadge(priority=${ticket.currentPriority})}"></div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-3 text-sm">
+                            <div class="flex items-start justify-between gap-4 bg-surface-alt border border-subtle rounded-2xl p-4">
+                                <div class="text-text-muted">Ticket #</div>
+                                <div class="text-text-primary font-semibold" th:text="${ticket.formattedTicketNo}">TCK-00001</div>
+                            </div>
+
+                            <div class="flex items-start justify-between gap-4 bg-surface-alt border border-subtle rounded-2xl p-4">
+                                <div class="text-text-muted">Created</div>
+                                <div class="text-text-primary font-medium"
+                                     th:text="${#temporals.format(ticket.createdAt, 'yyyy-MM-dd HH:mm')}">Date</div>
+                            </div>
+
+                            <div class="flex items-start justify-between gap-4 bg-surface-alt border border-subtle rounded-2xl p-4"
+                                 th:if="${ticket.assignedAgent}">
+                                <div class="text-text-muted">Assigned agent</div>
+                                <div class="text-text-primary font-medium" th:text="${ticket.assignedAgent.fullName}">Agent</div>
+                            </div>
+
+                            <div class="flex items-start justify-between gap-4 bg-surface-alt border border-subtle rounded-2xl p-4"
+                                 th:if="${ticket.assignedQueue}">
+                                <div class="text-text-muted">Queue</div>
+                                <div class="text-text-primary font-medium" th:text="${ticket.assignedQueue}">Queue</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Optional helper card -->
+                <section class="bg-surface border border-subtle rounded-2xl shadow-sm overflow-hidden">
+                    <div class="px-6 py-5 border-b border-subtle">
+                        <h3 class="text-base font-semibold text-text-primary flex items-center gap-2">
+                            <i class="fas fa-magic text-primary"></i>
+                            Reply checklist
+                        </h3>
+                    </div>
+                    <div class="px-6 py-6 text-sm text-text-secondary space-y-2">
+                        <div class="flex gap-3">
+                            <i class="far fa-check-circle text-text-subtle mt-0.5"></i>
+                            <p>State the problem in one sentence.</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <i class="far fa-check-circle text-text-subtle mt-0.5"></i>
+                            <p>Share steps to reproduce + expected result.</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <i class="far fa-check-circle text-text-subtle mt-0.5"></i>
+                            <p>Add IDs: order, user, device, environment.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </aside>
+    </div>
+</div>
+</body>
 </html>
