@@ -23,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,6 +40,7 @@ public class RouterOrchestrator {
     private final TicketRoutingRepository ticketRoutingRepository;
     private final TicketMessageRepository ticketMessageRepository;
     private final TicketAnalysisService ticketAnalysisService;
+    private final Executor ticketRoutingExecutor;
 
     @Async("ticketRoutingExecutor")
     public void routeTicket(
@@ -104,37 +107,56 @@ public class RouterOrchestrator {
     ) {
         Map<TicketAnalysis, String> analysisResults = new EnumMap<>(TicketAnalysis.class);
 
-        analysisResults.put(
-            TicketAnalysis.CUSTOMER_INFORMATION,
-            analyzeMarkdown(
-                analysisRequest,
-                TicketAnalysis.CUSTOMER_INFORMATION
-            )
+        CompletableFuture<Void> customerInfoFuture = CompletableFuture.runAsync(
+            () -> analysisResults.put(
+                TicketAnalysis.CUSTOMER_INFORMATION,
+                analyzeMarkdown(
+                    analysisRequest,
+                    TicketAnalysis.CUSTOMER_INFORMATION
+                )
+            ),
+            ticketRoutingExecutor
         );
 
-        analysisResults.put(
-            TicketAnalysis.CONVERSATION_HISTORY,
-            analyzeMarkdown(
-                analysisRequest,
-                TicketAnalysis.CONVERSATION_HISTORY
-            )
+        CompletableFuture<Void> conversationHistoryFuture = CompletableFuture.runAsync(
+            () -> analysisResults.put(
+                TicketAnalysis.CONVERSATION_HISTORY,
+                analyzeMarkdown(
+                    analysisRequest,
+                    TicketAnalysis.CONVERSATION_HISTORY
+                )
+            ),
+            ticketRoutingExecutor
         );
 
-        analysisResults.put(
-            TicketAnalysis.TECHNICAL_DETAILS,
-            analyzeMarkdown(
-                analysisRequest,
-                TicketAnalysis.TECHNICAL_DETAILS
-            )
+        CompletableFuture<Void> technicalDetailsFuture = CompletableFuture.runAsync(
+            () -> analysisResults.put(
+                TicketAnalysis.TECHNICAL_DETAILS,
+                analyzeMarkdown(
+                    analysisRequest,
+                    TicketAnalysis.TECHNICAL_DETAILS
+                )
+            ),
+            ticketRoutingExecutor
         );
 
-        analysisResults.put(
-            TicketAnalysis.ACTIONS_REQUIRED,
-            analyzeMarkdown(
-                analysisRequest,
-                TicketAnalysis.ACTIONS_REQUIRED
-            )
+        CompletableFuture<Void> actionsRequiredFuture = CompletableFuture.runAsync(
+            () -> analysisResults.put(
+                TicketAnalysis.ACTIONS_REQUIRED,
+                analyzeMarkdown(
+                    analysisRequest,
+                    TicketAnalysis.ACTIONS_REQUIRED
+                )
+            ),
+            ticketRoutingExecutor
         );
+
+        CompletableFuture.allOf(
+            customerInfoFuture,
+            conversationHistoryFuture,
+            technicalDetailsFuture,
+            actionsRequiredFuture
+        ).join();
 
         return analysisResults;
     }
