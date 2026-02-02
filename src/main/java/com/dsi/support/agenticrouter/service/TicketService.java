@@ -122,7 +122,7 @@ public class TicketService {
         );
 
         routerOrchestrator.routeTicket(
-            supportTicket
+            supportTicket.getId()
         );
     }
 
@@ -186,7 +186,7 @@ public class TicketService {
                 );
 
                 routerOrchestrator.routeTicket(
-                    supportTicket
+                    supportTicket.getId()
                 );
             }
         );
@@ -213,7 +213,7 @@ public class TicketService {
                 );
 
                 routerOrchestrator.routeTicket(
-                    supportTicket
+                    supportTicket.getId()
                 );
             }
         );
@@ -238,7 +238,7 @@ public class TicketService {
             );
 
             routerOrchestrator.routeTicket(
-                supportTicket
+                supportTicket.getId()
             );
         };
     }
@@ -446,7 +446,7 @@ public class TicketService {
     public List<TicketMessage> getTicketMessages(
         Long ticketId
     ) {
-        return ticketMessageRepository.findByTicket_IdOrderByCreatedAtAsc(
+        return ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(
             ticketId
         );
     }

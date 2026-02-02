@@ -3,11 +3,13 @@ package com.dsi.support.agenticrouter.service.routing;
 import com.dsi.support.agenticrouter.dto.RouterRequest;
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.dto.TicketAnalysisRequest;
+import com.dsi.support.agenticrouter.dto.TicketAnalysisResult;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.entity.TicketMessage;
 import com.dsi.support.agenticrouter.entity.TicketRouting;
 import com.dsi.support.agenticrouter.enums.TicketAnalysis;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
+import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.repository.TicketRoutingRepository;
@@ -39,8 +41,16 @@ public class RouterOrchestrator {
 
     @Async
     public void routeTicket(
-        SupportTicket supportTicket
+        Long ticketId
     ) {
+        SupportTicket supportTicket = supportTicketRepository.findById(ticketId)
+                                                             .orElseThrow(
+                                                                 () -> new DataNotFoundException(
+                                                                     SupportTicket.class,
+                                                                     ticketId
+                                                                 )
+                                                             );
+
         supportTicket.setStatus(TicketStatus.TRIAGING);
         supportTicket = supportTicketRepository.save(supportTicket);
 
@@ -96,37 +106,51 @@ public class RouterOrchestrator {
 
         analysisResults.put(
             TicketAnalysis.CUSTOMER_INFORMATION,
-            ticketAnalysisService.analyzeTicketSection(
+            analyzeMarkdown(
                 analysisRequest,
                 TicketAnalysis.CUSTOMER_INFORMATION
-            ).getExtractedMarkdown()
+            )
         );
 
         analysisResults.put(
             TicketAnalysis.CONVERSATION_HISTORY,
-            ticketAnalysisService.analyzeTicketSection(
+            analyzeMarkdown(
                 analysisRequest,
                 TicketAnalysis.CONVERSATION_HISTORY
-            ).getExtractedMarkdown()
+            )
         );
 
         analysisResults.put(
             TicketAnalysis.TECHNICAL_DETAILS,
-            ticketAnalysisService.analyzeTicketSection(
+            analyzeMarkdown(
                 analysisRequest,
                 TicketAnalysis.TECHNICAL_DETAILS
-            ).getExtractedMarkdown()
+            )
         );
 
         analysisResults.put(
             TicketAnalysis.ACTIONS_REQUIRED,
-            ticketAnalysisService.analyzeTicketSection(
+            analyzeMarkdown(
                 analysisRequest,
                 TicketAnalysis.ACTIONS_REQUIRED
-            ).getExtractedMarkdown()
+            )
         );
 
         return analysisResults;
+    }
+
+    private String analyzeMarkdown(
+        TicketAnalysisRequest analysisRequest,
+        TicketAnalysis ticketAnalysis
+    ) {
+        TicketAnalysisResult ticketAnalysisResult = ticketAnalysisService.analyzeTicketSection(
+            analysisRequest,
+            ticketAnalysis
+        );
+
+        return StringUtils.defaultString(
+            ticketAnalysisResult.getExtractedMarkdown()
+        );
     }
 
     private TicketAnalysisRequest buildAnalysisRequest(
@@ -157,7 +181,7 @@ public class RouterOrchestrator {
     ) {
         String conversationHistory = buildConversationText(supportTicket);
 
-        String initialMessage = ticketMessageRepository.findByTicket_IdOrderByCreatedAtAsc(supportTicket.getId())
+        String initialMessage = ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(supportTicket.getId())
                                                        .stream()
                                                        .findFirst()
                                                        .map(TicketMessage::getContent)
@@ -184,7 +208,7 @@ public class RouterOrchestrator {
     }
 
     private String buildConversationText(SupportTicket supportTicket) {
-        return ticketMessageRepository.findByTicket_IdOrderByCreatedAtAsc(supportTicket.getId())
+        return ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(supportTicket.getId())
                                       .stream()
                                       .filter(TicketMessage::isVisibleToCustomer)
                                       .map(
