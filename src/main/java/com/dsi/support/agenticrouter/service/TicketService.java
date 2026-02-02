@@ -3,12 +3,13 @@ package com.dsi.support.agenticrouter.service;
 import com.dsi.support.agenticrouter.dto.CreateTicketDto;
 import com.dsi.support.agenticrouter.entity.*;
 import com.dsi.support.agenticrouter.enums.*;
+import com.dsi.support.agenticrouter.event.TicketCreatedEvent;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.*;
-import com.dsi.support.agenticrouter.service.routing.RouterOrchestrator;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -58,10 +59,10 @@ public class TicketService {
     private final TicketMessageRepository ticketMessageRepository;
     private final NotificationService notificationService;
     private final AuditService auditService;
-    private final RouterOrchestrator routerOrchestrator;
     private final AppUserRepository appUserRepository;
     private final TicketRoutingRepository ticketRoutingRepository;
     private final EscalationRepository escalationRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public Page<SupportTicket> listCustomerTickets(
@@ -121,8 +122,11 @@ public class TicketService {
             null
         );
 
-        routerOrchestrator.routeTicket(
-            supportTicket.getId()
+        eventPublisher.publishEvent(
+            new TicketCreatedEvent(
+                this,
+                supportTicket.getId()
+            )
         );
     }
 
@@ -185,8 +189,11 @@ public class TicketService {
                     null
                 );
 
-                routerOrchestrator.routeTicket(
-                    supportTicket.getId()
+                eventPublisher.publishEvent(
+                    new TicketCreatedEvent(
+                        this,
+                        supportTicket.getId()
+                    )
                 );
             }
         );
@@ -212,8 +219,11 @@ public class TicketService {
                     null
                 );
 
-                routerOrchestrator.routeTicket(
-                    supportTicket.getId()
+                eventPublisher.publishEvent(
+                    new TicketCreatedEvent(
+                        this,
+                        supportTicket.getId()
+                    )
                 );
             }
         );
@@ -237,8 +247,11 @@ public class TicketService {
                 null
             );
 
-            routerOrchestrator.routeTicket(
-                supportTicket.getId()
+            eventPublisher.publishEvent(
+                new TicketCreatedEvent(
+                    this,
+                    supportTicket.getId()
+                )
             );
         };
     }

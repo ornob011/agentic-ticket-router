@@ -39,7 +39,7 @@ public class RouterOrchestrator {
     private final TicketMessageRepository ticketMessageRepository;
     private final TicketAnalysisService ticketAnalysisService;
 
-    @Async
+    @Async("ticketRoutingExecutor")
     public void routeTicket(
         Long ticketId
     ) {
