@@ -1,7 +1,8 @@
-package com.dsi.support.agenticrouter.controller;
+package com.dsi.support.agenticrouter.controller.mvc;
 
 import com.dsi.support.agenticrouter.dto.AgentReplyDto;
 import com.dsi.support.agenticrouter.dto.ChangeTicketStatusDto;
+import com.dsi.support.agenticrouter.entity.AppUser;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.entity.TicketMessage;
 import com.dsi.support.agenticrouter.entity.TicketRouting;
@@ -9,6 +10,7 @@ import com.dsi.support.agenticrouter.enums.NavPage;
 import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
+import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.service.TicketService;
 import com.dsi.support.agenticrouter.util.Utils;
@@ -38,6 +40,7 @@ public class AgentController {
     private final TicketService ticketService;
     private final MessageSource messageSource;
     private final SupportTicketRepository supportTicketRepository;
+    private final AppUserRepository appUserRepository;
 
     @GetMapping("/agent/tickets/{ticketId}")
     public String viewTicket(
@@ -48,12 +51,17 @@ public class AgentController {
 
         List<TicketRouting> routingHistory = ticketService.getTicketRoutingHistory(ticketId);
         TicketRouting latestRouting = routingHistory.isEmpty() ? null : routingHistory.get(0);
-        
+
+        List<AppUser> availableAgents = appUserRepository.findByActiveTrue();
+
         model.addAttribute("ticket", ticket);
         model.addAttribute("messages", ticketService.getTicketMessages(ticketId));
         model.addAttribute("latestRouting", latestRouting);
         model.addAttribute("routingHistory", routingHistory);
         model.addAttribute("availableStatuses", TicketStatus.values());
+        model.addAttribute("availableQueues", TicketQueue.values());
+        model.addAttribute("availablePriorities", TicketPriority.values());
+        model.addAttribute("availableAgents", availableAgents);
 
         return "agent/ticket-detail";
     }

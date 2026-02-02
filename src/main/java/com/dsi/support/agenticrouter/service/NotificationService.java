@@ -87,9 +87,7 @@ public class NotificationService {
     public long getUnreadCount(
         Long userId
     ) {
-        return notificationRepository.countByRecipientIdAndReadFalse(
-            userId
-        );
+        return notificationRepository.countByRecipientIdAndRead(userId, Boolean.FALSE);
     }
 
     @Transactional
@@ -101,5 +99,27 @@ public class NotificationService {
         );
 
         notificationRepository.deleteAll(oldNotifications);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Notification> getRecentNotifications(
+        Long userId
+    ) {
+        return notificationRepository.findByRecipient_IdOrderByCreatedAtDesc(userId);
+    }
+
+    @Transactional
+    public void markAllAsRead(
+        Long userId
+    ) {
+        List<Notification> unreadNotifications = notificationRepository.findByRecipient_IdAndReadFalseOrderByCreatedAtDesc(
+            userId
+        );
+
+        for (Notification notification : unreadNotifications) {
+            notification.setRead(true);
+        }
+
+        notificationRepository.saveAll(unreadNotifications);
     }
 }

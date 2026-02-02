@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.controller;
+package com.dsi.support.agenticrouter.controller.mvc;
 
 import com.dsi.support.agenticrouter.dto.ResolveEscalationDto;
 import com.dsi.support.agenticrouter.entity.Escalation;

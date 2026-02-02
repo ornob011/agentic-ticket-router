@@ -185,7 +185,9 @@ public class TicketService {
                     null
                 );
 
-                routerOrchestrator.routeTicket(supportTicket);
+                routerOrchestrator.routeTicket(
+                    supportTicket
+                );
             }
         );
 
@@ -197,6 +199,23 @@ public class TicketService {
         ticketStatusReplyHandlerEnumMap.put(
             TicketStatus.AUTO_CLOSED_PENDING,
             reopenTicketHandler()
+        );
+
+        ticketStatusReplyHandlerEnumMap.put(
+            TicketStatus.IN_PROGRESS,
+            (supportTicket, customer) -> {
+                auditService.recordEvent(
+                    AuditEventType.MESSAGE_POSTED,
+                    supportTicket.getId(),
+                    customer.getId(),
+                    "Customer replied to IN_PROGRESS ticket - triggering re-triage",
+                    null
+                );
+
+                routerOrchestrator.routeTicket(
+                    supportTicket
+                );
+            }
         );
 
         return ticketStatusReplyHandlerEnumMap;
@@ -558,12 +577,12 @@ public class TicketService {
     @Transactional(readOnly = true)
     public Escalation getEscalationById(Long escalationId) {
         return escalationRepository.findById(escalationId)
-                                     .orElseThrow(
-                                         DataNotFoundException.supplier(
-                                             Escalation.class,
-                                             escalationId
-                                         )
-                                     );
+                                   .orElseThrow(
+                                       DataNotFoundException.supplier(
+                                           Escalation.class,
+                                           escalationId
+                                       )
+                                   );
     }
 
     @Transactional(readOnly = true)
@@ -661,4 +680,3 @@ public class TicketService {
         );
     }
 }
-

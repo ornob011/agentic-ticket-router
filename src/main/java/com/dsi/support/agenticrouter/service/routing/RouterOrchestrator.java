@@ -19,6 +19,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,12 +48,13 @@ public class RouterOrchestrator {
             supportTicket
         );
 
-        runTicketAnalysis(
+        Map<TicketAnalysis, String> analysisResults = runTicketAnalysis(
             analysisRequest
         );
 
         RouterRequest routerRequest = buildRouterRequest(
-            supportTicket
+            supportTicket,
+            analysisResults
         );
 
         RouterResponse routerResponse = ollamaRouterService.getRoutingDecision(
@@ -86,35 +89,55 @@ public class RouterOrchestrator {
         );
     }
 
-    private void runTicketAnalysis(
+    private Map<TicketAnalysis, String> runTicketAnalysis(
         TicketAnalysisRequest analysisRequest
     ) {
-        ticketAnalysisService.analyzeTicketSection(
-            analysisRequest,
-            TicketAnalysis.CUSTOMER_INFORMATION
+        Map<TicketAnalysis, String> analysisResults = new EnumMap<>(TicketAnalysis.class);
+
+        analysisResults.put(
+            TicketAnalysis.CUSTOMER_INFORMATION,
+            ticketAnalysisService.analyzeTicketSection(
+                analysisRequest,
+                TicketAnalysis.CUSTOMER_INFORMATION
+            ).getExtractedMarkdown()
         );
 
-        ticketAnalysisService.analyzeTicketSection(
-            analysisRequest,
-            TicketAnalysis.CONVERSATION_HISTORY
+        analysisResults.put(
+            TicketAnalysis.CONVERSATION_HISTORY,
+            ticketAnalysisService.analyzeTicketSection(
+                analysisRequest,
+                TicketAnalysis.CONVERSATION_HISTORY
+            ).getExtractedMarkdown()
         );
 
-        ticketAnalysisService.analyzeTicketSection(
-            analysisRequest,
-            TicketAnalysis.TECHNICAL_DETAILS
+        analysisResults.put(
+            TicketAnalysis.TECHNICAL_DETAILS,
+            ticketAnalysisService.analyzeTicketSection(
+                analysisRequest,
+                TicketAnalysis.TECHNICAL_DETAILS
+            ).getExtractedMarkdown()
         );
 
-        ticketAnalysisService.analyzeTicketSection(
-            analysisRequest,
-            TicketAnalysis.ACTIONS_REQUIRED
+        analysisResults.put(
+            TicketAnalysis.ACTIONS_REQUIRED,
+            ticketAnalysisService.analyzeTicketSection(
+                analysisRequest,
+                TicketAnalysis.ACTIONS_REQUIRED
+            ).getExtractedMarkdown()
         );
+
+        return analysisResults;
     }
 
     private TicketAnalysisRequest buildAnalysisRequest(
         SupportTicket supportTicket
     ) {
         String content = String.format(
-            "Ticket Number: %s\nSubject: %s\nCustomer: %s\nCustomer Tier: %s\n\nConversation:\n%s",
+            "Ticket Number: %s%n" +
+            "Subject: %s%n" +
+            "Customer: %s%n" +
+            "Customer Tier: %s%n%n" +
+            "Conversation:%n%s",
             supportTicket.getFormattedTicketNo(),
             supportTicket.getSubject(),
             supportTicket.getCustomer().getFullName(),
@@ -129,7 +152,8 @@ public class RouterOrchestrator {
     }
 
     private RouterRequest buildRouterRequest(
-        SupportTicket supportTicket
+        SupportTicket supportTicket,
+        Map<TicketAnalysis, String> analysisResults
     ) {
         String conversationHistory = buildConversationText(supportTicket);
 
@@ -152,10 +176,10 @@ public class RouterOrchestrator {
                             .customerTier(customerTier)
                             .initialMessage(initialMessage)
                             .conversationHistory(conversationHistory)
-                            .customerInfoAnalysis("See ticket analysis results")
-                            .conversationAnalysis("See ticket analysis results")
-                            .technicalAnalysis("See ticket analysis results")
-                            .actionsAnalysis("See ticket analysis results")
+                            .customerInfoAnalysis(analysisResults.getOrDefault(TicketAnalysis.CUSTOMER_INFORMATION, StringUtils.EMPTY))
+                            .conversationAnalysis(analysisResults.getOrDefault(TicketAnalysis.CONVERSATION_HISTORY, StringUtils.EMPTY))
+                            .technicalAnalysis(analysisResults.getOrDefault(TicketAnalysis.TECHNICAL_DETAILS, StringUtils.EMPTY))
+                            .actionsAnalysis(analysisResults.getOrDefault(TicketAnalysis.ACTIONS_REQUIRED, StringUtils.EMPTY))
                             .build();
     }
 

@@ -144,7 +144,7 @@
                                                 th:text="${queueCount > 99} ? '99+' : ${queueCount}"
                                                 id="queue-badge"
                                                 class="px-1.5 py-0.5 text-xs font-semibold bg-gray-200 text-gray-700 rounded-full"
-                                                hx-get="/api/v1/queue/count"
+                                                hx-get="/api/v1/dashboard-stats/queue-count"
                                                 hx-trigger="every 60s"
                                                 hx-swap="outerHTML"
                                             ></span>
@@ -185,7 +185,7 @@
                                                     th:text="${escalationCount > 99} ? '99+' : ${escalationCount}"
                                                     id="escalation-badge"
                                                     class="px-1.5 py-0.5 text-xs font-semibold bg-amber-200 text-amber-800 rounded-full"
-                                                    hx-get="/api/v1/escalations/count"
+                                                    hx-get="/api/v1/dashboard-stats/escalations-count"
                                                     hx-trigger="every 30s"
                                                     hx-swap="outerHTML"
                                                 ></span>
@@ -353,17 +353,17 @@
                             <th:block sec:authorize="isAuthenticated()">
                                 <!-- Notifications -->
                                 <div class="relative" data-dropdown="notification">
-                                    <button
-                                        type="button"
-                                        class="js-dropdown-toggle relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                                        aria-label="Notifications"
-                                        aria-haspopup="true"
-                                        aria-expanded="false"
-                                        hx-get="/api/v1/notifications/recent"
-                                        hx-target="#notification-list"
-                                        hx-trigger="click once"
-                                        hx-swap="innerHTML"
-                                    >
+                                        <button
+                                            type="button"
+                                            class="js-dropdown-toggle relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                            aria-label="Notifications"
+                                            aria-haspopup="true"
+                                            aria-expanded="false"
+                                            hx-get="/api/v1/dashboard-stats/notifications-recent"
+                                            hx-target="#notification-list"
+                                            hx-trigger="click once"
+                                            hx-swap="innerHTML"
+                                        >
                                         <svg
                                             class="w-5 h-5"
                                             fill="none"
@@ -383,7 +383,7 @@
                                             th:text="${unreadNotificationCount > 99} ? '99+' : ${unreadNotificationCount}"
                                             id="notification-badge"
                                             class="absolute -top-0.5 -right-0.5 min-w-[1.125rem] h-[1.125rem] px-1 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center"
-                                            hx-get="/api/v1/notifications/count"
+                                            hx-get="/api/v1/dashboard-stats/notifications-count"
                                             hx-trigger="every 30s"
                                             hx-swap="outerHTML"
                                         ></span>
@@ -401,7 +401,7 @@
                                             <button
                                                 type="button"
                                                 class="text-xs text-blue-600 hover:text-blue-700 font-medium focus:outline-none focus:underline"
-                                                hx-post="/api/v1/notifications/mark-all-read"
+                                                hx-post="/api/v1/dashboard-stats/notifications-mark-all-read"
                                                 hx-swap="none"
                                             >
                                                 Mark all read

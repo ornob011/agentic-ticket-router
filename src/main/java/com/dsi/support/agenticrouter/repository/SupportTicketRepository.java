@@ -212,4 +212,62 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         Pageable pageable
     );
 
+    @Query("""
+        SELECT COUNT(ticket)
+        FROM SupportTicket ticket
+        WHERE ticket.assignedAgent.id = :agentId
+        """)
+    long countAssignedTicketsInQueue(
+        @Param("agentId") Long agentId
+    );
+
+    @Query("""
+        SELECT COUNT(ticket)
+        FROM SupportTicket ticket
+        WHERE ticket.assignedAgent.id = :agentId
+        AND ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.IN_PROGRESS
+        """)
+    long countInProgressTickets(
+        @Param("agentId") Long agentId
+    );
+
+    @Query("""
+        SELECT COUNT(ticket)
+        FROM SupportTicket ticket
+        WHERE ticket.assignedAgent.id = :agentId
+        AND ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.RESOLVED
+        """)
+    long countResolvedTickets(
+        @Param("agentId") Long agentId
+    );
+
+    @Query("""
+        SELECT COUNT(ticket)
+        FROM SupportTicket ticket
+        WHERE ticket.assignedAgent.id = :agentId
+        AND ticket.escalated = true
+        """)
+    long countEscalatedTickets(
+        @Param("agentId") Long agentId
+    );
+
+    @Query("""
+        SELECT COUNT(ticket)
+        FROM SupportTicket ticket
+        WHERE ticket.assignedAgent.id = :agentId
+        AND ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.WAITING_CUSTOMER
+        """)
+    long countAwaitingCustomerTickets(
+        @Param("agentId") Long agentId
+    );
+
+    @Query("""
+        SELECT COUNT(ticket)
+        FROM SupportTicket ticket
+        WHERE ticket.assignedAgent.id = :agentId
+        AND ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.TRIAGING
+        """)
+    long countTriagingTickets(
+        @Param("agentId") Long agentId
+    );
 }
