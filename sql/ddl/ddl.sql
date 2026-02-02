@@ -534,6 +534,7 @@ CREATE TABLE audit_event
                           'QUEUE_ASSIGNED',
                           'AGENT_ASSIGNED',
                           'ESCALATION_CREATED',
+                          'ESCALATION_RESOLVED',
                           'PRIORITY_CHANGED',
                           'NOTIFICATION_SENT',
                           'SLA_BREACH',
@@ -541,7 +542,9 @@ CREATE TABLE audit_event
                           'TICKET_REOPENED',
                           'POLICY_GATE_TRIGGERED',
                           'MODEL_INFERENCE_FAILED',
-                          'MANUAL_INTERVENTION'
+                          'MANUAL_INTERVENTION',
+                          'TICKET_ANALYSIS_EXECUTED',
+                          'TICKET_ANALYSIS_FAILED'
       ))
 );
 
