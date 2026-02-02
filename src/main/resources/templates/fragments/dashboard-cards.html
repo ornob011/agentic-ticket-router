@@ -1,82 +1,81 @@
 <!doctype html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
+
+<!-- Stat card -->
 <div
     th:fragment="stat-card(title, value, icon)"
-    class="bg-surface rounded-lg p-6 shadow-sm"
+    class="bg-surface border border-subtle rounded-2xl p-6 shadow-sm"
 >
     <div class="flex items-start justify-between gap-4">
         <div class="flex-1 min-w-0">
             <p class="text-xs font-semibold uppercase tracking-widest text-text-muted mb-2" th:text="${title}">
                 Metric Title
             </p>
-            <h3 class="text-2xl font-medium text-text-primary" th:text="${value}">0</h3>
+            <h3 class="text-2xl font-semibold text-text-primary" th:text="${value}">0</h3>
         </div>
-        <div
-            class="w-12 h-12 flex items-center justify-center rounded-lg bg-surface-alt text-text-secondary flex-shrink-0"
-        >
+
+        <div class="w-12 h-12 flex items-center justify-center rounded-2xl bg-surface-alt border border-subtle text-text-secondary flex-shrink-0">
             <i th:class="${'fas fa-' + icon + ' text-lg'}"></i>
         </div>
     </div>
 </div>
 
+<!-- Ticket list card -->
 <div
     th:fragment="ticket-list-card(title, tickets, viewAllUrl)"
-    class="bg-surface border border-subtle rounded-lg overflow-hidden"
+    class="bg-surface border border-subtle rounded-2xl shadow-sm overflow-hidden"
 >
-    <div class="px-6 py-4 flex items-center justify-between border-b border-subtle">
-        <h3 class="font-medium text-text-primary text-sm" th:text="${title}">List Title</h3>
+    <div class="px-6 py-5 flex items-center justify-between border-b border-subtle">
+        <h3 class="text-base font-semibold text-text-primary" th:text="${title}">List Title</h3>
+
         <a
             th:if="${viewAllUrl}"
             th:href="@{${viewAllUrl}}"
-            class="text-xs font-semibold bg-primary hover:bg-primary-hover text-white tracking-tight px-2 py-1 rounded transition-colors"
+            class="inline-flex items-center px-3 py-2 bg-surface-alt hover:bg-surface text-text-primary text-sm font-semibold rounded-xl border border-subtle transition-colors"
         >
             View all
+            <i class="fas fa-arrow-right ml-2 text-xs text-text-subtle"></i>
         </a>
     </div>
+
     <div class="overflow-x-auto">
         <table class="w-full text-sm text-left">
             <thead class="bg-surface-alt border-b border-subtle">
             <tr class="text-xs uppercase tracking-widest text-text-muted">
-                <th class="px-6 py-3 font-semibold">Ticket ID</th>
+                <th class="px-6 py-3 font-semibold">Ticket</th>
                 <th class="px-6 py-3 font-semibold">Subject</th>
                 <th class="px-6 py-3 font-semibold">Status</th>
-                <th class="px-6 py-3 font-semibold text-right">Last Activity</th>
+                <th class="px-6 py-3 font-semibold text-right">Last activity</th>
             </tr>
             </thead>
+
             <tbody class="divide-y divide-subtle">
             <tr th:each="ticket : ${tickets}" class="hover:bg-surface-alt transition-colors">
                 <td class="px-6 py-4">
                     <a
                         th:href="@{/tickets/{id}(id=${ticket.id})}"
                         th:text="${ticket.formattedTicketNo}"
-                        class="text-primary hover:text-primary-hover font-medium hover:underline"
-                    >TKT-000</a
-                    >
+                        class="text-primary hover:text-primary-hover font-semibold hover:underline"
+                    >TKT-000</a>
                 </td>
-                <td
-                    class="px-6 py-4 text-text-secondary font-medium max-w-xs truncate"
-                    th:text="${ticket.subject}"
-                >
+
+                <td class="px-6 py-4 text-text-secondary font-medium max-w-xs truncate"
+                    th:text="${ticket.subject}">
                     Subject
                 </td>
+
                 <td class="px-6 py-4">
-                                <span th:text="${ticket.status}" class="flex items-center gap-2">
-                                    <span class="status-dot"
-                                          th:class="${ticket.status.name() == 'RESOLVED' ? 'status-dot-success' :
-                                                     (ticket.status.name() == 'IN_PROGRESS' ? 'status-dot-info' :
-                                                     (ticket.status.name() == 'WAITING_CUSTOMER' ? 'status-dot-warning' :
-                                                     'status-dot-neutral')}"></span>
-                                    <span class="text-sm font-medium text-text-primary">STATUS</span>
-                                </span>
+                    <!-- Use shared badge fragment (single source of truth) -->
+                    <div th:replace="~{fragments/badges :: statusBadge(status=${ticket.status})}"></div>
                 </td>
-                <td
-                    class="px-6 py-4 text-text-muted text-sm text-right"
-                    th:text="${#messages.msg('app.time.ago', ticket.lastActivityAt)}"
-                >
+
+                <td class="px-6 py-4 text-text-muted text-sm text-right"
+                    th:text="${#messages.msg('app.time.ago', ticket.lastActivityAt)}">
                     2h ago
                 </td>
             </tr>
+
             <tr th:if="${#lists.isEmpty(tickets)}">
                 <td colspan="4" class="px-6 py-12 text-center">
                     <div class="flex flex-col items-center text-text-muted">
@@ -90,31 +89,32 @@
     </div>
 </div>
 
+<!-- Queue summary -->
 <div
     th:fragment="queue-summary(queueCounts)"
-    class="bg-surface rounded-lg p-6 shadow-sm"
+    class="bg-surface border border-subtle rounded-2xl p-6 shadow-sm"
 >
-    <h3 class="font-medium text-text-primary text-sm mb-6 flex items-center gap-2">
+    <h3 class="text-base font-semibold text-text-primary mb-6 flex items-center gap-2">
         <i class="fas fa-layer-group text-base text-text-muted"></i>
         Queue Status
     </h3>
+
     <div class="space-y-4">
         <div th:each="entry : ${queueCounts}">
             <div class="flex items-center justify-between mb-2">
-                <span class="text-sm font-medium text-text-primary" th:text="${entry.key}">Queue Name</span>
-                <span
-                    class="text-xs font-semibold text-text-muted bg-surface-alt px-2 py-0.5 rounded"
-                    th:text="${entry.value}"
-                >0</span
-                >
+                <span class="text-sm font-semibold text-text-primary" th:text="${entry.key}">Queue Name</span>
+                <span class="text-xs font-semibold text-text-muted bg-surface-alt px-2 py-0.5 rounded-xl border border-subtle"
+                      th:text="${entry.value}">0</span>
             </div>
-            <div class="w-full h-1.5 bg-surface-alt rounded-full overflow-hidden">
+
+            <div class="w-full h-2 bg-surface-alt rounded-full overflow-hidden border border-subtle">
                 <div
                     class="h-full bg-primary rounded-full transition-all duration-500"
-                    th:style="'width: ' + ${entry.value > 20 ? 100 : (Math.max(entry.value, 1) * 5)} + '%'"
+                    th:style="'width: ' + ${entry.value > 20 ? 100 : (entry.value < 1 ? 5 : entry.value * 5)} + '%'"
                 ></div>
             </div>
         </div>
+
         <div th:if="${#maps.isEmpty(queueCounts)}" class="text-center py-8">
             <div class="flex flex-col items-center text-text-muted">
                 <i class="fas fa-layer-group text-2xl mb-2"></i>
@@ -123,5 +123,6 @@
         </div>
     </div>
 </div>
+
 </body>
 </html>
