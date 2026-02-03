@@ -20,12 +20,18 @@ CONVERSATION HISTORY:
 ANALYSIS:
 {analysis}
 
+AVAILABLE ENUM VALUES (USE EXACTLY AS SHOWN):
+Category options: {category}
+Priority options: {priority}
+Queue options: {queue}
+Next action options: {next_action}
+
 OUTPUT JSON STRUCTURE (MUST MATCH EXACTLY):
 {
-  "category": "MUST be exactly one of: {category}",
-  "priority": "MUST be exactly one of: {priority}",
-  "queue": "MUST be exactly one of: {queue}",
-  "next_action": "MUST be exactly one of: {next_action}",
+  "category": "string - use one of the category options above",
+  "priority": "string - use one of the priority options above",
+  "queue": "string - use one of the queue options above",
+  "next_action": "string - use one of the next action options above",
   "confidence": "decimal between 0.0 and 1.0",
   "clarifying_question": "string or null (required if next_action is ASK_CLARIFYING)",
   "draft_reply": "string or null (required if next_action is AUTO_REPLY)",
@@ -44,9 +50,9 @@ STRICT RULES - READ CAREFULLY:
 - DO NOT invent or combine enum values
   - INVALID: "MEDIUM-HIGH", "Technical", "tech_q", "SECURITY_Q_HIGH"
   - VALID: "MEDIUM", "HIGH", "TECHNICAL", "TECH_Q", "SECURITY_Q"
-- DO NOT add extra fields beyond the 8 specified above
-- DO NOT include markdown formatting around JSON
-- DO NOT add explanatory text before or after JSON
+- DO NOT add extra fields beyond the 8 specified in the JSON structure
+- DO NOT include markdown formatting around the JSON
+- DO NOT add explanatory text before or after the JSON
 - ALL enum values MUST match exactly (case-sensitive, hyphens/underscores matter)
 
 NEGATIVE EXAMPLES (DO NOT OUTPUT THESE):
