@@ -81,6 +81,8 @@ public class OllamaRouterService {
                                           .defaultOptions(
                                               OllamaChatOptions.builder()
                                                                .format("json")
+                                                               .numCtx(32768)
+                                                               .temperature(0.0)
                                                                .build()
                                           )
                                           .build();

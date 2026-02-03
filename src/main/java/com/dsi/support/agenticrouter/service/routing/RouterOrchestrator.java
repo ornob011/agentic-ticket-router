@@ -151,7 +151,6 @@ public class RouterOrchestrator {
     private String buildConversationText(SupportTicket supportTicket) {
         return ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(supportTicket.getId())
                                       .stream()
-                                      .filter(TicketMessage::isVisibleToCustomer)
                                       .map(
                                           message ->
                                               String.format("[%s] %s: %s",
