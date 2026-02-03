@@ -27,7 +27,7 @@ Queue options: {queue}
 Next action options: {next_action}
 
 OUTPUT JSON STRUCTURE (MUST MATCH EXACTLY):
-{
+\{
   "category": "string - use one of the category options above",
   "priority": "string - use one of the priority options above",
   "queue": "string - use one of the queue options above",
@@ -36,7 +36,7 @@ OUTPUT JSON STRUCTURE (MUST MATCH EXACTLY):
   "clarifying_question": "string or null (required if next_action is ASK_CLARIFYING)",
   "draft_reply": "string or null (required if next_action is AUTO_REPLY)",
   "rationale_tags": ["array of 2-3 strings explaining the decision"]
-}
+\}
 
 DECISION GUIDELINES:
 - When category indicates SECURITY, consider next_action=ESCALATE
@@ -58,40 +58,40 @@ STRICT RULES - READ CAREFULLY:
 NEGATIVE EXAMPLES (DO NOT OUTPUT THESE):
 
 INVALID (combined enum values):
-{
+\{
   "priority": "MEDIUM-HIGH"
-}
+\}
 
 INVALID (wrong casing):
-{
+\{
   "category": "technical"
-}
+\}
 
 INVALID (extra field):
-{
+\{
   "category": "TECHNICAL",
   "priority": "HIGH",
   "queue": "TECH_Q",
   "next_action": "ASSIGN_QUEUE",
   "confidence": 0.85,
   "reasoning": "This is a technical issue"
-}
+\}
 
 INVALID (markdown formatting):
 ```json
-{
+\{
   "category": "TECHNICAL"
-}
+\}
 ```
 
 INVALID (explanatory text):
 The ticket analysis suggests:
-{
+\{
   "category": "TECHNICAL"
-}
+\}
 
 VALID OUTPUT EXAMPLE:
-{
+\{
   "category": "TECHNICAL",
   "priority": "HIGH",
   "queue": "TECH_Q",
@@ -100,6 +100,6 @@ VALID OUTPUT EXAMPLE:
   "clarifying_question": null,
   "draft_reply": null,
   "rationale_tags": ["computer shutdown", "technical issue", "hardware problem"]
-}
+\}
 
 OUTPUT: Return ONLY valid JSON. No markdown. No code blocks. No explanations.

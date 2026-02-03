@@ -18,6 +18,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -27,7 +28,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
 @RequiredArgsConstructor
 @Slf4j
 public class OllamaRouterService {
@@ -46,6 +46,7 @@ public class OllamaRouterService {
         name = "ollamaCircuit",
         fallbackMethod = "routingFallback"
     )
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public RouterResponse getRoutingDecision(
         RouterRequest routerRequest,
         Long ticketId
@@ -151,17 +152,17 @@ public class OllamaRouterService {
     public RouterResponse routingFallback(
         RouterRequest routerRequest,
         Long ticketId,
-        Exception exception
+        Throwable throwable
     ) {
-        log.error("Routing fallback triggered for ticket {}", ticketId, exception);
+        log.error("Routing fallback triggered for ticket {}", ticketId, throwable);
 
-        llmOutputService.persistRoutingOutput(
+        llmOutputService.persistRoutingOutputInNewTransaction(
             ticketId,
             "fallback",
             routerRequest.toString(),
             null,
             ParseStatus.TIMEOUT,
-            exception.getMessage(),
+            throwable.getMessage(),
             0
         );
 
@@ -177,7 +178,7 @@ public class OllamaRouterService {
                                  Collections.singletonList(
                                      String.format(
                                          "MODEL_ERROR:%s",
-                                         exception.getMessage()
+                                         throwable.getMessage()
                                      )
                                  )
                              )

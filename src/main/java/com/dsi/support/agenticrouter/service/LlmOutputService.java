@@ -15,12 +15,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
 @Service
-@Transactional
 @RequiredArgsConstructor
 @Slf4j
 public class LlmOutputService {
@@ -32,7 +32,49 @@ public class LlmOutputService {
     private final SupportTicketRepository supportTicketRepository;
     private final ObjectMapper objectMapper;
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void persistRoutingOutput(
+        Long ticketId,
+        String modelTag,
+        String promptText,
+        RouterResponse routingResponse,
+        ParseStatus parseStatus,
+        String errorMessage,
+        long latencyMs
+    ) {
+        persistRoutingOutputInternal(
+            ticketId,
+            modelTag,
+            promptText,
+            routingResponse,
+            parseStatus,
+            errorMessage,
+            latencyMs
+        );
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void persistRoutingOutputInNewTransaction(
+        Long ticketId,
+        String modelTag,
+        String promptText,
+        RouterResponse routingResponse,
+        ParseStatus parseStatus,
+        String errorMessage,
+        long latencyMs
+    ) {
+        persistRoutingOutputInternal(
+            ticketId,
+            modelTag,
+            promptText,
+            routingResponse,
+            parseStatus,
+            errorMessage,
+            latencyMs
+        );
+    }
+
+    private void persistRoutingOutputInternal(
         Long ticketId,
         String modelTag,
         String promptText,
@@ -81,6 +123,7 @@ public class LlmOutputService {
         llmOutputRepository.save(routingOutput);
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void persistAnalysisOutput(
         SupportTicket supportTicket,
         String requestContent,
