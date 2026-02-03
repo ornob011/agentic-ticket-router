@@ -7,8 +7,8 @@ import com.dsi.support.agenticrouter.enums.*;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.LlmOutputRepository;
 import com.dsi.support.agenticrouter.repository.ModelRegistryRepository;
-import com.dsi.support.agenticrouter.resource.routing.TicketRoutingPrompt;
 import com.dsi.support.agenticrouter.service.LlmOutputService;
+import com.dsi.support.agenticrouter.service.PromptService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -18,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.ollama.OllamaChatModel;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,14 +38,14 @@ public class OllamaRouterService {
     private final LlmOutputRepository llmOutputRepository;
     private final LlmOutputService llmOutputService;
     private final ObjectMapper objectMapper;
-    private final TicketRoutingPrompt ticketRoutingPrompt;
+    private final PromptService promptService;
 
     private static final int MAX_REPAIR_ATTEMPTS = 2;
 
     @Retry(name = "ollamaRetry", fallbackMethod = "routingFallback")
     @CircuitBreaker(name = "ollamaCircuit", fallbackMethod = "routingFallback")
     public RouterResponse getRoutingDecision(
-        RouterRequest request,
+        RouterRequest routerRequest,
         Long ticketId
     ) {
         ModelRegistry activeModel = modelRegistryRepository.findByActiveTrue()
@@ -75,27 +74,23 @@ public class OllamaRouterService {
                                         .map(Enum::name)
                                         .collect(Collectors.joining(" | "));
 
-        Resource routingPromptResource = ticketRoutingPrompt.getRoutingPrompt();
-
         ChatClient chatClient = ChatClient.builder(ollamaChatModel)
                                           .build();
 
         ChatResponse response = chatClient.prompt()
-                                          .user(promptUserSpec -> promptUserSpec.text(routingPromptResource)
+                                          .system(promptService.getSystemPrompt())
+                                          .user(promptUserSpec -> promptUserSpec.text(promptService.getRoutingPrompt())
                                                                                 .param("category", categoryValues)
                                                                                 .param("priority", priorityValues)
                                                                                 .param("queue", queueValues)
                                                                                 .param("next_action", nextActionValues)
-                                                                                .param("ticketNo", request.getTicketNo())
-                                                                                .param("subject", request.getSubject())
-                                                                                .param("customerName", request.getCustomerName())
-                                                                                .param("customerTier", request.getCustomerTier())
-                                                                                .param("initialMessage", request.getInitialMessage())
-                                                                                .param("conversationHistory", request.getConversationHistory())
-                                                                                .param("customerAnalysis", request.getCustomerInfoAnalysis())
-                                                                                .param("conversationAnalysis", request.getConversationAnalysis())
-                                                                                .param("technicalAnalysis", request.getTechnicalAnalysis())
-                                                                                .param("actionsAnalysis", request.getActionsAnalysis()))
+                                                                                .param("ticketNo", routerRequest.getTicketNo())
+                                                                                .param("subject", routerRequest.getSubject())
+                                                                                .param("customerName", routerRequest.getCustomerName())
+                                                                                .param("customerTier", routerRequest.getCustomerTier())
+                                                                                .param("initialMessage", routerRequest.getInitialMessage())
+                                                                                .param("conversationHistory", routerRequest.getConversationHistory())
+                                                                                .param("analysis", routerRequest.getAnalysis()))
                                           .call()
                                           .chatResponse();
 
@@ -127,7 +122,7 @@ public class OllamaRouterService {
 
             if (Objects.nonNull(lastOutput) && lastOutput.getRepairAttempts() < MAX_REPAIR_ATTEMPTS) {
                 return attemptRepair(
-                    request,
+                    routerRequest,
                     ticketId,
                     responseText,
                     exception,
@@ -138,7 +133,7 @@ public class OllamaRouterService {
             llmOutputService.persistRoutingOutput(
                 ticketId,
                 activeModel.getModelTag(),
-                routingPromptResource.toString(),
+                promptService.getRoutingPrompt().toString(),
                 responseText,
                 ParseStatus.INVALID_JSON,
                 exception.getMessage(),
@@ -153,7 +148,7 @@ public class OllamaRouterService {
         llmOutputService.persistRoutingOutput(
             ticketId,
             activeModel.getModelTag(),
-            routingPromptResource.toString(),
+            promptService.getRoutingPrompt().toString(),
             responseText,
             ParseStatus.SUCCESS,
             null,
@@ -182,17 +177,38 @@ public class OllamaRouterService {
                                                                )
                                                            );
 
-        String repairPrompt = buildRepairPrompt(
-            request,
-            failedResponse,
-            originalException.getMessage()
-        );
+        String categoryValues = Arrays.stream(TicketCategory.values())
+                                      .map(Enum::name)
+                                      .collect(Collectors.joining(" | "));
+
+        String priorityValues = Arrays.stream(TicketPriority.values())
+                                      .map(Enum::name)
+                                      .collect(Collectors.joining(" | "));
+
+        String queueValues = Arrays.stream(TicketQueue.values())
+                                   .map(Enum::name)
+                                   .collect(Collectors.joining(" | "));
+
+        String nextActionValues = Arrays.stream(NextAction.values())
+                                        .map(Enum::name)
+                                        .collect(Collectors.joining(" | "));
 
         ChatClient chatClient = ChatClient.builder(ollamaChatModel)
                                           .build();
 
         ChatResponse response = chatClient.prompt()
-                                          .user(repairPrompt)
+                                          .system(promptService.getSystemPrompt())
+                                          .user(promptUserSpec -> promptUserSpec.text(promptService.getRepairPrompt())
+                                                                                .param("failedResponse", failedResponse)
+                                                                                .param("errorMessage", originalException.getMessage())
+                                                                                .param("categoryValues", categoryValues)
+                                                                                .param("priorityValues", priorityValues)
+                                                                                .param("queueValues", queueValues)
+                                                                                .param("nextActionValues", nextActionValues)
+                                                                                .param("ticketNo", request.getTicketNo())
+                                                                                .param("subject", request.getSubject())
+                                                                                .param("customerName", request.getCustomerName())
+                                                                                .param("initialMessage", request.getInitialMessage()))
                                           .call()
                                           .chatResponse();
 
@@ -200,7 +216,7 @@ public class OllamaRouterService {
             llmOutputService.persistRoutingOutput(
                 ticketId,
                 activeModel.getModelTag(),
-                repairPrompt,
+                "repair-attempt",
                 null,
                 ParseStatus.REPAIR_FAILED,
                 "Empty response from repair attempt",
@@ -213,13 +229,19 @@ public class OllamaRouterService {
         String responseText = response.getResults().getFirst().getOutput().getText();
 
         try {
-            RouterResponse routerResponse = objectMapper.readValue(responseText, RouterResponse.class);
-            validateRouterResponse(routerResponse);
+            RouterResponse routerResponse = objectMapper.readValue(
+                responseText,
+                RouterResponse.class
+            );
+
+            validateRouterResponse(
+                routerResponse
+            );
 
             llmOutputService.persistRoutingOutput(
                 ticketId,
                 activeModel.getModelTag(),
-                repairPrompt,
+                "repair-attempt",
                 responseText,
                 ParseStatus.REPAIR_SUCCESS,
                 null,
@@ -228,12 +250,12 @@ public class OllamaRouterService {
 
             return routerResponse;
         } catch (Exception exception) {
-            log.error("Failed to parse LLM response", exception);
+            log.error("Repair attempt {} failed", attempt, exception);
 
             llmOutputService.persistRoutingOutput(
                 ticketId,
                 activeModel.getModelTag(),
-                repairPrompt,
+                "repair-attempt",
                 responseText,
                 ParseStatus.REPAIR_FAILED,
                 exception.getMessage(),
@@ -256,65 +278,23 @@ public class OllamaRouterService {
         }
     }
 
-    private String buildRepairPrompt(
-        RouterRequest request,
-        String failedResponse,
-        String errorMessage
+    private void validateRouterResponse(
+        RouterResponse routerResponse
     ) {
-        return String.format("""
-                PREVIOUS INVALID RESPONSE:
-                %s
-                
-                ERROR MESSAGE:
-                %s
-                
-                INSTRUCTIONS:
-                The previous response was invalid. Please provide a valid JSON response with these fields:
-                - category: %s
-                - priority: %s
-                - queue: %s
-                - next_action: %s
-                - confidence: number between 0 and 1
-                - clarifying_question: string or empty
-                - draft_reply: string or empty
-                - rationale_tags: array of strings
-                
-                TICKET INFORMATION:
-                Ticket No: %s
-                Subject: %s
-                Customer: %s
-                Initial Message: %s
-                
-                Return ONLY valid JSON, no markdown, no explanation.
-                """,
-            failedResponse,
-            errorMessage,
-            String.join(", ", Arrays.stream(TicketCategory.values()).map(Enum::name).toList()),
-            String.join(", ", Arrays.stream(TicketPriority.values()).map(Enum::name).toList()),
-            String.join(", ", Arrays.stream(TicketQueue.values()).map(Enum::name).toList()),
-            String.join(", ", Arrays.stream(NextAction.values()).map(Enum::name).toList()),
-            request.getTicketNo(),
-            request.getSubject(),
-            request.getCustomerName(),
-            request.getInitialMessage()
-        );
-    }
+        Objects.requireNonNull(routerResponse, "response is required");
+        Objects.requireNonNull(routerResponse.getCategory(), "category is required");
+        Objects.requireNonNull(routerResponse.getPriority(), "priority is required");
+        Objects.requireNonNull(routerResponse.getQueue(), "queue is required");
+        Objects.requireNonNull(routerResponse.getNextAction(), "next_action is required");
+        Objects.requireNonNull(routerResponse.getConfidence(), "confidence is required");
 
-    private void validateRouterResponse(RouterResponse response) {
-        Objects.requireNonNull(response, "response is required");
-        Objects.requireNonNull(response.getCategory(), "category is required");
-        Objects.requireNonNull(response.getPriority(), "priority is required");
-        Objects.requireNonNull(response.getQueue(), "queue is required");
-        Objects.requireNonNull(response.getNextAction(), "next_action is required");
-        Objects.requireNonNull(response.getConfidence(), "confidence is required");
-
-        if (response.getConfidence().compareTo(BigDecimal.ZERO) < 0 || response.getConfidence().compareTo(BigDecimal.ONE) > 0) {
+        if (routerResponse.getConfidence().compareTo(BigDecimal.ZERO) < 0 || routerResponse.getConfidence().compareTo(BigDecimal.ONE) > 0) {
             throw new IllegalStateException("confidence must be between 0 and 1");
         }
     }
 
     public RouterResponse routingFallback(
-        RouterRequest request,
+        RouterRequest routerRequest,
         Long ticketId,
         Exception exception
     ) {
@@ -323,7 +303,7 @@ public class OllamaRouterService {
         llmOutputService.persistRoutingOutput(
             ticketId,
             "fallback",
-            request.toString(),
+            routerRequest.toString(),
             null,
             ParseStatus.TIMEOUT,
             exception.getMessage(),
@@ -335,7 +315,9 @@ public class OllamaRouterService {
         );
     }
 
-    private RouterResponse getFallbackResponse(String errorMessage) {
+    private RouterResponse getFallbackResponse(
+        String errorMessage
+    ) {
         return RouterResponse.builder()
                              .category(TicketCategory.OTHER)
                              .priority(TicketPriority.MEDIUM)
@@ -351,5 +333,4 @@ public class OllamaRouterService {
                              )
                              .build();
     }
-
 }

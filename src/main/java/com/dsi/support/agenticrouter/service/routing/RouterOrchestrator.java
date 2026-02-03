@@ -7,7 +7,6 @@ import com.dsi.support.agenticrouter.dto.TicketAnalysisResult;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.entity.TicketMessage;
 import com.dsi.support.agenticrouter.entity.TicketRouting;
-import com.dsi.support.agenticrouter.enums.TicketAnalysis;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
@@ -21,10 +20,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,7 +35,6 @@ public class RouterOrchestrator {
     private final TicketRoutingRepository ticketRoutingRepository;
     private final TicketMessageRepository ticketMessageRepository;
     private final TicketAnalysisService ticketAnalysisService;
-    private final Executor ticketRoutingExecutor;
 
     @Async("ticketRoutingExecutor")
     public void routeTicket(
@@ -61,13 +55,13 @@ public class RouterOrchestrator {
             supportTicket
         );
 
-        Map<TicketAnalysis, String> analysisResults = runTicketAnalysis(
+        TicketAnalysisResult analysisResult = ticketAnalysisService.analyzeTicket(
             analysisRequest
         );
 
         RouterRequest routerRequest = buildRouterRequest(
             supportTicket,
-            analysisResults
+            analysisResult.getAnalysis()
         );
 
         RouterResponse routerResponse = ollamaRouterService.getRoutingDecision(
@@ -102,79 +96,6 @@ public class RouterOrchestrator {
         );
     }
 
-    private Map<TicketAnalysis, String> runTicketAnalysis(
-        TicketAnalysisRequest analysisRequest
-    ) {
-        Map<TicketAnalysis, String> analysisResults = new EnumMap<>(TicketAnalysis.class);
-
-        CompletableFuture<Void> customerInfoFuture = CompletableFuture.runAsync(
-            () -> analysisResults.put(
-                TicketAnalysis.CUSTOMER_INFORMATION,
-                analyzeMarkdown(
-                    analysisRequest,
-                    TicketAnalysis.CUSTOMER_INFORMATION
-                )
-            ),
-            ticketRoutingExecutor
-        );
-
-        CompletableFuture<Void> conversationHistoryFuture = CompletableFuture.runAsync(
-            () -> analysisResults.put(
-                TicketAnalysis.CONVERSATION_HISTORY,
-                analyzeMarkdown(
-                    analysisRequest,
-                    TicketAnalysis.CONVERSATION_HISTORY
-                )
-            ),
-            ticketRoutingExecutor
-        );
-
-        CompletableFuture<Void> technicalDetailsFuture = CompletableFuture.runAsync(
-            () -> analysisResults.put(
-                TicketAnalysis.TECHNICAL_DETAILS,
-                analyzeMarkdown(
-                    analysisRequest,
-                    TicketAnalysis.TECHNICAL_DETAILS
-                )
-            ),
-            ticketRoutingExecutor
-        );
-
-        CompletableFuture<Void> actionsRequiredFuture = CompletableFuture.runAsync(
-            () -> analysisResults.put(
-                TicketAnalysis.ACTIONS_REQUIRED,
-                analyzeMarkdown(
-                    analysisRequest,
-                    TicketAnalysis.ACTIONS_REQUIRED
-                )
-            ),
-            ticketRoutingExecutor
-        );
-
-        CompletableFuture.allOf(
-            customerInfoFuture,
-            conversationHistoryFuture,
-            technicalDetailsFuture,
-            actionsRequiredFuture
-        ).join();
-
-        return analysisResults;
-    }
-
-    private String analyzeMarkdown(
-        TicketAnalysisRequest analysisRequest,
-        TicketAnalysis ticketAnalysis
-    ) {
-        TicketAnalysisResult ticketAnalysisResult = ticketAnalysisService.analyzeTicketSection(
-            analysisRequest,
-            ticketAnalysis
-        );
-
-        return StringUtils.defaultString(
-            ticketAnalysisResult.getExtractedMarkdown()
-        );
-    }
-
     private TicketAnalysisRequest buildAnalysisRequest(
         SupportTicket supportTicket
     ) {
@@ -199,7 +120,7 @@ public class RouterOrchestrator {
 
     private RouterRequest buildRouterRequest(
         SupportTicket supportTicket,
-        Map<TicketAnalysis, String> analysisResults
+        String analysis
     ) {
         String conversationHistory = buildConversationText(supportTicket);
 
@@ -222,10 +143,7 @@ public class RouterOrchestrator {
                             .customerTier(customerTier)
                             .initialMessage(initialMessage)
                             .conversationHistory(conversationHistory)
-                            .customerInfoAnalysis(analysisResults.getOrDefault(TicketAnalysis.CUSTOMER_INFORMATION, StringUtils.EMPTY))
-                            .conversationAnalysis(analysisResults.getOrDefault(TicketAnalysis.CONVERSATION_HISTORY, StringUtils.EMPTY))
-                            .technicalAnalysis(analysisResults.getOrDefault(TicketAnalysis.TECHNICAL_DETAILS, StringUtils.EMPTY))
-                            .actionsAnalysis(analysisResults.getOrDefault(TicketAnalysis.ACTIONS_REQUIRED, StringUtils.EMPTY))
+                            .analysis(StringUtils.defaultString(analysis))
                             .build();
     }
 

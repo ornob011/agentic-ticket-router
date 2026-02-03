@@ -338,11 +338,7 @@ CREATE TABLE llm_output
   CONSTRAINT chk_llm_output_type
     CHECK (output_type IN (
                            'ROUTING',
-                           'ANALYSIS_TICKET_DETAILS',
-                           'ANALYSIS_CUSTOMER_INFO',
-                           'ANALYSIS_CONVERSATION_HISTORY',
-                           'ANALYSIS_TECHNICAL_DETAILS',
-                           'ANALYSIS_ACTIONS_REQUIRED'
+                           'ANALYSIS'
       )),
 
   CONSTRAINT chk_llm_parse_status

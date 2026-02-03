@@ -2,9 +2,5 @@ package com.dsi.support.agenticrouter.enums;
 
 public enum LlmOutputType {
     ROUTING,
-    ANALYSIS_TICKET_DETAILS,
-    ANALYSIS_CUSTOMER_INFO,
-    ANALYSIS_CONVERSATION_HISTORY,
-    ANALYSIS_TECHNICAL_DETAILS,
-    ANALYSIS_ACTIONS_REQUIRED
+    ANALYSIS
 }

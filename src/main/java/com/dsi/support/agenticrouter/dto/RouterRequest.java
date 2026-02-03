@@ -1,11 +1,9 @@
 package com.dsi.support.agenticrouter.dto;
 
-import lombok.*;
+import lombok.Builder;
+import lombok.Data;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Data
 @Builder
 public class RouterRequest {
 
@@ -23,11 +21,5 @@ public class RouterRequest {
 
     private String conversationHistory;
 
-    private String customerInfoAnalysis;
-
-    private String conversationAnalysis;
-
-    private String technicalAnalysis;
-
-    private String actionsAnalysis;
+    private String analysis;
 }

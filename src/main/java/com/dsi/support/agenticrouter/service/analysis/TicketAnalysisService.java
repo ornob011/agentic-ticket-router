@@ -5,17 +5,15 @@ import com.dsi.support.agenticrouter.dto.TicketAnalysisResult;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.LlmOutputType;
 import com.dsi.support.agenticrouter.enums.ParseStatus;
-import com.dsi.support.agenticrouter.enums.TicketAnalysis;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
-import com.dsi.support.agenticrouter.prompts.TicketAnalysisPrompts;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.service.AuditService;
 import com.dsi.support.agenticrouter.service.LlmOutputService;
+import com.dsi.support.agenticrouter.service.PromptService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.ollama.OllamaChatModel;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,93 +26,83 @@ import java.util.Objects;
 public class TicketAnalysisService {
 
     private final OllamaChatModel ollamaChatModel;
-    private final TicketAnalysisPrompts ticketAnalysisPrompts;
+    private final PromptService promptService;
     private final SupportTicketRepository supportTicketRepository;
     private final AuditService auditService;
     private final LlmOutputService llmOutputService;
 
     private ChatClient chatClient;
 
-    public TicketAnalysisResult analyzeTicketSection(
-        TicketAnalysisRequest request,
-        TicketAnalysis ticketAnalysis
+    public TicketAnalysisResult analyzeTicket(
+        TicketAnalysisRequest ticketAnalysisRequest
     ) {
-        SupportTicket supportTicket = supportTicketRepository.findById(request.getTicketId())
+        SupportTicket supportTicket = supportTicketRepository.findById(ticketAnalysisRequest.getTicketId())
                                                              .orElseThrow(
                                                                  DataNotFoundException.supplier(
                                                                      SupportTicket.class,
-                                                                     request.getTicketId()
+                                                                     ticketAnalysisRequest.getTicketId()
                                                                  )
                                                              );
 
         if (Objects.isNull(chatClient)) {
             chatClient = ChatClient.builder(ollamaChatModel)
-                                   .defaultSystem(ticketAnalysisPrompts.getAnalyzerSystemMsg())
                                    .build();
         }
-
-        Resource userMsgResource;
-        userMsgResource = ticketAnalysisPrompts.getAnalysisTemplate(ticketAnalysis);
-
-        Resource markdownResource;
-        markdownResource = ticketAnalysisPrompts.getMarkdownTemplate(ticketAnalysis);
 
         String responseText;
         try {
             responseText = chatClient.prompt()
-                                     .user(promptUserSpec -> promptUserSpec.text(userMsgResource)
-                                                                           .param("document", request.getContent())
-                                                                           .param("markdownTemplate", markdownResource))
+                                     .system(promptService.getSystemPrompt())
+                                     .user(promptUserSpec -> promptUserSpec.text(promptService.getAnalysisPrompt())
+                                                                           .param("content", ticketAnalysisRequest.getContent()))
                                      .call()
                                      .content();
 
             llmOutputService.persistAnalysisOutput(
                 supportTicket,
-                request.getContent(),
+                ticketAnalysisRequest.getContent(),
                 responseText,
-                mapTicketSectionToOutputType(ticketAnalysis),
+                LlmOutputType.ANALYSIS,
                 ParseStatus.SUCCESS,
                 null,
                 0
             );
 
-            auditService.recordTicketAnalysis(supportTicket.getId(), ticketAnalysis.name(), true, null);
+            auditService.recordTicketAnalysis(
+                supportTicket.getId(),
+                LlmOutputType.ANALYSIS.name(),
+                true,
+                null
+            );
 
             return TicketAnalysisResult.builder()
-                                       .section(ticketAnalysis)
-                                       .extractedMarkdown(responseText)
+                                       .analysis(responseText)
                                        .build();
 
         } catch (Exception exception) {
-            log.error("Failed to analyze ticket section {} for ticket {}", ticketAnalysis, request.getTicketId(), exception);
+            log.error("Failed to analyze ticket {}", ticketAnalysisRequest.getTicketId(), exception);
 
             llmOutputService.persistAnalysisOutput(
                 supportTicket,
-                request.getContent(),
+                ticketAnalysisRequest.getContent(),
                 null,
-                mapTicketSectionToOutputType(ticketAnalysis),
+                LlmOutputType.ANALYSIS,
                 ParseStatus.MODEL_ERROR,
                 exception.getMessage(),
                 0
             );
 
-            auditService.recordTicketAnalysis(supportTicket.getId(), ticketAnalysis.name(), false, exception.getMessage());
+            auditService.recordTicketAnalysis(
+                supportTicket.getId(),
+                LlmOutputType.ANALYSIS.name(),
+                false,
+                exception.getMessage()
+            );
 
             return TicketAnalysisResult.builder()
-                                       .section(ticketAnalysis)
-                                       .extractedMarkdown(null)
+                                       .analysis(null)
                                        .confidence(0.0)
                                        .build();
         }
-    }
-
-    private LlmOutputType mapTicketSectionToOutputType(TicketAnalysis ticketAnalysis) {
-        return switch (ticketAnalysis) {
-            case TICKET_DETAILS -> LlmOutputType.ANALYSIS_TICKET_DETAILS;
-            case CUSTOMER_INFORMATION -> LlmOutputType.ANALYSIS_CUSTOMER_INFO;
-            case CONVERSATION_HISTORY -> LlmOutputType.ANALYSIS_CONVERSATION_HISTORY;
-            case TECHNICAL_DETAILS -> LlmOutputType.ANALYSIS_TECHNICAL_DETAILS;
-            case ACTIONS_REQUIRED -> LlmOutputType.ANALYSIS_ACTIONS_REQUIRED;
-        };
     }
 }
