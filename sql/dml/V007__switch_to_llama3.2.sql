@@ -7,7 +7,7 @@ SET active = FALSE,
     is_default = FALSE,
     deactivated_at = now(),
     updated_at = now()
-WHERE model_tag = 'ollama-phi';
+WHERE model_tag <> 'ollama-llama3.2';
 
 INSERT INTO model_registry
 (row_version, created_at, updated_at, model_tag, model_name, version,
