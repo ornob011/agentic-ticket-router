@@ -4,9 +4,7 @@
 <div th:fragment="auditEventBubble"
      th:with="
         eventTypeLabel=${auditEvent.eventType.name()},
-        eventTypeDescription=${auditEvent.eventType.description},
-        actorRole=${auditEvent.payload != null && auditEvent.payload.has('actorRole') ? auditEvent.payload.get('actorRole').asText() : (auditEvent.payload != null && auditEvent.payload.has('agentRole') ? auditEvent.payload.get('agentRole').asText() : null)},
-        action=${auditEvent.payload != null && auditEvent.payload.has('action') ? auditEvent.payload.get('action').asText() : null}
+        eventTypeDescription=${auditEvent.eventType.description}
      ">
     <div class="flex py-6 justify-center">
         <div class="w-full max-w-2xl">
@@ -44,12 +42,6 @@
                 <div class="px-5 py-5">
                     <div class="text-info-dark leading-relaxed" th:text="${auditEvent.description}">
                         Event description...
-                    </div>
-                    
-                    <div th:if="${actorRole != null && action == null}" class="mt-3 text-sm">
-                        <span class="px-3 py-1.5 rounded-xl bg-white border border-info-light text-info font-medium">
-                            By <span th:text="${actorRole}">AGENT</span>
-                        </span>
                     </div>
                 </div>
             </div>
