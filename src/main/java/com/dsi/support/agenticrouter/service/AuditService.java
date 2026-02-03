@@ -77,8 +77,9 @@ public class AuditService {
     ) {
         Objects.requireNonNull(ticketId, "ticketId");
 
-        return auditEventRepository.findByTicket_IdOrderByCreatedAtAsc(
-            ticketId
+        return auditEventRepository.findByTicket_IdAndEventTypeInOrderByCreatedAtAsc(
+            ticketId,
+            AuditEventType.getCustomerVisible()
         );
     }
 

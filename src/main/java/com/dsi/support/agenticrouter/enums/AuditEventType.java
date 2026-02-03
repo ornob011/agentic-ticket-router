@@ -40,6 +40,16 @@ public enum AuditEventType {
             MODEL_INFERENCE_FAILED
         );
 
+    private static final Set<AuditEventType> CUSTOMER_VISIBLE =
+        EnumSet.of(
+            QUEUE_ASSIGNED,
+            AGENT_ASSIGNED,
+            ESCALATION_CREATED,
+            PRIORITY_CHANGED,
+            TICKET_STATUS_CHANGED,
+            TICKET_REOPENED
+        );
+
     private final String description;
 
     AuditEventType(String description) {
@@ -52,5 +62,13 @@ public enum AuditEventType {
 
     public boolean isErrorEvent() {
         return ERROR_EVENTS.contains(this);
+    }
+
+    public boolean isCustomerVisible() {
+        return CUSTOMER_VISIBLE.contains(this);
+    }
+
+    public static Set<AuditEventType> getCustomerVisible() {
+        return CUSTOMER_VISIBLE;
     }
 }

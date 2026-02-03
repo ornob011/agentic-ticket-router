@@ -103,17 +103,55 @@
                 </div>
 
                 <div class="px-4 sm:px-6 lg:px-8">
-                    <div class="space-y-4" th:each="message : ${messages}">
-                        <div th:replace="~{fragments/conversation-bubble :: conversationBubble(
-                                fromCustomer=${message.fromCustomer},
-                                systemGenerated=${message.systemGenerated},
-                                author=${message.author},
-                                authorFullName=${message.author != null ? message.author.fullName : null},
-                                createdAt=${#temporals.format(message.createdAt, 'yyyy-MM-dd HH:mm')},
-                                messageKind=${message.messageKind},
-                                content=${message.content}
-                            )}"></div>
+                    <div id="timeline-container" class="space-y-4">
+                        <th:block th:if="${#lists.isEmpty(messages) and #lists.isEmpty(auditEvents)}">
+                            <div class="text-center text-text-muted py-8">
+                                <i class="far fa-comments text-4xl mb-3 text-text-subtle"></i>
+                                <p>No activity yet</p>
+                            </div>
+                        </th:block>
+
+                        <th:block th:each="message : ${messages}">
+                            <div th:replace="~{fragments/conversation-bubble :: conversationBubble(
+                                    fromCustomer=${message.fromCustomer},
+                                    systemGenerated=${message.systemGenerated},
+                                    author=${message.author},
+                                    authorFullName=${message.author != null ? message.author.fullName : null},
+                                    createdAt=${#temporals.format(message.createdAt, 'yyyy-MM-dd HH:mm')},
+                                    messageKind=${message.messageKind},
+                                    content=${message.content}
+                                )}"></div>
+                        </th:block>
+
+                        <th:block th:each="auditEvent : ${auditEvents}">
+                            <div th:replace="~{fragments/audit-event-bubble :: auditEventBubble(
+                                    auditEvent=${auditEvent}
+                                )}"></div>
+                        </th:block>
                     </div>
+
+                    <script th:inline="javascript">
+                        $(function () {
+                            const $container = $('#timeline-container');
+                            if ($container.length) {
+                                const items = $container.children().get();
+
+                                items.sort(function (a, b) {
+                                    const timeTextA = $(a).find('.fa-clock').first().parent().text().trim();
+                                    const timeTextB = $(b).find('.fa-clock').first().parent().text().trim();
+
+                                    if (timeTextA && timeTextB) {
+                                        return new Date(timeTextA).getTime() - new Date(timeTextB).getTime();
+                                    }
+                                    return 0;
+                                });
+
+                                $.each(items, function (_, item) {
+                                    $container.append(item);
+                                });
+                            }
+                        });
+                    </script>
                 </div>
             </section>
 

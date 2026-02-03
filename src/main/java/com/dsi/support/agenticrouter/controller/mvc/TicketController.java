@@ -2,9 +2,11 @@ package com.dsi.support.agenticrouter.controller.mvc;
 
 import com.dsi.support.agenticrouter.dto.CreateTicketDto;
 import com.dsi.support.agenticrouter.dto.TicketReplyDto;
+import com.dsi.support.agenticrouter.entity.AuditEvent;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.entity.TicketMessage;
 import com.dsi.support.agenticrouter.enums.NavPage;
+import com.dsi.support.agenticrouter.service.AuditService;
 import com.dsi.support.agenticrouter.service.TicketService;
 import com.dsi.support.agenticrouter.util.Utils;
 import com.dsi.support.agenticrouter.validator.CreateTicketValidator;
@@ -36,6 +38,7 @@ public class TicketController {
     private final TicketService ticketService;
     private final MessageSource messageSource;
     private final CreateTicketValidator createTicketValidator;
+    private final AuditService auditService;
 
     @InitBinder("createTicketDto")
     protected void initBinder(WebDataBinder binder) {
@@ -115,8 +118,13 @@ public class TicketController {
             ticketId
         );
 
+        List<AuditEvent> auditEvents = auditService.getTicketAuditTrail(
+            ticketId
+        );
+
         model.addAttribute("ticket", supportTicket);
         model.addAttribute("messages", ticketMessages);
+        model.addAttribute("auditEvents", auditEvents);
         model.addAttribute("replyDto", new TicketReplyDto());
 
         return "tickets/detail";

@@ -10,10 +10,16 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 public interface AuditEventRepository extends JpaRepository<AuditEvent, Long> {
 
     List<AuditEvent> findByTicket_IdOrderByCreatedAtAsc(Long ticketId);
+
+    List<AuditEvent> findByTicket_IdAndEventTypeInOrderByCreatedAtAsc(
+        @Param("ticketId") Long ticketId,
+        @Param("eventTypes") Set<AuditEventType> eventTypes
+    );
 
     @Query("""
         SELECT ae FROM AuditEvent ae
