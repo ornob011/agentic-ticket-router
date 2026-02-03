@@ -15,6 +15,7 @@ import com.dsi.support.agenticrouter.service.AuditService;
 import com.dsi.support.agenticrouter.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -75,7 +76,7 @@ public class AgenticStateMachine {
         SupportTicket supportTicket,
         TicketRouting ticketRouting
     ) {
-        if (ticketRouting.getClarifyingQuestion() == null || ticketRouting.getClarifyingQuestion().isBlank()) {
+        if (StringUtils.isBlank(ticketRouting.getClarifyingQuestion())) {
             routeToHumanReview(
                 supportTicket,
                 ticketRouting
