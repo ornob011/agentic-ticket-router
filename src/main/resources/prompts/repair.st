@@ -1,15 +1,15 @@
 PREVIOUS INVALID RESPONSE:
-{failedResponse}
+{failed_response}
 
 ERROR MESSAGE:
-{errorMessage}
+{error_message}
 
 INSTRUCTIONS:
 The previous response was invalid. Please provide a valid JSON response with these fields:
-- category: {categoryValues}
-- priority: {priorityValues}
-- queue: {queueValues}
-- next_action: {nextActionValues}
+- category: {category_values}
+- priority: {priority_values}
+- queue: {queue_values}
+- next_action: {next_action_values}
 - confidence: number between 0 and 1
 - clarifying_question: string or null
 - draft_reply: string or null
@@ -17,9 +17,9 @@ The previous response was invalid. Please provide a valid JSON response with the
 - reasoning: brief explanation string
 
 TICKET INFORMATION:
-Ticket No: {ticketNo}
+Ticket No: {ticket_no}
 Subject: {subject}
-Customer: {customerName}
-Initial Message: {initialMessage}
+Customer: {customer_name}
+Initial Message: {initial_message}
 
 Return ONLY valid JSON, no markdown, no explanation.
