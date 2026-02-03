@@ -644,7 +644,7 @@ public class TicketService {
 
         String description = previousAgent != null
             ? String.format("Agent reassigned: %s -> %s", previousAgent.getFullName(), agent.getFullName())
-            : String.format("Agent assigned: %s", agent.getFullName());
+            : String.format("Your ticket has been assigned to %s by your support team", agent.getFullName());
 
         auditService.recordEvent(
             AuditEventType.AGENT_ASSIGNED,
