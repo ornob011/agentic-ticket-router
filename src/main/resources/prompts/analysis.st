@@ -20,3 +20,10 @@ Provide a structured analysis that highlights:
 - Urgency/Priority indicators
 
 Return your analysis as clear, concise text focusing on actionable insights.
+
+STRICT RULES:
+- Return only plain text analysis
+- Do NOT format as JSON
+- Do NOT include markdown formatting
+- Do NOT add introductory or concluding remarks
+- Focus on actionable ticket insights
