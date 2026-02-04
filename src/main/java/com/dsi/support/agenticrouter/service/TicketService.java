@@ -63,6 +63,7 @@ public class TicketService {
     private final TicketRoutingRepository ticketRoutingRepository;
     private final EscalationRepository escalationRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final AutonomousProgressService autonomousProgressService;
 
     @Transactional(readOnly = true)
     public Page<SupportTicket> listCustomerTickets(
@@ -181,20 +182,30 @@ public class TicketService {
 
         ticketStatusReplyHandlerEnumMap.put(
             TicketStatus.WAITING_CUSTOMER, (supportTicket, customer) -> {
-                auditService.recordEvent(
-                    AuditEventType.MESSAGE_POSTED,
-                    supportTicket.getId(),
-                    customer.getId(),
-                    "Customer replied - triggering re-triage",
-                    null
-                );
+                if (autonomousProgressService.shouldContinueAutonomous(supportTicket)) {
+                    auditService.recordEvent(
+                        AuditEventType.MESSAGE_POSTED,
+                        supportTicket.getId(),
+                        customer.getId(),
+                        "Customer replied - re-triggering autonomous analysis",
+                        null
+                    );
 
-                eventPublisher.publishEvent(
-                    new TicketCreatedEvent(
-                        this,
-                        supportTicket.getId()
-                    )
-                );
+                    eventPublisher.publishEvent(
+                        new TicketCreatedEvent(
+                            this,
+                            supportTicket.getId()
+                        )
+                    );
+                } else {
+                    auditService.recordEvent(
+                        AuditEventType.POLICY_GATE_TRIGGERED,
+                        supportTicket.getId(),
+                        null,
+                        "Autonomous limits reached - routing to human",
+                        null
+                    );
+                }
             }
         );
 

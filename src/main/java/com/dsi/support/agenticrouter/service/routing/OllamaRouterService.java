@@ -102,7 +102,12 @@ public class OllamaRouterService {
                                                 .param("customer_tier", routerRequest.getCustomerTier())
                                                 .param("initial_message", routerRequest.getInitialMessage())
                                                 .param("conversation_history", routerRequest.getConversationHistory())
-                                                .param("analysis", routerRequest.getAnalysis())
+                                                .param("previous_clarifying_question",
+                                                    Objects.requireNonNullElse(
+                                                        routerRequest.getPreviousClarifyingQuestion(),
+                                                        "None"
+                                                    )
+                                                )
                                         )
                                         .call()
                                         .content();

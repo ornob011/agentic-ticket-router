@@ -6,12 +6,10 @@ import com.dsi.support.agenticrouter.dto.TicketAnalysisRequest;
 import com.dsi.support.agenticrouter.dto.TicketAnalysisResult;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.entity.TicketMessage;
-import com.dsi.support.agenticrouter.entity.TicketRouting;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
-import com.dsi.support.agenticrouter.repository.TicketRoutingRepository;
 import com.dsi.support.agenticrouter.service.analysis.TicketAnalysisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +30,6 @@ public class RouterOrchestrator {
     private final PolicyEngine policyEngine;
     private final AgenticStateMachine agenticStateMachine;
     private final SupportTicketRepository supportTicketRepository;
-    private final TicketRoutingRepository ticketRoutingRepository;
     private final TicketMessageRepository ticketMessageRepository;
     private final TicketAnalysisService ticketAnalysisService;
 
@@ -74,26 +71,9 @@ public class RouterOrchestrator {
             routerResponse
         );
 
-        int newVersion = supportTicket.getLatestRoutingVersion() + 1;
-
-        TicketRouting routing = createRoutingRecord(
-            supportTicket,
-            routerResponse,
-            newVersion
-        );
-
-        routing = ticketRoutingRepository.save(routing);
-
-        supportTicket.setCurrentCategory(routerResponse.getCategory());
-        supportTicket.setCurrentPriority(routerResponse.getPriority());
-        supportTicket.setAssignedQueue(routerResponse.getQueue());
-        supportTicket.setLatestRoutingConfidence(routerResponse.getConfidence());
-        supportTicket.setLatestRoutingVersion(newVersion);
-        supportTicket = supportTicketRepository.save(supportTicket);
-
         agenticStateMachine.executeAction(
             supportTicket,
-            routing
+            routerResponse
         );
     }
 
@@ -136,6 +116,11 @@ public class RouterOrchestrator {
                                            .getCustomerTier()
                                            .getCode();
 
+        String previousClarifyingQuestion = null;
+        if (supportTicket.getAutonomousMetadata() != null) {
+            previousClarifyingQuestion = supportTicket.getAutonomousMetadata().getLastClarifyingQuestion();
+        }
+
         return RouterRequest.builder()
                             .ticketId(supportTicket.getId())
                             .ticketNo(supportTicket.getFormattedTicketNo())
@@ -145,10 +130,13 @@ public class RouterOrchestrator {
                             .initialMessage(initialMessage)
                             .conversationHistory(conversationHistory)
                             .analysis(StringUtils.defaultString(analysis))
+                            .previousClarifyingQuestion(previousClarifyingQuestion != null ? previousClarifyingQuestion : "None")
                             .build();
     }
 
-    private String buildConversationText(SupportTicket supportTicket) {
+    private String buildConversationText(
+        SupportTicket supportTicket
+    ) {
         return ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(supportTicket.getId())
                                       .stream()
                                       .map(
@@ -162,25 +150,4 @@ public class RouterOrchestrator {
                                       .collect(Collectors.joining("\n"));
     }
 
-    private TicketRouting createRoutingRecord(
-        SupportTicket supportTicket,
-        RouterResponse routerResponse,
-        int version
-    ) {
-        return TicketRouting.builder()
-                            .ticket(supportTicket)
-                            .version(version)
-                            .category(routerResponse.getCategory())
-                            .priority(routerResponse.getPriority())
-                            .queue(routerResponse.getQueue())
-                            .nextAction(routerResponse.getNextAction())
-                            .confidence(routerResponse.getConfidence())
-                            .clarifyingQuestion(routerResponse.getClarifyingQuestion())
-                            .draftReply(routerResponse.getDraftReply())
-                            .rationaleTags(routerResponse.getRationaleTags())
-                            .overridden(false)
-                            .policyGateTriggered(false)
-                            .applied(true)
-                            .build();
-    }
 }

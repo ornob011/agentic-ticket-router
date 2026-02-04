@@ -29,23 +29,31 @@ public class PolicyConfigService {
         return policyConfigRepository.findAllByActiveTrueOrderByConfigKey();
     }
 
+    @Transactional(readOnly = true)
+    public PolicyConfig getConfigValue(
+        PolicyConfigKey policyConfigKey
+    ) {
+        return policyConfigRepository.findByConfigKeyAndActiveTrue(policyConfigKey)
+                                     .orElse(null);
+    }
+
     @Transactional
     public void updatePolicy(
-        PolicyConfigKey configKey,
-        BigDecimal configValue
+        PolicyConfigKey policyConfigKey,
+        BigDecimal policyConfigValue
     ) {
-        Objects.requireNonNull(configKey, "configKey");
-        Objects.requireNonNull(configValue, "configValue");
+        Objects.requireNonNull(policyConfigKey, "configKey");
+        Objects.requireNonNull(policyConfigValue, "configValue");
 
-        PolicyConfig policyConfig = policyConfigRepository.findByConfigKeyAndActiveTrue(configKey)
+        PolicyConfig policyConfig = policyConfigRepository.findByConfigKeyAndActiveTrue(policyConfigKey)
                                                           .orElseThrow(
                                                               DataNotFoundException.supplier(
                                                                   PolicyConfig.class,
-                                                                  configKey
+                                                                  policyConfigKey
                                                               )
                                                           );
 
-        policyConfig.setConfigValue(configValue);
+        policyConfig.setConfigValue(policyConfigValue);
         policyConfigRepository.save(policyConfig);
     }
 
@@ -94,41 +102,4 @@ public class PolicyConfigService {
         log.info("Staff user created: {} ({})", username, role);
     }
 
-    @Transactional
-    public void updateUserRole(
-        Long userId,
-        UserRole newRole
-    ) {
-        Objects.requireNonNull(userId, "userId");
-        Objects.requireNonNull(newRole, "newRole");
-
-        AppUser user = appUserRepository.findById(userId)
-                                        .orElseThrow(
-                                            () -> new IllegalArgumentException("User not found: " + userId)
-                                        );
-
-        if (!newRole.canAccessAgentPortal()) {
-            throw new IllegalArgumentException("Role must be staff role (AGENT, SUPERVISOR, ADMIN)");
-        }
-
-        user.setRole(newRole);
-        appUserRepository.save(user);
-
-        log.info("User role updated: {} -> {}", user.getUsername(), newRole);
-    }
-
-    @Transactional
-    public void toggleUserActive(Long userId) {
-        Objects.requireNonNull(userId, "userId");
-
-        AppUser user = appUserRepository.findById(userId)
-                                        .orElseThrow(
-                                            () -> new IllegalArgumentException("User not found: " + userId)
-                                        );
-
-        user.setActive(!user.isActive());
-        appUserRepository.save(user);
-
-        log.info("User active status toggled: {} (active: {})", user.getUsername(), user.isActive());
-    }
 }

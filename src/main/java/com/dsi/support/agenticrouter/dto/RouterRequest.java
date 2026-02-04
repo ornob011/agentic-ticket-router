@@ -22,4 +22,6 @@ public class RouterRequest {
     private String conversationHistory;
 
     private String analysis;
+
+    private String previousClarifyingQuestion;
 }

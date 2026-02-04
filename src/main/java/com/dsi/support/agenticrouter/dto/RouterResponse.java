@@ -13,6 +13,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -52,4 +53,10 @@ public class RouterResponse {
     @JsonProperty("rationale_tags")
     @Builder.Default
     private List<String> rationaleTags = new ArrayList<>();
+
+    @JsonProperty("action_parameters")
+    private Map<String, Object> actionParameters;
+
+    @JsonProperty("internal_note")
+    private String internalNote;
 }

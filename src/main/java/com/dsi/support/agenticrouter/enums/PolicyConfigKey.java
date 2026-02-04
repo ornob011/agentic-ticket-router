@@ -21,7 +21,15 @@ public enum PolicyConfigKey {
     MAX_ATTACHMENT_BYTES("Max attachment size in bytes"),
     AUTO_CLOSE_ENABLED("Enable inactivity auto-close workflow"),
     DEFAULT_QUEUE("Default routing queue key"),
-    ROUTER_MODEL_PARAMS("Model parameters for router inference");
+    ROUTER_MODEL_PARAMS("Model parameters for router inference"),
+    MAX_AUTONOMOUS_ACTIONS("Max autonomous actions before human intervention"),
+    MAX_QUESTIONS_PER_TICKET("Max clarifying questions per ticket"),
+    AUTONOMOUS_ENABLED("Enable autonomous processing"),
+    FRUSTRATION_DETECTION_ENABLED("Enable frustration detection"),
+    LOOP_DETECTION_ENABLED("Enable repeating question detection"),
+
+
+    ;
 
     private final String description;
 
