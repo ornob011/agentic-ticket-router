@@ -455,7 +455,10 @@ CREATE TABLE ticket_routing
     CHECK (queue IN ('BILLING_Q','TECH_Q','OPS_Q','SECURITY_Q','ACCOUNT_Q','GENERAL_Q')),
 
   CONSTRAINT chk_ticket_routing_next_action
-    CHECK (next_action IN ('AUTO_REPLY','ASK_CLARIFYING','ASSIGN_QUEUE','ESCALATE','HUMAN_REVIEW'))
+    CHECK (next_action IN ('AUTO_REPLY','ASK_CLARIFYING','ASSIGN_QUEUE','ESCALATE','HUMAN_REVIEW',
+                           'UPDATE_CUSTOMER_PROFILE','CHANGE_PRIORITY','ADD_INTERNAL_NOTE',
+                           'AUTO_ESCALATE','AUTO_RESOLVE','REOPEN_TICKET','TRIGGER_NOTIFICATION',
+                           'USE_KNOWLEDGE_ARTICLE','USE_TEMPLATE'))
 );
 
 CREATE INDEX idx_ticket_routing_ticket_id ON ticket_routing (ticket_id);

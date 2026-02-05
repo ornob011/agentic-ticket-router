@@ -19,6 +19,8 @@ public enum NextAction {
     AUTO_RESOLVE("Auto-resolve ticket with solution"),
     REOPEN_TICKET("Reopen closed/resolved ticket"),
     TRIGGER_NOTIFICATION("Send specific notification"),
+    USE_KNOWLEDGE_ARTICLE("Use knowledge base article for resolution"),
+    USE_TEMPLATE("Use response template"),
 
 
     ;
