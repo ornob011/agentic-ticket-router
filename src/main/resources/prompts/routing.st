@@ -49,7 +49,17 @@ AVAILABLE AUTOMATED ACTIONS:
 - AUTO_RESOLVE: Auto-resolve ticket with solution
 - REOPEN_TICKET: Reopen closed/resolved ticket
 - TRIGGER_NOTIFICATION: Send specific notification
-- USE_KNOWLEDGE_ARTICLE: Use knowledge base article for resolution
+- USE_KNOWLEDGE_ARTICLE: Use knowledge base article for resolution. Template selection criteria:
+  1. Auto-selection: If you do NOT provide template_id, system will auto-select the best template based on:
+     - Exact match of ticket category AND template applicable_categories (highest priority)
+     - Category-only match if no exact match (next best)
+     - Priority-only match if no category match (next best)
+     - Global template (no restrictions) as final fallback
+     - Templates are sorted alphabetically by name for deterministic selection
+  2. Override: You CAN provide template_id to override auto-selection
+     - Use override when you know of exact template needed
+     - Provide template_id as string: {"template_id": "123", "variables": {...}}
+     - If you don't provide template_id, let system auto-select
 - USE_TEMPLATE: Use response template for resolution
 
 OUTPUT JSON STRUCTURE (MUST MATCH EXACTLY):
@@ -173,6 +183,45 @@ Simple resolution:
   "action_parameters": null,
   "internal_note": null,
   "rationale_tags": ["password reset", "clear solution"]
+\}
+
+Template response (auto-selected):
+\{
+  "category": "BILLING",
+  "priority": "MEDIUM",
+  "queue": "BILLING_Q",
+  "next_action": "USE_TEMPLATE",
+  "confidence": 0.85,
+  "clarifying_question": null,
+  "draft_reply": null,
+  "action_parameters": {
+    "variables": {
+      "customer_name": "John Doe",
+      "amount": "50.00"
+    }
+  },
+  "internal_note": null,
+  "rationale_tags": ["template match", "billing inquiry"]
+\}
+
+Template response (override with specific template):
+\{
+  "category": "TECHNICAL",
+  "priority": "HIGH",
+  "queue": "TECH_Q",
+  "next_action": "USE_TEMPLATE",
+  "confidence": 0.90,
+  "clarifying_question": null,
+  "draft_reply": null,
+  "action_parameters": {
+    "template_id": "456",
+    "variables": {
+      "customer_name": "Jane Smith",
+      "ticket_no": "TKT-00001234"
+    }
+  },
+  "internal_note": null,
+  "rationale_tags": ["specific template", "password reset"]
 \}
 
 Profile update:

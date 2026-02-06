@@ -545,7 +545,8 @@ CREATE TABLE audit_event
                           'MODEL_INFERENCE_FAILED',
                           'MANUAL_INTERVENTION',
                           'TICKET_ANALYSIS_EXECUTED',
-                          'TICKET_ANALYSIS_FAILED'
+                          'TICKET_ANALYSIS_FAILED',
+                          'TEMPLATE_AUTO_SELECTED'
       ))
 );
 

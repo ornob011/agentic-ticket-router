@@ -16,6 +16,7 @@ import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.ai.ollama.api.OllamaChatOptions;
@@ -24,16 +25,15 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class OllamaRouterService {
+
+    private static final String KEY_TEMPLATE_ID = "template_id";
 
     private final OllamaChatModel ollamaChatModel;
     private final ModelRegistryRepository modelRegistryRepository;
@@ -195,10 +195,44 @@ public class OllamaRouterService {
         Objects.requireNonNull(routerResponse.getNextAction(), "next_action is required");
         Objects.requireNonNull(routerResponse.getConfidence(), "confidence is required");
 
+        validateTemplateId(
+            routerResponse
+        );
+
         if (routerResponse.getConfidence().compareTo(BigDecimal.ZERO) < 0
             || routerResponse.getConfidence().compareTo(BigDecimal.ONE) > 0
         ) {
             throw new IllegalStateException("Confidence must be between 0 and 1");
+        }
+    }
+
+    private void validateTemplateId(
+        RouterResponse routerResponse
+    ) {
+        if (!NextAction.USE_TEMPLATE.equals(routerResponse.getNextAction())) {
+            return;
+        }
+
+        Map<String, ?> actionParameters = routerResponse.getActionParameters();
+
+        String templateIdText = Optional.ofNullable(actionParameters)
+                                        .map(params -> params.get(KEY_TEMPLATE_ID))
+                                        .map(Object::toString)
+                                        .map(StringUtils::trimToNull)
+                                        .orElse(null);
+
+        if (StringUtils.isBlank(templateIdText)) {
+            return;
+        }
+
+        if (!StringUtils.isNumeric(templateIdText)) {
+            throw new IllegalStateException("template_id must be numeric");
+        }
+
+        long templateId = Long.parseLong(templateIdText);
+
+        if (templateId <= 0L) {
+            throw new IllegalStateException("template_id must be positive");
         }
     }
 

@@ -1,6 +1,7 @@
 package com.dsi.support.agenticrouter.service.action.actions;
 
 import com.dsi.support.agenticrouter.dto.RouterResponse;
+import com.dsi.support.agenticrouter.entity.ArticleTemplate;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.entity.TicketMessage;
 import com.dsi.support.agenticrouter.enums.AuditEventType;
@@ -55,8 +56,32 @@ public class UseTemplateAction implements TicketAction {
             actionParams.variablesExcluding(ActionParamKey.TEMPLATE_ID)
         );
 
-        String filledContent = templateService.fillTemplate(
+        Long actualTemplateId = Objects.requireNonNullElseGet(
             templateId,
+            () -> {
+                log.info("LLM did not provide template_id, auto-selecting");
+
+                Long selectedTemplateId = autoSelectTemplateId(
+                    supportTicket
+                );
+
+                if (Objects.isNull(selectedTemplateId)) {
+                    log.warn(
+                        "No suitable template found for ticket {}",
+                        supportTicket.getId()
+                    );
+
+                    throw new IllegalStateException(
+                        "No suitable template found for ticket. Escalating to human review."
+                    );
+                }
+
+                return selectedTemplateId;
+            }
+        );
+
+        String filledContent = templateService.fillTemplate(
+            actualTemplateId,
             templateVariables.asMap()
         );
 
@@ -73,9 +98,48 @@ public class UseTemplateAction implements TicketAction {
             AuditEventType.MESSAGE_POSTED,
             supportTicket.getId(),
             null,
-            "Template used: " + templateId,
+            "Template used: " + actualTemplateId,
             null
         );
+    }
+
+    private Long autoSelectTemplateId(
+        SupportTicket supportTicket
+    ) {
+        Objects.requireNonNull(supportTicket, "supportTicket");
+
+        ArticleTemplate selectedTemplate = templateService.findBestMatchingTemplate(
+            supportTicket.getCurrentCategory(),
+            supportTicket.getCurrentPriority(),
+            supportTicket.getSubject()
+        );
+
+        if (Objects.isNull(selectedTemplate)) {
+            return null;
+        }
+
+        log.info(
+            "Auto-selected template: {} (id={}) for ticket {}",
+            selectedTemplate.getName(),
+            selectedTemplate.getId(),
+            supportTicket.getId()
+        );
+
+        auditService.recordEvent(
+            AuditEventType.TEMPLATE_AUTO_SELECTED,
+            supportTicket.getId(),
+            null,
+            String.format(
+                "Auto-selected template: %s (id=%s) for category=%s, priority=%s",
+                selectedTemplate.getName(),
+                selectedTemplate.getId(),
+                supportTicket.getCurrentCategory(),
+                supportTicket.getCurrentPriority()
+            ),
+            null
+        );
+
+        return selectedTemplate.getId();
     }
 
     private enum ActionParamKey {

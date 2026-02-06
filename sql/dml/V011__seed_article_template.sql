@@ -654,4 +654,109 @@ VALUES ('System Update Notification',
         ARRAY ['OTHER'],
         true);
 
+
+-- =====================================================
+-- GLOBAL TEMPLATES (No Category/Priority Restrictions)
+-- =====================================================
+INSERT INTO article_template (name,
+                              template_content,
+                              variables,
+                              applicable_categories,
+                              active)
+VALUES ('Welcome Message',
+        'Hi {{customer_name}}, Welcome to our platform! We''re excited to have you on board. Your account has been successfully created. Getting started is easy: 1. Complete your profile with your personal and company information 2. Explore our comprehensive knowledge base for self-service 3. Create a support ticket if you need any assistance 4. Check out our features and tools designed to streamline your experience. If you have any questions, don''t hesitate to reach out to our support team. Welcome aboard!',
+        '["customer_name"]',
+        ARRAY []::text[],
+        true),
+       ('Account Confirmation',
+        'Hi {{customer_name}}, Your account has been successfully verified and is now fully active. You can now access all features and services available to your subscription tier. Thank you for choosing our platform. We look forward to supporting your needs.',
+        '["customer_name"]',
+        ARRAY []::text[],
+        true),
+       ('General Confirmation',
+        'Hi {{customer_name}}, Thank you for your submission. We have received your request and it''s being processed. You will receive a confirmation notification once the process is complete. Ticket number: {{ticket_no}}. For reference, please save this ticket number. Our team is working on your request and will respond within the expected timeframe. If you have any questions or need to provide additional information, please reply to this ticket.',
+        '["customer_name", "ticket_no"]',
+        ARRAY []::text[],
+        true),
+       ('Maintenance Notification',
+        'Hi {{customer_name}}, We wanted to inform you about scheduled maintenance. Scheduled maintenance window: {{maintenance_window}}. During this time, some features may be temporarily unavailable or may experience slower response times. Our team is working to improve our platform and bring you new features. We apologize for any inconvenience and appreciate your patience. All data is secure and will not be affected. Maintenance updates will be provided as needed. Thank you for your understanding.',
+        '["customer_name", "maintenance_window"]',
+        ARRAY []::text[],
+        true),
+       ('Feature Update Announcement',
+        'Hi {{customer_name}}, We''re excited to announce a new feature: {{feature_name}}. {{feature_description}}. This feature is now available to all users. What''s new: {{benefits}}. How it helps: {{improvements}}. Check out our Help Center for detailed tutorials and guides. We believe this enhancement will significantly improve your experience. Your feedback is valuable - let us know what you think! If you have any questions or need assistance using this new feature, please create a support ticket. Happy exploring!',
+        '["customer_name", "feature_name", "feature_description", "benefits", "improvements"]',
+        ARRAY []::text[],
+        true),
+       ('Service Status Update',
+        'Hi {{customer_name}}, Here''s an update on your request: Ticket #{{ticket_no}}. Status: {{status}}. Update: {{update_details}}. Expected resolution: {{resolution_timeline}}. Our team continues to work on your request. If you have additional information or questions, please reply directly to this ticket. We appreciate your patience and are committed to providing you with the best possible service.',
+        '["customer_name", "ticket_no", "status", "update_details", "resolution_timeline"]',
+        ARRAY []::text[],
+        true),
+       ('Thank You Message',
+        'Hi {{customer_name}}, Thank you for contacting us. We appreciate the opportunity to assist you. If you have any further questions or if there''s anything else we can help you with, please don''t hesitate to reach out. Your feedback is important to us and helps us improve our services. If you were satisfied with our service, please consider leaving a review. We look forward to serving you again in the future.',
+        '["customer_name"]',
+        ARRAY []::text[],
+        true),
+       ('Privacy Policy Update',
+        'Hi {{customer_name}}, Our Privacy Policy has been updated. Effective date: {{effective_date}}. Key changes: {{key_changes}}. Please review the updated policy in your account settings. We are committed to protecting your personal information and being transparent about our data practices. If you have any questions about the changes, please contact our support team. Thank you for being a valued customer.',
+        '["customer_name", "effective_date", "key_changes"]',
+        ARRAY []::text[],
+        true),
+       ('Terms of Service Update',
+        'Hi {{customer_name}}, Our Terms of Service have been updated. Effective date: {{effective_date}}. By continuing to use our platform, you agree to the updated terms. Please review the updated terms in your account settings. If you do not agree with the updated terms, you may close your account. If you have any questions about the terms, please contact our support team. We appreciate your understanding and look forward to continuing our relationship.',
+        '["customer_name", "effective_date"]',
+        ARRAY []::text[],
+        true);
+
+-- =====================================================
+-- BALANCED PRIORITY TEMPLATES
+-- =====================================================
+
+-- HIGH Priority Templates (Critical Issues)
+INSERT INTO article_template (name,
+                              template_content,
+                              variables,
+                              applicable_categories,
+                              applicable_priorities,
+                              active)
+VALUES ('Critical Security Alert',
+        'URGENT SECURITY NOTICE: Hi {{customer_name}}, We detected {{security_event}} on your account. Event details: {{event_details}}. Immediate action required: {{required_action}}. To protect your account: 1. Change your password immediately 2. Enable two-factor authentication if not already enabled 3. Review recent account activity 4. Report any suspicious activity to security@domain.com. If this was NOT you, please secure your account immediately. If this was you and you recognize this activity, no action is needed. Your account security is our top priority. Contact support if you need assistance.',
+        '["customer_name", "security_event", "event_details", "required_action"]',
+        ARRAY ['SECURITY']::text[],
+        ARRAY ['CRITICAL']::text[],
+        true),
+       ('Payment Failure Critical',
+        'URGENT: Hi {{customer_name}}, Your payment attempt failed. Error: {{error_message}}. Amount: {{amount}} {{currency}}. Immediate action needed: 1. Verify payment method details are correct 2. Check for sufficient funds 3. Try alternative payment method 4. Contact support if issue persists. To avoid service interruption: Please resolve payment issue within 24 hours. Failure to resolve may result in service restrictions. We apologize for any inconvenience and are here to help.',
+        '["customer_name", "error_message", "amount", "currency"]',
+        ARRAY ['BILLING']::text[],
+        ARRAY ['CRITICAL']::text[],
+        true),
+       ('System Outage Critical',
+        'URGENT SYSTEM NOTIFICATION: Hi {{customer_name}}, We are currently experiencing a system outage. Affected services: {{affected_services}}. Status: {{current_status}}. Our team is working diligently to restore full service. Estimated resolution time: {{eta}}. What to expect: Limited or no access to affected services 2. Potential data synchronization delays 3. Workarounds if available (none at this time). We apologize for this disruption and appreciate your patience. Updates will be provided as soon as more information is available.',
+        '["customer_name", "affected_services", "current_status", "eta"]',
+        ARRAY ['TECHNICAL']::text[],
+        ARRAY ['CRITICAL']::text[],
+        true);
+
+-- LOW Priority Templates (Informational)
+INSERT INTO article_template (name,
+                              template_content,
+                              variables,
+                              applicable_categories,
+                              applicable_priorities,
+                              active)
+VALUES ('Monthly Newsletter',
+        'Hi {{customer_name}}, Here''s your monthly newsletter. This month''s highlights: {{highlights}}. New features: {{new_features}}. Tips: {{tips}}. Upcoming events: {{events}}. Stay connected with us for the latest updates and insights. You can manage your newsletter preferences in your account settings. Thank you for being part of our community!',
+        '["customer_name", "highlights", "new_features", "tips", "events"]',
+        ARRAY ['OTHER']::text[],
+        ARRAY ['LOW']::text[],
+        true),
+       ('Product Announcement',
+        'Hi {{customer_name}}, We''re excited to announce: {{announcement}}. What''s new: {{details}}. Why it matters: {{benefits}}. How it helps you: {{improvements}}. Availability: {{availability_date}}. Get started: Learn more in our Help Center or create a ticket for assistance. Your feedback helps us improve! We hope you enjoy this new addition to our platform.',
+        '["customer_name", "announcement", "details", "benefits", "improvements", "availability_date"]',
+        ARRAY ['OTHER']::text[],
+        ARRAY ['LOW']::text[],
+        true);
+
 COMMIT;
