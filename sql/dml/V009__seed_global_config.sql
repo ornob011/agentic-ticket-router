@@ -16,21 +16,21 @@ VALUES
     (SELECT now_ts FROM ts),
     (SELECT now_ts FROM ts),
     'VECTOR_STORE_INITIALIZED',
-    '{"initialized": false}'::jsonb
+    '{"INITIALIZED": false}'::jsonb
   ),
   (
     0,
     (SELECT now_ts FROM ts),
     (SELECT now_ts FROM ts),
     'VECTOR_STORE_VERSION',
-    '{"version": "1.0"}'::jsonb
+    '{"VERSION": "1.0"}'::jsonb
   ),
   (
     0,
     (SELECT now_ts FROM ts),
     (SELECT now_ts FROM ts),
     'KB_SEED_VERSION',
-    '{"version": "1.0"}'::jsonb
+    '{"KB_SEED_VERSION": "1.0"}'::jsonb
   )
 ON CONFLICT (config_key)
   DO UPDATE SET
