@@ -21,8 +21,8 @@ public class KnowledgeArticle extends BaseEntity {
     @Column(nullable = false)
     private String title;
 
-    @Lob
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "text")
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     private String content;
 
     @Enumerated(EnumType.STRING)

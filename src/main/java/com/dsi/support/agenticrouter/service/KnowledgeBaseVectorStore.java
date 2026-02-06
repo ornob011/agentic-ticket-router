@@ -10,6 +10,7 @@ import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @Service
@@ -96,7 +97,10 @@ public class KnowledgeBaseVectorStore {
     private String getDocumentId(
         KnowledgeArticle article
     ) {
-        return DOCUMENT_ID_PREFIX + article.getId();
+        String sourceId = DOCUMENT_ID_PREFIX + article.getId();
+
+        return UUID.nameUUIDFromBytes(sourceId.getBytes(StandardCharsets.UTF_8))
+                   .toString();
     }
 
     private Document createDocument(

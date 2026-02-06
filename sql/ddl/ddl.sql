@@ -22,6 +22,7 @@ DROP TABLE IF EXISTS article_template_applicable_priorities CASCADE;
 DROP TABLE IF EXISTS article_template_applicable_categories CASCADE;
 DROP TABLE IF EXISTS article_template CASCADE;
 DROP TABLE IF EXISTS knowledge_article CASCADE;
+DROP TABLE IF EXISTS vector_store;
 
 -- Drop sequences
 DROP SEQUENCE IF EXISTS support_ticket_ticket_no_seq CASCADE;
@@ -735,6 +736,15 @@ CREATE INDEX IF NOT EXISTS idx_global_config_key_active
 COMMENT ON TABLE global_config IS 'Global system configuration flags and values';
 COMMENT ON COLUMN global_config.config_key IS 'Unique configuration key (enum)';
 COMMENT ON COLUMN global_config.map_value IS 'Configuration value as JSONB map (key-value pairs)';
+
+-- Vector Store table for LLM embeddings and retrieval
+CREATE TABLE IF NOT EXISTS vector_store
+(
+  id        uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  content   text,
+  metadata  jsonb,
+  embedding vector(4096)
+);
 
 -- =====================================================
 -- NOTE
