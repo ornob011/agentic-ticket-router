@@ -9,7 +9,7 @@ public enum ArticleType {
     PROCEDURAL_GUIDE("Step-by-step instructions"),
     TROUBLESHOOTING("Problem resolution steps"),
     QUICK_SOLUTION("Quick fix articles"),
-
+    FEATURE_OVERVIEW("Feature overview and announcements"),
 
     ;
 

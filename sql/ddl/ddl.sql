@@ -18,6 +18,8 @@ DROP TABLE IF EXISTS policy_config CASCADE;
 DROP TABLE IF EXISTS customer_tier CASCADE;
 DROP TABLE IF EXISTS country CASCADE;
 DROP TABLE IF EXISTS language CASCADE;
+DROP TABLE IF EXISTS article_template_applicable_priorities CASCADE;
+DROP TABLE IF EXISTS article_template_applicable_categories CASCADE;
 DROP TABLE IF EXISTS article_template CASCADE;
 DROP TABLE IF EXISTS knowledge_article CASCADE;
 
@@ -281,6 +283,7 @@ CREATE TABLE support_ticket
                                                             'ACCOUNT',
                                                             'SHIPPING',
                                                             'SECURITY',
+                                                            'PRICING',
                                                             'OTHER'
       )),
 
@@ -453,7 +456,7 @@ CREATE TABLE ticket_routing
     CHECK (confidence >= 0 AND confidence <= 1),
 
   CONSTRAINT chk_ticket_routing_category
-    CHECK (category IN ('BILLING', 'TECHNICAL', 'ACCOUNT', 'SHIPPING', 'SECURITY', 'OTHER')),
+    CHECK (category IN ('BILLING', 'TECHNICAL', 'ACCOUNT', 'SHIPPING', 'SECURITY', 'PRICING', 'OTHER')),
 
   CONSTRAINT chk_ticket_routing_priority
     CHECK (priority IN ('CRITICAL', 'HIGH', 'MEDIUM', 'LOW')),
@@ -681,7 +684,7 @@ CREATE TABLE article_template_applicable_categories
       ON DELETE CASCADE,
 
   CONSTRAINT chk_article_template_category
-    CHECK (category IN ('BILLING', 'TECHNICAL', 'ACCOUNT', 'SHIPPING', 'SECURITY', 'OTHER'))
+    CHECK (category IN ('BILLING', 'TECHNICAL', 'ACCOUNT', 'SHIPPING', 'SECURITY', 'PRICING', 'OTHER'))
 );
 
 CREATE INDEX idx_template_categories_template_id

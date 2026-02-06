@@ -12,7 +12,11 @@ public enum TicketCategory {
     ACCOUNT("Account management and access"),
     SHIPPING("Shipping and delivery queries"),
     SECURITY("Security concerns and threats"),
-    OTHER("General inquiries and other topics");
+    PRICING("Pricing plans and fee information"),
+    OTHER("General inquiries and other topics"),
+
+
+    ;
 
     private static final Set<TicketCategory> HIGH_RISK =
         EnumSet.of(
