@@ -23,6 +23,9 @@ ANALYSIS:
 PREVIOUS CLARIFYING QUESTION:
 {previous_clarifying_question}
 
+RELEVANT KNOWLEDGE BASE ARTICLES:
+{relevant_articles}
+
 AUTONOMOUS PROCESSING STATUS:
 - Remaining autonomous actions: {remaining_actions}
 - Questions asked: {questions_asked} of {max_questions}
@@ -65,7 +68,8 @@ OUTPUT JSON STRUCTURE (MUST MATCH EXACTLY):
 
 DECISION GUIDELINES:
 - PREFER autonomous resolution when confidence >= 0.8 and information is sufficient or can be gathered
-- PREFER USE_KNOWLEDGE_ARTICLE when a relevant KB article matches with similarity >= 0.80
+- USE RELEVANT KNOWLEDGE BASE ARTICLES when available and highly relevant (similarity >= 0.80). Use article_id from the relevant articles list.
+- PREFER USE_KNOWLEDGE_ARTICLE when a relevant KB article from the list matches the ticket issue
 - PREFER USE_TEMPLATE when template variables can be filled from ticket context
 - FALL BACK TO AUTO_RESOLVE when no KB/template applies but confidence >= 0.85
 - USE ASK_CLARIFYING when missing critical information (1-2 clarifying points) and not repeating previous questions
@@ -202,20 +206,20 @@ Clarifying question:
   "rationale_tags": ["missing information", "email required"]
 \}
 
-Knowledge base article:
+Knowledge base article with relevant article from search:
 \{
   "category": "TECHNICAL",
   "priority": "HIGH",
   "queue": "TECH_Q",
   "next_action": "USE_KNOWLEDGE_ARTICLE",
-  "confidence": 0.88,
+  "confidence": 0.92,
   "clarifying_question": null,
   "draft_reply": null,
   "action_parameters": {
     "article_id": "123"
   },
   "internal_note": null,
-  "rationale_tags": ["kb match", "high similarity"]
+  "rationale_tags": ["knowledge base match", "high similarity from search results"]
 \}
 
 Template response:

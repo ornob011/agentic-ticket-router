@@ -1,5 +1,6 @@
 package com.dsi.support.agenticrouter.service.routing;
 
+import com.dsi.support.agenticrouter.dto.ArticleSearchResult;
 import com.dsi.support.agenticrouter.dto.RouterRequest;
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.ModelRegistry;
@@ -14,6 +15,7 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.ai.ollama.api.OllamaChatOptions;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -77,6 +80,10 @@ public class OllamaRouterService {
                                         .map(Enum::name)
                                         .collect(Collectors.joining(" | "));
 
+        String relevantArticles = formatRelevantArticles(
+            routerRequest.getRelevantArticles()
+        );
+
         ChatClient chatClient = ChatClient.builder(ollamaChatModel)
                                           .defaultOptions(
                                               OllamaChatOptions.builder()
@@ -102,11 +109,31 @@ public class OllamaRouterService {
                                                 .param("customer_tier", routerRequest.getCustomerTier())
                                                 .param("initial_message", routerRequest.getInitialMessage())
                                                 .param("conversation_history", routerRequest.getConversationHistory())
+                                                .param("analysis", routerRequest.getAnalysis())
                                                 .param("previous_clarifying_question",
                                                     Objects.requireNonNullElse(
                                                         routerRequest.getPreviousClarifyingQuestion(),
                                                         "None"
                                                     )
+                                                )
+                                                .param("relevant_articles", relevantArticles)
+                                                .param("remaining_actions",
+                                                    Objects.requireNonNullElse(
+                                                        routerRequest.getRemainingActions(),
+                                                        5
+                                                    ).toString()
+                                                )
+                                                .param("questions_asked",
+                                                    Objects.requireNonNullElse(
+                                                        routerRequest.getQuestionsAsked(),
+                                                        0
+                                                    ).toString()
+                                                )
+                                                .param("max_questions",
+                                                    Objects.requireNonNullElse(
+                                                        routerRequest.getMaxQuestions(),
+                                                        3
+                                                    ).toString()
                                                 )
                                         )
                                         .call()
@@ -137,6 +164,25 @@ public class OllamaRouterService {
         );
 
         return routerResponse;
+    }
+
+    private String formatRelevantArticles(
+        List<ArticleSearchResult> articles
+    ) {
+        if (CollectionUtils.isEmpty(articles)) {
+            return "No relevant articles found.";
+        }
+
+        return articles.stream()
+                       .map(article -> String.format(
+                           "- Article ID: %d | Title: %s | Similarity: %.2f | Category: %s | Priority: %d",
+                           article.getArticleId(),
+                           article.getTitle(),
+                           article.getSimilarityScore(),
+                           article.getCategory(),
+                           article.getPriority()
+                       ))
+                       .collect(Collectors.joining("\n"));
     }
 
     private void validateRouterResponse(
