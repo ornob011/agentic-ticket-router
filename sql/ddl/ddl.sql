@@ -177,7 +177,12 @@ CREATE TABLE policy_config
                           'MAX_ATTACHMENT_BYTES',
                           'AUTO_CLOSE_ENABLED',
                           'DEFAULT_QUEUE',
-                          'ROUTER_MODEL_PARAMS'
+                          'ROUTER_MODEL_PARAMS',
+                          'MAX_AUTONOMOUS_ACTIONS',
+                          'MAX_QUESTIONS_PER_TICKET',
+                          'AUTONOMOUS_ENABLED',
+                          'FRUSTRATION_DETECTION_ENABLED',
+                          'LOOP_DETECTION_ENABLED'
       ))
 );
 
@@ -625,9 +630,11 @@ CREATE TABLE knowledge_article
   success_count BIGINT       NOT NULL DEFAULT 0,
   failure_count BIGINT       NOT NULL DEFAULT 0,
 
-  CONSTRAINT chk_kb_category CHECK (category IN ('BILLING', 'TECHNICAL', 'ACCOUNT', 'SHIPPING', 'SECURITY', 'OTHER')),
+  CONSTRAINT chk_kb_category CHECK (category IN
+                                    ('BILLING', 'TECHNICAL', 'ACCOUNT', 'SHIPPING', 'SECURITY', 'OTHER', 'PRICING')),
   CONSTRAINT chk_kb_type CHECK (article_type IN
-                                ('SOLUTION', 'FAQ', 'PROCEDURAL_GUIDE', 'TROUBLESHOOTING', 'QUICK_SOLUTION'))
+                                ('SOLUTION', 'FAQ', 'PROCEDURAL_GUIDE', 'TROUBLESHOOTING', 'QUICK_SOLUTION',
+                                 'FEATURE_OVERVIEW'))
 );
 
 CREATE INDEX idx_kb_article_category_active ON knowledge_article (category, active);
