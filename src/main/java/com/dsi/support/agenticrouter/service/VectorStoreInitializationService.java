@@ -27,7 +27,7 @@ public class VectorStoreInitializationService {
     public void initializeVectorStore() {
         log.info("VectorStore initialization check triggered on application startup");
 
-        GlobalConfig globalConfig = globalConfigRepository.findByConfigKeyAndActiveTrue(
+        GlobalConfig globalConfig = globalConfigRepository.findByConfigKey(
             GlobalConfigKey.VECTOR_STORE_INITIALIZED
         ).orElse(
             GlobalConfig.builder()
@@ -63,7 +63,7 @@ public class VectorStoreInitializationService {
     public void forceReinitialize() {
         log.warn("Forcing vector store re-initialization");
 
-        GlobalConfig config = globalConfigRepository.findByConfigKeyAndActiveTrue(
+        GlobalConfig config = globalConfigRepository.findByConfigKey(
             GlobalConfigKey.VECTOR_STORE_INITIALIZED
         ).orElseThrow(
             DataNotFoundException.supplier(
