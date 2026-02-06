@@ -135,6 +135,12 @@ public class OllamaRouterService {
                                                         3
                                                     ).toString()
                                                 )
+                                                .param("max_actions",
+                                                    Objects.requireNonNullElse(
+                                                        routerRequest.getMaxActions(),
+                                                        5
+                                                    ).toString()
+                                                )
                                         )
                                         .call()
                                         .content();

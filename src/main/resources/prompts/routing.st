@@ -50,16 +50,16 @@ AVAILABLE AUTOMATED ACTIONS:
 - REOPEN_TICKET: Reopen closed/resolved ticket
 - TRIGGER_NOTIFICATION: Send specific notification
 - USE_KNOWLEDGE_ARTICLE: Use knowledge base article for resolution. Template selection criteria:
-  1. Auto-selection: If you do NOT provide template_id, system will auto-select the best template based on:
-     - Exact match of ticket category AND template applicable_categories (highest priority)
-     - Category-only match if no exact match (next best)
-     - Priority-only match if no category match (next best)
-     - Global template (no restrictions) as final fallback
-     - Templates are sorted alphabetically by name for deterministic selection
-  2. Override: You CAN provide template_id to override auto-selection
-     - Use override when you know of exact template needed
-     - Provide template_id as string: {"template_id": "123", "variables": {...}}
-     - If you don't provide template_id, let system auto-select
+   1. Auto-selection: If you do NOT provide template_id, system will auto-select the best template based on:
+      - Exact match of ticket category AND template applicable_categories (highest priority)
+      - Category-only match if no exact match (next best)
+      - Priority-only match if no category match (next best)
+      - Global template (no restrictions) as final fallback
+      - Templates are sorted alphabetically by name for deterministic selection
+   2. Override: You CAN provide template_id to override auto-selection
+      - Use override when you know of exact template needed
+      - Provide template_id as string: \{"template_id": "123", "variables": \{...\}\}
+      - If you don't provide template_id, let system auto-select
 - USE_TEMPLATE: Use response template for resolution
 
 OUTPUT JSON STRUCTURE (MUST MATCH EXACTLY):
@@ -73,7 +73,7 @@ OUTPUT JSON STRUCTURE (MUST MATCH EXACTLY):
   "draft_reply": "string or null (required if next_action is AUTO_REPLY or AUTO_RESOLVE)",
   "action_parameters": "object or null (for UPDATE_CUSTOMER_PROFILE, CHANGE_PRIORITY, TRIGGER_NOTIFICATION, USE_KNOWLEDGE_ARTICLE, USE_TEMPLATE)",
   "internal_note": "string or null (for ADD_INTERNAL_NOTE)",
-  "rationale_tags": ["array of 2-3 strings explaining the decision"]
+  "rationale_tags": \["array of 2-3 strings explaining the decision"\]
 \}
 
 DECISION GUIDELINES:
@@ -111,8 +111,8 @@ STRICT RULES - READ CAREFULLY:
 - DO NOT add explanatory text before or after the JSON
 - ALL enum values MUST match exactly (case-sensitive, hyphens/underscores matter)
 - action_parameters is REQUIRED for UPDATE_CUSTOMER_PROFILE, CHANGE_PRIORITY, TRIGGER_NOTIFICATION, USE_KNOWLEDGE_ARTICLE, USE_TEMPLATE
-  - USE_KNOWLEDGE_ARTICLE requires: {"article_id": "long"}
-  - USE_TEMPLATE requires: {"template_id": "long", "variables": {"key": "value"}}
+   - USE_KNOWLEDGE_ARTICLE requires: \{"article_id": "long"\}
+   - USE_TEMPLATE requires: \{"template_id": "long", "variables": \{"key": "value"\}\}
 - internal_note is REQUIRED for ADD_INTERNAL_NOTE
 - DO NOT repeat the same clarifying question - always ask something new or proceed to assign
 
@@ -166,7 +166,7 @@ INVALID (repeating clarifying question):
   "confidence": 0.9,
   "clarifying_question": "Can you provide your email address?",
   "draft_reply": null,
-  "rationale_tags": ["account issue", "missing info"]
+  "rationale_tags": \["account issue", "missing info"\]
 \}
 
 VALID OUTPUT EXAMPLES:
@@ -182,7 +182,7 @@ Simple resolution:
   "draft_reply": "I've reset your password. Please try logging in again.",
   "action_parameters": null,
   "internal_note": null,
-  "rationale_tags": ["password reset", "clear solution"]
+  "rationale_tags": \["password reset", "clear solution"\]
 \}
 
 Template response (auto-selected):
@@ -194,14 +194,14 @@ Template response (auto-selected):
   "confidence": 0.85,
   "clarifying_question": null,
   "draft_reply": null,
-  "action_parameters": {
-    "variables": {
+  "action_parameters": \{
+    "variables": \{
       "customer_name": "John Doe",
       "amount": "50.00"
-    }
-  },
+    \}
+  \},
   "internal_note": null,
-  "rationale_tags": ["template match", "billing inquiry"]
+  "rationale_tags": \["template match", "billing inquiry"\]
 \}
 
 Template response (override with specific template):
@@ -213,15 +213,15 @@ Template response (override with specific template):
   "confidence": 0.90,
   "clarifying_question": null,
   "draft_reply": null,
-  "action_parameters": {
+  "action_parameters": \{
     "template_id": "456",
-    "variables": {
+    "variables": \{
       "customer_name": "Jane Smith",
       "ticket_no": "TKT-00001234"
-    }
-  },
+    \}
+  \},
   "internal_note": null,
-  "rationale_tags": ["specific template", "password reset"]
+  "rationale_tags": \["specific template", "password reset"\]
 \}
 
 Profile update:
@@ -233,12 +233,12 @@ Profile update:
   "confidence": 0.85,
   "clarifying_question": null,
   "draft_reply": null,
-  "action_parameters": {
+  "action_parameters": \{
     "company_name": "ACME Corp",
     "phone_number": "+1-555-0123-4567"
-  },
+  \},
   "internal_note": null,
-  "rationale_tags": ["customer request", "profile update"]
+  "rationale_tags": \["customer request", "profile update"\]
 \}
 
 Clarifying question:
@@ -252,7 +252,7 @@ Clarifying question:
   "draft_reply": null,
   "action_parameters": null,
   "internal_note": null,
-  "rationale_tags": ["missing information", "email required"]
+  "rationale_tags": \["missing information", "email required"\]
 \}
 
 Knowledge base article with relevant article from search:
@@ -264,11 +264,11 @@ Knowledge base article with relevant article from search:
   "confidence": 0.92,
   "clarifying_question": null,
   "draft_reply": null,
-  "action_parameters": {
+  "action_parameters": \{
     "article_id": "123"
-  },
+  \},
   "internal_note": null,
-  "rationale_tags": ["knowledge base match", "high similarity from search results"]
+  "rationale_tags": \["knowledge base match", "high similarity from search results"\]
 \}
 
 Template response:
@@ -280,15 +280,15 @@ Template response:
   "confidence": 0.82,
   "clarifying_question": null,
   "draft_reply": null,
-  "action_parameters": {
+  "action_parameters": \{
     "template_id": "456",
-    "variables": {
+    "variables": \{
       "customer_name": "John Doe",
       "amount": "100.00"
-    }
-  },
+    \}
+  \},
   "internal_note": null,
-  "rationale_tags": ["template match", "billing inquiry"]
+  "rationale_tags": \["template match", "billing inquiry"\]
 \}
 
 OUTPUT: Return ONLY valid JSON. No markdown. No code blocks. No explanations.

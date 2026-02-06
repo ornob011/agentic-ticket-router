@@ -34,4 +34,6 @@ public class RouterRequest {
     private Integer questionsAsked;
 
     private Integer maxQuestions;
+
+    private Integer maxActions;
 }

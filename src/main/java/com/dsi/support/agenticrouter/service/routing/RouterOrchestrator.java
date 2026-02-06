@@ -170,6 +170,7 @@ public class RouterOrchestrator {
                             .remainingActions(remainingActions)
                             .questionsAsked(questionsAsked)
                             .maxQuestions(MAX_QUESTIONS)
+                            .maxActions(MAX_AUTONOMOUS_ACTIONS)
                             .build();
     }
 
