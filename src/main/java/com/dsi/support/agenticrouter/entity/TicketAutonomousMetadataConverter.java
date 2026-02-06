@@ -3,6 +3,7 @@ package com.dsi.support.agenticrouter.entity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
@@ -11,7 +12,7 @@ import java.util.Objects;
 @Converter
 public class TicketAutonomousMetadataConverter implements AttributeConverter<TicketAutonomousMetadata, JsonNode> {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Override
     public JsonNode convertToDatabaseColumn(
