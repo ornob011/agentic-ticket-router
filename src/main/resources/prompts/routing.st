@@ -138,6 +138,14 @@ AUTONOMOUS LIMITS:
 - Never repeat the same clarifying question
 
 STRICT RULES - READ CAREFULLY:
+- CRITICAL: For profile change requests (company name, phone, address, city, postal code, language):
+   - Value AFTER "to" is ALWAYS the target/new value to update - extract this value
+   - Value BEFORE "to" or marked "current/from" is the old value - DO NOT extract this
+     - Examples:
+      * "Change company name from ACME Corp to Quantum Prime Inc." → Extract: "Quantum Prime Inc."
+      * "My current company name is DSi. Change it to Vortex Solutions Inc." → Extract: "Vortex Solutions Inc."
+      * "My current company name is StartUp Co. Change it to DSi" → Extract: "DSi"
+    - This works for ANY change direction (short→long, long→short, abbreviations, etc.)
 - DO NOT invent or combine enum values
   - INVALID: "MEDIUM-HIGH", "Technical", "tech_q", "SECURITY_Q_HIGH"
   - VALID: "MEDIUM", "HIGH", "TECHNICAL", "TECH_Q", "SECURITY_Q"
@@ -148,13 +156,13 @@ STRICT RULES - READ CAREFULLY:
 - CRITICAL: action_parameters MUST be non-null object when using UPDATE_CUSTOMER_PROFILE, CHANGE_PRIORITY, TRIGGER_NOTIFICATION, USE_KNOWLEDGE_ARTICLE, or USE_TEMPLATE. It MUST be null for all other actions.
 - action_parameters is REQUIRED for UPDATE_CUSTOMER_PROFILE, CHANGE_PRIORITY, TRIGGER_NOTIFICATION, USE_KNOWLEDGE_ARTICLE, USE_TEMPLATE
    - UPDATE_CUSTOMER_PROFILE requires: Include at least one of company_name, phone_number, address, city, postal_code, or preferred_language_code
-     - Include ONLY the fields the customer provided values for - do not invent or guess values
-     - company_name: Full company name string (e.g., "Dynamic Solution Innovators Ltd.")
-     - phone_number: Phone number string (e.g., "+1-555-0123-4567")
-     - address: Street address string (e.g., "123 Business Park Drive")
-     - city: City name string (e.g., "San Francisco")
-     - postal_code: Postal/ZIP code string (e.g., "94105")
-     - preferred_language_code: Language code (e.g., "EN", "BN")
+      - Include ONLY the fields the customer provided values for - do not invent or guess values
+      - company_name: Full company name string (e.g., "Zyxel Corp.")
+      - phone_number: Phone number string (e.g., "+1-777-555-0199")
+      - address: Street address string (e.g., "888 Innovation Way")
+      - city: City name string (e.g., "Metropolis")
+      - postal_code: Postal/ZIP code string (e.g., "55001")
+      - preferred_language_code: Language code (e.g., "FR", "ES")
    - USE_KNOWLEDGE_ARTICLE requires: \{"article_id": "long"\}
    - USE_TEMPLATE requires: \{"template_id": "long", "variables": \{"key": "value"\}\}
 - internal_note is REQUIRED for ADD_INTERNAL_NOTE
@@ -408,7 +416,22 @@ ACCOUNT - Company Name Update:
   "clarifying_question": null,
   "draft_reply": null,
   "action_parameters": \{
-    "company_name": "Dynamic Solution Innovators Ltd."
+    "company_name": "Nova Innovations LLC"
+  \},
+  "internal_note": null,
+  "rationale_tags": \["company name change", "automated profile update"\]
+
+ACCOUNT - Company Name Update (Short to Full):
+\{
+  "category": "ACCOUNT",
+  "priority": "LOW",
+  "queue": "ACCOUNT_Q",
+  "next_action": "UPDATE_CUSTOMER_PROFILE",
+  "confidence": 0.90,
+  "clarifying_question": null,
+  "draft_reply": null,
+  "action_parameters": \{
+    "company_name": "Vortex Solutions Inc."
   \},
   "internal_note": null,
   "rationale_tags": \["company name change", "automated profile update"\]
@@ -508,7 +531,7 @@ ACCOUNT - Phone Number Update:
   "clarifying_question": null,
   "draft_reply": null,
   "action_parameters": \{
-    "phone_number": "+1-555-0123-4567"
+    "phone_number": "+1-888-555-1234"
   \},
   "internal_note": null,
   "rationale_tags": \["phone number change", "automated profile update"\]
@@ -524,9 +547,9 @@ ACCOUNT - Address Update:
   "clarifying_question": null,
   "draft_reply": null,
   "action_parameters": \{
-    "address": "123 Business Park Drive",
-    "city": "San Francisco",
-    "postal_code": "94105"
+    "address": "750 Future Avenue",
+    "city": "NeoTech",
+    "postal_code": "60601"
   \},
   "internal_note": null,
   "rationale_tags": \["address change", "automated profile update"\]
@@ -542,12 +565,12 @@ ACCOUNT - Multiple Profile Fields Update:
   "clarifying_question": null,
   "draft_reply": null,
   "action_parameters": \{
-    "company_name": "Dynamic Solution Innovators Ltd.",
-    "phone_number": "+1-555-0123-4567",
-    "address": "123 Business Park Drive",
-    "city": "San Francisco",
-    "postal_code": "94105",
-    "preferred_language_code": "EN"
+    "company_name": "Quantum Prime Inc.",
+    "phone_number": "+1-777-888-4444",
+    "address": "500 Innovation Boulevard",
+    "city": "Metropolis",
+    "postal_code": "55001",
+    "preferred_language_code": "FR"
   \},
   "internal_note": null,
   "rationale_tags": \["multiple profile changes", "automated update"\]
