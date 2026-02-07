@@ -3,12 +3,12 @@ package com.dsi.support.agenticrouter.service.action.actions;
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.CustomerProfile;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
-import com.dsi.support.agenticrouter.enums.AuditEventType;
-import com.dsi.support.agenticrouter.enums.NextAction;
-import com.dsi.support.agenticrouter.enums.NotificationType;
+import com.dsi.support.agenticrouter.entity.TicketMessage;
+import com.dsi.support.agenticrouter.enums.*;
 import com.dsi.support.agenticrouter.repository.CustomerProfileRepository;
 import com.dsi.support.agenticrouter.repository.LanguageRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.AuditService;
 import com.dsi.support.agenticrouter.service.NotificationService;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
@@ -40,6 +40,7 @@ public class UpdateCustomerProfileAction implements TicketAction {
     private final LanguageRepository languageRepository;
     private final AuditService auditService;
     private final NotificationService notificationService;
+    private final TicketMessageRepository ticketMessageRepository;
 
     @Override
     public boolean canHandle(
@@ -108,7 +109,16 @@ public class UpdateCustomerProfileAction implements TicketAction {
 
         customerProfileRepository.save(customerProfile);
 
-        supportTicket.updateLastActivity();
+        TicketMessage systemMessage = TicketMessage.builder()
+                                                   .ticket(supportTicket)
+                                                   .messageKind(MessageKind.SYSTEM_MESSAGE)
+                                                   .content("Your profile has been updated: " + changeLog.render())
+                                                   .visibleToCustomer(true)
+                                                   .build();
+
+        ticketMessageRepository.save(systemMessage);
+
+        supportTicket.setStatus(TicketStatus.RESOLVED);
         supportTicketRepository.save(supportTicket);
 
         auditService.recordEvent(
