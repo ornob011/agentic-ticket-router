@@ -196,7 +196,7 @@ public class RouterOrchestrator {
 
         return documents.stream()
                         .map(this::toArticleSearchResult)
-                        .collect(Collectors.toList());
+                        .toList();
     }
 
     private String buildVectorQuery(
