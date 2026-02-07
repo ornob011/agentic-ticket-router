@@ -8,6 +8,8 @@ CRITICAL OUTPUT RULES - ANY VIOLATION WILL CAUSE FAILURE:
 7. Confidence scores must be decimal values between 0.0 and 1.0
 8. ALL enum values MUST match exactly. Do not invent, combine, or modify values.
 
+IMPORTANT: You will see a "PREVIOUS CLARIFYING QUESTION" field below. IF IT IS NOT "None", the customer has already been asked a question. You MUST check if the customer's latest message in the conversation history ANSWERS that question. If yes, DO NOT ask again - proceed with resolution or assignment. Only ask another question if the customer's response is incomplete or unclear.
+
 TICKET INFORMATION:
 - Ticket Number: {ticket_no}
 - Subject: {subject}
@@ -17,11 +19,33 @@ TICKET INFORMATION:
 CONVERSATION HISTORY:
 {conversation_history}
 
+CONVERSATION HISTORY FORMAT:
+Each line shows: [timestamp] MESSAGE_KIND: content
+IMPORTANT MESSAGE KINDS:
+- CLARIFYING_QUESTION: Question asked by the AI system to gather information
+- CUSTOMER_MESSAGE: Reply from the customer to a clarifying question or initial message
+- AGENT_MESSAGE: Message from a human support agent
+
 ANALYSIS:
 {analysis}
 
 PREVIOUS CLARIFYING QUESTION:
 {previous_clarifying_question}
+
+CRITICAL RESPONSE EVALUATION - DO THIS FIRST:
+Before deciding on ANY action, you MUST check if there was a previous clarifying question:
+
+IF PREVIOUS CLARIFYING QUESTION IS NOT "None":
+1. Look at the conversation history for CLARIFYING_QUESTION followed by CUSTOMER_MESSAGE
+2. Check if the customer's CUSTOMER_MESSAGE contains the requested information
+3. ONLY ask another question (ASK_CLARIFYING) if the customer's response is INSUFFICIENT
+4. If the customer provided what was asked, PROCEED to assign or resolve - do NOT re-ask
+
+Examples:
+- Question asked: "Can you provide any error messages?"
+  - Customer: "The instruction at 0x... referenced memory..." → PROVIDED error message → ASSIGN_QUEUE or AUTO_RESOLVE
+  - Customer: "I don't have any logs" → STATED none available → PROCEED with what you have
+  - Customer: "It's not working" → NO details provided → ASK_CLARIFYING with more specific question
 
 RELEVANT KNOWLEDGE BASE ARTICLES:
 {relevant_articles}
@@ -82,7 +106,11 @@ DECISION GUIDELINES:
 - PREFER USE_KNOWLEDGE_ARTICLE when a relevant KB article from the list matches the ticket issue
 - PREFER USE_TEMPLATE when template variables can be filled from ticket context
 - FALL BACK TO AUTO_RESOLVE when no KB/template applies but confidence >= 0.85
-- USE ASK_CLARIFYING when missing critical information (1-2 clarifying points) and not repeating previous questions
+- USE ASK_CLARIFYING only when:
+  a. Missing critical information (1-2 clarifying points)
+  b. Not repeating previous questions
+  c. Customer has not already provided the information in their latest response
+  d. Customer has explicitly stated they cannot provide what was asked (e.g., "I don't have logs")
 - USE AUTO_REPLY when direct answer solves problem for simple, well-known issue
 - USE ASSIGN_QUEUE when ticket requires human agent handling
 - USE ESCALATE when security/PII issues or confidence < 0.7
@@ -115,6 +143,8 @@ STRICT RULES - READ CAREFULLY:
    - USE_TEMPLATE requires: \{"template_id": "long", "variables": \{"key": "value"\}\}
 - internal_note is REQUIRED for ADD_INTERNAL_NOTE
 - DO NOT repeat the same clarifying question - always ask something new or proceed to assign
+- DO NOT re-ask for information the customer has already provided in their latest response
+- ALWAYS check the PREVIOUS CLARIFYING QUESTION against the customer's latest message before deciding to ASK_CLARIFYING
 
 NEGATIVE EXAMPLES (DO NOT OUTPUT THESE):
 
@@ -157,17 +187,18 @@ The ticket analysis suggests:
   "category": "TECHNICAL"
 \}
 
-INVALID (repeating clarifying question):
+INVALID (repeating clarifying question - customer already provided):
 \{
-  "category": "ACCOUNT",
+  "category": "TECHNICAL",
   "priority": "HIGH",
-  "queue": "ACCOUNT_Q",
+  "queue": "TECH_Q",
   "next_action": "ASK_CLARIFYING",
   "confidence": 0.9,
-  "clarifying_question": "Can you provide your email address?",
+  "clarifying_question": "Can you provide any error messages or logs?",
   "draft_reply": null,
-  "rationale_tags": \["account issue", "missing info"\]
+  "rationale_tags": \["technical issue", "missing error info"\]
 \}
+REASON: Customer already responded with "The instruction at 0x... referenced memory at 0x... The memory could not be written." which IS an error message. Should proceed with analysis, not re-ask.
 
 VALID OUTPUT EXAMPLES:
 
@@ -239,6 +270,20 @@ Profile update:
   \},
   "internal_note": null,
   "rationale_tags": \["customer request", "profile update"\]
+\}
+
+Customer provided error message - proceed with assignment:
+\{
+  "category": "TECHNICAL",
+  "priority": "HIGH",
+  "queue": "TECH_Q",
+  "next_action": "ASSIGN_QUEUE",
+  "confidence": 0.75,
+  "clarifying_question": null,
+  "draft_reply": null,
+  "action_parameters": null,
+  "internal_note": null,
+  "rationale_tags": \["memory access violation", "requires technical investigation"\]
 \}
 
 Clarifying question:
