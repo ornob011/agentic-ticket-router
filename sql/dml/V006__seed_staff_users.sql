@@ -3,8 +3,7 @@ BEGIN;
 -- ==================================================================
 -- STAFF USERS SEED DATA
 -- ==================================================================
--- Password for all users: "DSi@2026Agentic"
--- Hash generated using BCrypt with strength 10
+-- Password for all users: "AIClub123"
 
 WITH ts AS (SELECT now() AS now_ts)
 INSERT
@@ -30,7 +29,7 @@ VALUES
    'SYSTEM_SEED',
    'admin',
    'ornob011+10@gmail.com',
-   '$2a$10$TXPqY8Kc5qwJZ8Hd.vLx7eXxGJ3QC8aF.WZvJhKLmN9pQRsTuVwWy',
+   '3488d8f14a90213497d82feae0bc14eee52aa0ced99ec60870a9b5e5a4d9d3810c9ec3b9965c904836ac93d8480f176f659658dcd3e49f40e990604b7e0c0efd6b48f130b46fbf55f828628c63d69ac56c5782e7126ee52dbbcd8d2d4445c0e28ac1d58704d1acd7a0e59b655de72333f5a885a0c84f0e50b2effe8dbad2edde1c1bdf5ab05199a4539123cfde46e0d4eb8fbf84799d1fac03b18fd88454342f',
     'System Administrator',
     'ADMIN',
     TRUE,
@@ -44,7 +43,7 @@ VALUES
    'SYSTEM_SEED',
    'supervisor1',
    'ornob011+11@gmail.com',
-   '$2a$10$TXPqY8Kc5qwJZ8Hd.vLx7eXxGJ3QC8aF.WZvJhKLmN9pQRsTuVwWy',
+   '3488d8f14a90213497d82feae0bc14eee52aa0ced99ec60870a9b5e5a4d9d3810c9ec3b9965c904836ac93d8480f176f659658dcd3e49f40e990604b7e0c0efd6b48f130b46fbf55f828628c63d69ac56c5782e7126ee52dbbcd8d2d4445c0e28ac1d58704d1acd7a0e59b655de72333f5a885a0c84f0e50b2effe8dbad2edde1c1bdf5ab05199a4539123cfde46e0d4eb8fbf84799d1fac03b18fd88454342f',
     'Jane Supervisor',
     'SUPERVISOR',
     TRUE,
@@ -58,7 +57,7 @@ VALUES
    'SYSTEM_SEED',
    'agent_billing',
    'ornob011+12@gmail.com',
-   '$2a$10$TXPqY8Kc5qwJZ8Hd.vLx7eXxGJ3QC8aF.WZvJhKLmN9pQRsTuVwWy',
+   '3488d8f14a90213497d82feae0bc14eee52aa0ced99ec60870a9b5e5a4d9d3810c9ec3b9965c904836ac93d8480f176f659658dcd3e49f40e990604b7e0c0efd6b48f130b46fbf55f828628c63d69ac56c5782e7126ee52dbbcd8d2d4445c0e28ac1d58704d1acd7a0e59b655de72333f5a885a0c84f0e50b2effe8dbad2edde1c1bdf5ab05199a4539123cfde46e0d4eb8fbf84799d1fac03b18fd88454342f',
     'Bob Billing Agent',
     'AGENT',
     TRUE,
@@ -71,7 +70,7 @@ VALUES
    'SYSTEM_SEED',
    'agent_tech',
    'ornob011+13@gmail.com',
-   '$2a$10$TXPqY8Kc5qwJZ8Hd.vLx7eXxGJ3QC8aF.WZvJhKLmN9pQRsTuVwWy',
+   '3488d8f14a90213497d82feae0bc14eee52aa0ced99ec60870a9b5e5a4d9d3810c9ec3b9965c904836ac93d8480f176f659658dcd3e49f40e990604b7e0c0efd6b48f130b46fbf55f828628c63d69ac56c5782e7126ee52dbbcd8d2d4445c0e28ac1d58704d1acd7a0e59b655de72333f5a885a0c84f0e50b2effe8dbad2edde1c1bdf5ab05199a4539123cfde46e0d4eb8fbf84799d1fac03b18fd88454342f',
     'Alice Technical Agent',
     'AGENT',
     TRUE,
@@ -84,7 +83,7 @@ VALUES
    'SYSTEM_SEED',
    'agent_security',
    'ornob011+14@gmail.com',
-   '$2a$10$TXPqY8Kc5qwJZ8Hd.vLx7eXxGJ3QC8aF.WZvJhKLmN9pQRsTuVwWy',
+   '3488d8f14a90213497d82feae0bc14eee52aa0ced99ec60870a9b5e5a4d9d3810c9ec3b9965c904836ac93d8480f176f659658dcd3e49f40e990604b7e0c0efd6b48f130b46fbf55f828628c63d69ac56c5782e7126ee52dbbcd8d2d4445c0e28ac1d58704d1acd7a0e59b655de72333f5a885a0c84f0e50b2effe8dbad2edde1c1bdf5ab05199a4539123cfde46e0d4eb8fbf84799d1fac03b18fd88454342f',
     'Charlie Security Agent',
     'AGENT',
     TRUE,
@@ -97,7 +96,7 @@ VALUES
    'SYSTEM_SEED',
    'agent_general',
    'ornob011+15@gmail.com',
-   '$2a$10$TXPqY8Kc5qwJZ8Hd.vLx7eXxGJ3QC8aF.WZvJhKLmN9pQRsTuVwWy',
+   '3488d8f14a90213497d82feae0bc14eee52aa0ced99ec60870a9b5e5a4d9d3810c9ec3b9965c904836ac93d8480f176f659658dcd3e49f40e990604b7e0c0efd6b48f130b46fbf55f828628c63d69ac56c5782e7126ee52dbbcd8d2d4445c0e28ac1d58704d1acd7a0e59b655de72333f5a885a0c84f0e50b2effe8dbad2edde1c1bdf5ab05199a4539123cfde46e0d4eb8fbf84799d1fac03b18fd88454342f',
     'Diana General Agent',
     'AGENT',
     TRUE,
