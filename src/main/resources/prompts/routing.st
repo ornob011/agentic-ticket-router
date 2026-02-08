@@ -1,31 +1,45 @@
-INPUT DATA:
-{conversation_history}
+INPUTS:
+- History: {conversation_history}
+- Knowledge: {relevant_articles}
 
-**CRITICAL INSTRUCTION: READ THE LAST MESSAGE ONLY**
-1. Scroll to the very bottom of the input.
-2. If the last message is a **Question** (e.g., "How do I...", "Can I..."):
-   - Set `next_action` to `AUTO_RESOLVE`.
-   - Set `draft_reply` to a helpful answer.
-   - **CRITICAL:** You MUST set `action_parameters` to `null`.
-3. If the last message is a **Command** (e.g., "Change phone to..."):
-   - Set `next_action` to `UPDATE_CUSTOMER_PROFILE`.
-   - Set `draft_reply` to `null`.
-   - Extract the value into `action_parameters`.
+**PRIORITY CHECKLIST (Execute in Order):**
 
-**VALID ENUM VALUES (MUST use exactly one from each category):**
+1. **CHECK FOR COMMANDS (Highest Priority):**
+   - Does the LAST message say "Change/Update [Field] to [Value]"?
+   - **YES:**
+     - Action: `UPDATE_CUSTOMER_PROFILE`
+     - Extraction: You **MUST** extract the value into `action_parameters`.
+     - Draft Reply: `null`.
+     - **STOP HERE.** (Do not check knowledge).
+
+2. **CHECK FOR QUESTIONS (If not a command):**
+   - Does the LAST message ask "How to...", "Can I...", or describe an issue?
+   - **YES:**
+     - **Check Knowledge**: Read `{relevant_articles}`.
+     - If Knowledge Found -> Action: `AUTO_RESOLVE`. Write a `draft_reply` using the article.
+     - If Knowledge Empty -> Action: `ASSIGN_QUEUE`. Set `draft_reply` to `null` (Do NOT hallucinate).
+
+3. **CHECK FOR VAGUE INPUT:**
+   - If unclear -> Action: `ASK_CLARIFYING`. Write a `clarifying_question`.
+
+**CONFIDENCE CALCULATION:**
+- If Request is Clear/Simple (Command or Simple Question) -> Set `confidence` to 1.0.
+- If Request is Vague/Ambiguous -> Set `confidence` to 0.7.
+
+**ENUMS:**
 - Category: {category}
 - Priority: {priority}
-- Queue: {queue}
+- Queue: {queue} (Map: BILLING->BILLING_Q, TECHNICAL->TECH_Q, ACCOUNT->ACCOUNT_Q, SHIPPING->OPS_Q, SECURITY->SECURITY_Q, PRICING->ACCOUNT_Q, OTHER->GENERAL_Q)
 - Action: {next_action}
 
-**RESPONSE TEMPLATE:**
+**JSON RESPONSE (Fill exactly):**
 \{
-  "internal_note": "Analyzing Last Message: [INSERT_LAST_MESSAGE]. Is it a Question? [YES/NO]",
-  "category": "MUST_SELECT_ONE_FROM_ENUMS",
-  "priority": "MUST_SELECT_ONE_FROM_ENUMS",
-  "queue": "MUST_SELECT_ONE_FROM_ENUMS",
-  "next_action": "MUST_SELECT_ONE_FROM_ENUMS",
-  "confidence": 1.0,
+  "internal_note": "Last Msg: [INSERT_TEXT]. Intent: [COMMAND/QUESTION]. Knowledge: [FOUND/EMPTY].",
+  "category": "SELECT_FROM_ENUMS",
+  "priority": "SELECT_FROM_ENUMS",
+  "queue": "SELECT_FROM_ENUMS",
+  "next_action": "SELECT_FROM_ENUMS",
+  "confidence": 0.9,
   "clarifying_question": null,
   "draft_reply": null,
   "action_parameters": \{
@@ -39,14 +53,9 @@ INPUT DATA:
   "rationale_tags": ["latest_message"]
 \}
 
-**MANDATORY REQUIREMENTS:**
-1. `category` MUST be one of the valid Category enum values listed above
-2. `priority` MUST be one of the valid Priority enum values listed above
-3. `queue` MUST be one of the valid Queue enum values listed above
-4. `next_action` MUST be one of the valid Action enum values listed above
-5. Never leave any of these fields as "SELECT_FROM_ENUMS" or "MUST_SELECT_ONE_FROM_ENUMS"
-6. Always return valid enum values for these four fields
-
-**OVERRIDE RULES:**
-1. If `internal_note` says "Is it a Question? YES", then `action_parameters` MUST be `null`.
-2. If `internal_note` says "Is it a Question? NO", then replace the `null` in `action_parameters` with the value from the text.
+**CRITICAL OVERRIDES (You MUST apply these):**
+1. If Action=`UPDATE_CUSTOMER_PROFILE`, replace `null` in `action_parameters` with the EXTRACTED VALUE.
+2. If Action=`AUTO_RESOLVE`, replace `draft_reply` `null` with a summary of `{relevant_articles}`. **DO NOT use placeholders.**
+3. If Action=`ASK_CLARIFYING`, replace `clarifying_question` `null` with a specific question.
+4. If Action=`ASSIGN_QUEUE`, ensure `draft_reply` is `null`.
+5. **Update `confidence` based on the Calculation Rule (1.0 or 0.7).**
