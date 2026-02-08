@@ -1,0 +1,157 @@
+<!doctype html>
+<html
+    lang="en"
+    xmlns:th="http://www.thymeleaf.org"
+    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/common-layout}"
+>
+<head>
+    <title>Create Support Ticket | SupportHub</title>
+</head>
+
+<body>
+<div layout:fragment="contentBody" class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div th:replace="~{fragments/flash-message :: flash-message-block}" th:remove="tag"></div>
+
+    <!-- Back -->
+    <div class="mb-8">
+        <a th:href="@{/tickets}"
+           class="inline-flex items-center text-sm text-text-secondary hover:text-text-primary font-medium transition-colors">
+            <i class="fas fa-arrow-left mr-2 text-xs"></i>
+            Back to My Tickets
+        </a>
+    </div>
+
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-start gap-4">
+            <div class="w-11 h-11 rounded-2xl bg-surface-alt border border-subtle flex items-center justify-center shrink-0">
+                <i class="fas fa-ticket-alt text-primary"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-text-primary">
+                    Create Support Ticket
+                </h1>
+                <p class="mt-1 text-text-muted">
+                    Keep the subject short. Put the full context in the message.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Layout: Tips (left) + Form (right) -->
+    <div class="grid grid-cols-12 gap-6">
+        <!-- Left rail: Quick tips + Example -->
+        <aside class="col-span-12 lg:col-span-4 space-y-6">
+            <section class="bg-surface border border-subtle rounded-2xl shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-subtle">
+                    <h3 class="text-base font-semibold text-text-primary flex items-center gap-2">
+                        <i class="fas fa-clipboard-check text-primary"></i>
+                        Quick tips
+                    </h3>
+                    <p class="text-sm text-text-muted mt-1">Small details = faster fixes.</p>
+                </div>
+
+                <div class="px-6 py-6 text-sm text-text-secondary space-y-3">
+                    <div class="flex gap-3">
+                        <i class="far fa-check-circle text-text-subtle mt-0.5"></i>
+                        <p>Copy/paste the exact error message.</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <i class="far fa-check-circle text-text-subtle mt-0.5"></i>
+                        <p>Add timestamps and environment (device/browser).</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <i class="far fa-check-circle text-text-subtle mt-0.5"></i>
+                        <p>Include IDs (order/user/payment) if applicable.</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <i class="far fa-check-circle text-text-subtle mt-0.5"></i>
+                        <p>Never include passwords, OTPs, or private keys.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bg-surface border border-subtle rounded-2xl shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-subtle">
+                    <h3 class="text-base font-semibold text-text-primary flex items-center gap-2">
+                        <i class="far fa-lightbulb text-primary"></i>
+                        Example of a strong report
+                    </h3>
+                </div>
+
+                <div class="px-6 py-6 text-sm text-text-secondary space-y-3">
+                    <div class="bg-surface-alt border border-subtle rounded-2xl p-4">
+                        <p class="text-xs uppercase tracking-wide font-semibold text-text-muted">Subject</p>
+                        <p class="mt-1 font-semibold text-text-primary">
+                            Checkout fails with 500 after applying coupon
+                        </p>
+                    </div>
+
+                    <div class="bg-surface-alt border border-subtle rounded-2xl p-4 space-y-2">
+                        <p class="text-xs uppercase tracking-wide font-semibold text-text-muted">Message</p>
+
+                        <div>
+                            <p class="mt-1"><span class="font-semibold text-text-primary">Steps:</span> Add item → apply code SAVE10 → click Pay</p>
+                        </div>
+                        <div>
+                            <p class="mt-1"><span class="font-semibold text-text-primary">Expected:</span> Payment completes</p>
+                        </div>
+                        <div>
+                            <p class="mt-1"><span class="font-semibold text-text-primary">Actual:</span> 500 error + screenshot + timestamp</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </aside>
+
+        <!-- Right: Form -->
+        <section class="col-span-12 lg:col-span-8 bg-surface border border-subtle rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 sm:px-8 py-5 border-b border-subtle">
+                <h2 class="text-lg font-semibold text-text-primary">Ticket details</h2>
+                <p class="text-sm text-text-muted mt-1">Brief subject up top; details below.</p>
+            </div>
+
+            <div class="px-6 sm:px-8 py-6">
+                <form th:object="${createTicketDto}" method="post" class="space-y-6">
+                    <div
+                        th:replace="~{fragments/form-fields :: input(
+                            field='subject',
+                            label='Subject',
+                            placeholder='Brief description of your issue'
+                        )}"
+                    ></div>
+
+                    <div
+                        th:replace="~{fragments/form-fields :: textarea(
+                            field='content',
+                            label='Message',
+                            placeholder='Please describe your issue in detail...',
+                            rows='10'
+                        )}"
+                    ></div>
+
+                    <div class="flex items-start gap-3 px-4 py-4 bg-surface-alt rounded-2xl border border-subtle">
+                        <i class="fas fa-info-circle text-info mt-0.5 text-sm"></i>
+                        <div class="text-sm">
+                            <p class="font-medium text-text-primary">Please be as detailed as possible</p>
+                            <p class="text-text-muted">Minimum 10 characters, maximum 10000 characters</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 flex items-center justify-end">
+                        <button
+                            type="submit"
+                            class="inline-flex items-center justify-center px-6 py-3 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-info focus:ring-offset-2"
+                        >
+                            <i class="fas fa-paper-plane mr-2"></i>
+                            Create Ticket
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+</div>
+</body>
+</html>

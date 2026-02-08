@@ -2,12 +2,16 @@ package com.dsi.support.agenticrouter.repository;
 
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
+import com.dsi.support.agenticrouter.enums.TicketStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.List;
 
 public interface SupportTicketRepository extends JpaRepository<SupportTicket, Long> {
@@ -18,6 +22,16 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
 
     List<SupportTicket> findTop5ByAssignedAgentIdOrderByLastActivityAtDesc(
         Long assignedAgentId
+    );
+
+    List<SupportTicket> findByLastActivityAtBeforeAndStatusIn(
+        Instant before,
+        List<TicketStatus> statuses
+    );
+
+    List<SupportTicket> findByStatusInAndLastActivityAtBefore(
+        EnumSet<TicketStatus> statuses,
+        Instant before
     );
 
     @Query("""
@@ -164,4 +178,96 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         @Param("customerId") Long customerId
     );
 
+    Page<SupportTicket> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
+
+    @Query("""
+            select supportTicket
+            from SupportTicket supportTicket
+            where (:queue is null or supportTicket.assignedQueue = :queue)
+              and (:status is null or supportTicket.status = :status)
+            order by supportTicket.currentPriority desc, supportTicket.lastActivityAt asc
+        """)
+    Page<SupportTicket> findQueueTickets(
+        @Param("queue") TicketQueue ticketQueue,
+        @Param("status") TicketStatus ticketStatus,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT supportTicket
+        FROM SupportTicket supportTicket
+        WHERE supportTicket.assignedAgent.id IS NULL
+          AND supportTicket.assignedQueue = :queue
+          AND supportTicket.status IN :statuses
+        ORDER BY supportTicket.currentPriority DESC, supportTicket.createdAt ASC
+        """)
+    Page<SupportTicket> findUnassignedTicketsInQueue(
+        @Param("queue") TicketQueue queue,
+        @Param("statuses") List<TicketStatus> statuses,
+        Pageable pageable
+    );
+
+    Page<SupportTicket> findByStatusAndAssignedQueueIsNull(
+        @Param("status") TicketStatus status,
+        Pageable pageable
+    );
+
+    @Query("""
+        SELECT COUNT(ticket)
+        FROM SupportTicket ticket
+        WHERE ticket.assignedAgent.id = :agentId
+        """)
+    long countAssignedTicketsInQueue(
+        @Param("agentId") Long agentId
+    );
+
+    @Query("""
+        SELECT COUNT(ticket)
+        FROM SupportTicket ticket
+        WHERE ticket.assignedAgent.id = :agentId
+        AND ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.IN_PROGRESS
+        """)
+    long countInProgressTickets(
+        @Param("agentId") Long agentId
+    );
+
+    @Query("""
+        SELECT COUNT(ticket)
+        FROM SupportTicket ticket
+        WHERE ticket.assignedAgent.id = :agentId
+        AND ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.RESOLVED
+        """)
+    long countResolvedTickets(
+        @Param("agentId") Long agentId
+    );
+
+    @Query("""
+        SELECT COUNT(ticket)
+        FROM SupportTicket ticket
+        WHERE ticket.assignedAgent.id = :agentId
+        AND ticket.escalated = true
+        """)
+    long countEscalatedTickets(
+        @Param("agentId") Long agentId
+    );
+
+    @Query("""
+        SELECT COUNT(ticket)
+        FROM SupportTicket ticket
+        WHERE ticket.assignedAgent.id = :agentId
+        AND ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.WAITING_CUSTOMER
+        """)
+    long countAwaitingCustomerTickets(
+        @Param("agentId") Long agentId
+    );
+
+    @Query("""
+        SELECT COUNT(ticket)
+        FROM SupportTicket ticket
+        WHERE ticket.assignedAgent.id = :agentId
+        AND ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.TRIAGING
+        """)
+    long countTriagingTickets(
+        @Param("agentId") Long agentId
+    );
 }

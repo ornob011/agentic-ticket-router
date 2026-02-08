@@ -1,12 +1,12 @@
 package com.dsi.support.agenticrouter.entity;
 
-import com.dsi.support.agenticrouter.enums.ConfigValueType;
+import com.dsi.support.agenticrouter.enums.PolicyConfigKey;
 import com.dsi.support.agenticrouter.validator.ValidPolicyConfig;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.*;
+
+import java.math.BigDecimal;
 
 @Entity
 @Table(
@@ -26,34 +26,22 @@ import lombok.*;
 @ValidPolicyConfig
 public class PolicyConfig extends BaseEntity {
 
-    @NotBlank
-    @Size(max = 100)
-    @Column(
-        name = "config_key",
-        nullable = false,
-        unique = true,
-        length = 100
-    )
-    private String configKey;
-
-    @NotBlank
-    @Size(max = 500)
-    @Column(
-        name = "config_value",
-        nullable = false,
-        length = 500
-    )
-    private String configValue;
-
     @NotNull
     @Enumerated(
         EnumType.STRING
     )
     @Column(
-        name = "value_type",
+        name = "config_key",
+        nullable = false,
+        unique = true
+    )
+    private PolicyConfigKey configKey;
+
+    @Column(
+        name = "config_value",
         nullable = false
     )
-    private ConfigValueType valueType;
+    private BigDecimal configValue;
 
     @Column(
         name = "description",
@@ -68,37 +56,32 @@ public class PolicyConfig extends BaseEntity {
     )
     private boolean active = true;
 
-    @Size(max = 500)
     @Column(
-        name = "default_value",
-        length = 500
+        name = "default_value"
     )
-    private String defaultValue;
+    private BigDecimal defaultValue;
 
     @Column(
-        name = "min_value",
-        length = 50
+        name = "min_value"
     )
-    private String minValue;
+    private BigDecimal minValue;
 
     @Column(
-        name = "max_value",
-        length = 50
+        name = "max_value"
     )
-    private String maxValue;
+    private BigDecimal maxValue;
 
     @Override
     public String toString() {
         return "PolicyConfig{" +
                "id=" + getId() +
-               ", configKey='" + configKey + '\'' +
-               ", configValue='" + configValue + '\'' +
-               ", valueType=" + valueType +
+               ", configKey=" + configKey +
+               ", configValue=" + configValue +
                ", description='" + description + '\'' +
                ", active=" + active +
-               ", defaultValue='" + defaultValue + '\'' +
-               ", minValue='" + minValue + '\'' +
-               ", maxValue='" + maxValue + '\'' +
+               ", defaultValue=" + defaultValue +
+               ", minValue=" + minValue +
+               ", maxValue=" + maxValue +
                '}';
     }
 }

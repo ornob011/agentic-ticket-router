@@ -52,7 +52,7 @@ public record DashboardDto(
         long totalTickets,
         String activeModelTag,
         double routingSuccessRate,
-        long recentAuditEvents
+        Long avgRoutingLatency
     ) {
     }
 

@@ -1,8 +1,11 @@
 package com.dsi.support.agenticrouter.service.dashboard.section;
 
 import com.dsi.support.agenticrouter.dto.DashboardDto;
+import com.dsi.support.agenticrouter.enums.LlmOutputType;
 import com.dsi.support.agenticrouter.repository.AppUserRepository;
+import com.dsi.support.agenticrouter.repository.LlmOutputRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import com.dsi.support.agenticrouter.service.ModelService;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -12,13 +15,19 @@ public class AdminDashboardSectionAssembler {
 
     private final AppUserRepository appUserRepository;
     private final SupportTicketRepository supportTicketRepository;
+    private final ModelService modelService;
+    private final LlmOutputRepository llmOutputRepository;
 
     public AdminDashboardSectionAssembler(
         AppUserRepository appUserRepository,
-        SupportTicketRepository supportTicketRepository
+        SupportTicketRepository supportTicketRepository,
+        ModelService modelService,
+        LlmOutputRepository llmOutputRepository
     ) {
         this.appUserRepository = appUserRepository;
         this.supportTicketRepository = supportTicketRepository;
+        this.modelService = modelService;
+        this.llmOutputRepository = llmOutputRepository;
     }
 
     public DashboardDto.AdminData buildAdminSection() {
@@ -30,15 +39,22 @@ public class AdminDashboardSectionAssembler {
         );
 
         double routingSuccessRate = 0.0;
-
         if (totalTicketsInSystem > 0) {
             routingSuccessRate = (double) highConfidenceRoutingCount / (double) totalTicketsInSystem;
         }
 
-        return DashboardDto.AdminData.builder()
-                                     .totalUsers(totalRegisteredUsers)
-                                     .totalTickets(totalTicketsInSystem)
-                                     .routingSuccessRate(routingSuccessRate)
-                                     .build();
+        Long avgRoutingLatency = llmOutputRepository.findAverageLatencyByOutputType(
+            LlmOutputType.ROUTING
+        );
+
+        String activeModelTag = modelService.getActiveModelTag();
+
+        return new DashboardDto.AdminData(
+            totalRegisteredUsers,
+            totalTicketsInSystem,
+            activeModelTag,
+            routingSuccessRate,
+            avgRoutingLatency
+        );
     }
 }

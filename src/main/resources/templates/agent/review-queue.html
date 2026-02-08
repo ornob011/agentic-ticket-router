@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/common-layout}">
+    <head>
+        <title>Human Review Queue | SupportHub</title>
+    </head>
+
+    <body>
+        <div layout:fragment="contentBody" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div th:replace="~{fragments/flash-message :: flash-message-block}" th:remove="tag"></div>
+
+            <div class="mb-6">
+                <h1 class="text-2xl font-medium text-text-primary tracking-tight">
+                    <i class="fas fa-user-check text-primary mr-3"></i>
+                    Human Review Queue
+                </h1>
+                <p class="text-text-muted text-sm mt-2">
+                    Tickets requiring manual review before routing
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div th:if="${tickets != null and not tickets.empty}" class="lg:col-span-2 space-y-4">
+                    <th:block th:each="ticket : ${tickets}">
+                        <div class="bg-surface rounded-2xl shadow-sm border-2 border-primary-light hover:border-primary transition-all duration-300">
+                            <div class="p-6">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-3 mb-2">
+                                            <a th:href="@{/agent/tickets/{id}(id=${ticket.id})}"
+                                               class="text-xl font-bold text-text-primary hover:text-primary transition-colors">
+                                                <span th:text="${ticket.formattedTicketNo}">TKT-00000001</span>
+                                            </a>
+                                            <span class="inline-flex items-center px-2 py-1 text-xs font-bold rounded-full bg-primary-light text-primary">
+                                                <i class="fas fa-robot mr-1"></i>
+                                                HUMAN_REVIEW
+                                            </span>
+                                        </div>
+                                        <p class="text-text-secondary font-medium mb-3" th:text="${ticket.subject}">Ticket subject</p>
+                                        <div class="flex items-center gap-4 text-sm">
+                                            <span class="text-text-muted">
+                                                <i class="far fa-user mr-1"></i>
+                                                <span th:text="${ticket.customer.fullName}">Customer Name</span>
+                                            </span>
+                                            <span class="text-text-muted">
+                                                <i class="far fa-clock mr-1"></i>
+                                                <span th:text="${#temporals.format(ticket.createdAt, 'yyyy-MM-dd HH:mm')}">2024-01-15 10:30</span>
+                                            </span>
+                                            <span th:if="${ticket.latestRouting != null}" class="text-text-muted">
+                                                <i class="fas fa-signal mr-1"></i>
+                                                Confidence: <span th:text="${#numbers.formatDecimal(ticket.latestRouting.confidence, '#,##0.00')}">0.65</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="ml-4">
+                                        <a th:href="@{/agent/tickets/{id}(id=${ticket.id})}"
+                                           class="inline-flex items-center px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl shadow-sm transition-colors">
+                                            <i class="fas fa-eye mr-2"></i>
+                                            Review
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div th:if="${ticket.latestRouting != null}" class="mt-4 pt-4 border-t border-subtle">
+                                    <h4 class="text-xs font-semibold uppercase tracking-widest text-text-muted mb-3">AI Routing Decision</h4>
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                        <div>
+                                            <span class="text-xs text-text-muted font-medium">Category</span>
+                                            <p class="text-text-primary font-medium" th:text="${ticket.latestRouting.category}">Category</p>
+                                        </div>
+                                        <div>
+                                            <span class="text-xs text-text-muted font-medium">Priority</span>
+                                            <p class="text-text-primary font-medium" th:text="${ticket.latestRouting.priority}">Priority</p>
+                                        </div>
+                                        <div>
+                                            <span class="text-xs text-text-muted font-medium">Queue</span>
+                                            <p class="text-text-primary font-medium" th:text="${ticket.latestRouting.queue}">Queue</p>
+                                        </div>
+                                        <div>
+                                            <span class="text-xs text-text-muted font-medium">Confidence</span>
+                                            <div class="flex items-center gap-2">
+                                                <div class="w-20 bg-subtle rounded-full h-2">
+                                                    <div class="h-2 rounded-full"
+                                                         th:style="'width: ' + (${ticket.latestRouting.confidence * 100}) + '%'"
+                                                         th:classappend="${ticket.latestRouting.confidence >= 0.7} ? 'bg-error' : 'bg-warning'}"></div>
+                                                </div>
+                                                <span class="text-sm font-medium" th:text="${#numbers.formatDecimal(ticket.latestRouting.confidence, '#,##0.00')}">0.65</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div th:if="${ticket.latestRouting.clarifyingQuestion != null and not #strings.isEmpty(ticket.latestRouting.clarifyingQuestion)}" class="mt-3">
+                                        <span class="text-xs text-text-muted font-medium">Clarifying Question</span>
+                                        <p class="text-sm text-text-muted italic" th:text="${ticket.latestRouting.clarifyingQuestion}">Question</p>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 pt-4 border-t border-subtle">
+                                    <h4 class="text-xs font-semibold uppercase tracking-widest text-text-muted mb-3">Quick Actions</h4>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button type="button" th:attr="data-ticket-id=${ticket.id}, data-queue-value=${ticket.latestRouting != null ? ticket.latestRouting.queue : ''}"
+                                                class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-text-secondary bg-surface-alt hover:bg-surface rounded-lg transition-colors js-assign-queue">
+                                            <i class="fas fa-inbox mr-1"></i>
+                                            Assign Queue
+                                        </button>
+                                        <button type="button" th:attr="data-ticket-id=${ticket.id}, data-priority-value=${ticket.currentPriority}"
+                                                class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-text-secondary bg-surface-alt hover:bg-surface rounded-lg transition-colors js-change-priority">
+                                            <i class="fas fa-flag mr-1"></i>
+                                            Change Priority
+                                        </button>
+                                        <button type="button" th:attr="data-ticket-id=${ticket.id}"
+                                                class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-warning hover:bg-warning-dark rounded-lg transition-colors js-assign-agent">
+                                            <i class="fas fa-user-tag mr-1"></i>
+                                            Assign to Me
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </th:block>
+                    </div>
+
+                    <div th:if="${tickets != null and tickets.totalPages > 1}" class="border-t border-subtle pt-4">
+                        <nav class="flex items-center justify-between">
+                            <div class="text-sm text-text-secondary">
+                                Showing <span class="font-medium" th:text="${(tickets.number * tickets.size) + 1}">1</span>
+                                to <span class="font-medium" th:text="${(tickets.number * tickets.size) + tickets.numberOfElements}">20</span>
+                                of <span class="font-medium" th:text="${tickets.totalElements}">100</span> results
+                            </div>
+                            <div class="flex gap-2">
+                                <a th:if="${tickets.hasPrevious()}"
+                                   th:href="@{/agent/review-queue(page=${tickets.number - 1})}"
+                                   class="px-4 py-2 text-sm font-medium text-text-secondary bg-surface border border-subtle rounded-lg hover:bg-surface-alt">
+                                    Previous
+                                </a>
+                                <span th:if="${not tickets.hasPrevious()}"
+                                      class="px-4 py-2 text-sm font-medium text-text-subtle bg-surface-alt border border-subtle rounded-lg">
+                                    Previous
+                                </span>
+                                <a th:if="${tickets.hasNext()}"
+                                   th:href="@{/agent/review-queue(page=${tickets.number + 1})}"
+                                   class="px-4 py-2 text-sm font-medium text-text-secondary bg-surface border border-subtle rounded-lg hover:bg-surface-alt">
+                                    Next
+                                </a>
+                                <span th:if="${not tickets.hasNext()}"
+                                      class="px-4 py-2 text-sm font-medium text-text-subtle bg-surface-alt border border-subtle rounded-lg">
+                                    Next
+                                </span>
+                            </div>
+                        </nav>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-surface border border-subtle rounded-2xl p-6">
+                        <h3 class="text-lg font-medium text-text-primary mb-4 flex items-center gap-2">
+                            <i class="fas fa-filter text-primary"></i>
+                            Queue Filters
+                        </h3>
+                        <div class="space-y-3">
+                            <a th:href="@{/agent/review-queue}"
+                               class="block px-4 py-3 text-sm font-medium text-text-secondary bg-surface-alt hover:bg-surface rounded-xl transition-colors">
+                                All Tickets
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="bg-surface border border-subtle rounded-2xl p-6">
+                        <h3 class="text-lg font-medium text-text-primary mb-4 flex items-center gap-2">
+                            <i class="fas fa-info-circle text-primary"></i>
+                            About Human Review
+                        </h3>
+                        <div class="text-sm text-text-muted space-y-3">
+                            <p>
+                                Tickets in this queue require manual review before automated routing can proceed.
+                            </p>
+                            <p>
+                                <span class="font-medium text-text-primary">Common reasons:</span>
+                            </p>
+                            <ul class="list-disc list-inside space-y-1 text-text-muted">
+                                <li>Low confidence score from AI model</li>
+                                <li>Invalid JSON structure in AI response</li>
+                                <li>Security/PII policy triggers</li>
+                                <li>Ambiguous or incomplete ticket information</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${tickets == null or tickets.empty}" class="text-center py-12">
+                <i class="fas fa-user-check text-5xl text-success-light mb-4"></i>
+                <p class="text-text-secondary text-lg">No tickets pending review</p>
+                <p class="text-text-muted text-sm mt-2">All tickets have been successfully routed</p>
+            </div>
+        </div>
+
+        <div layout:fragment="scripts">
+            <script th:inline="javascript">
+                document.querySelectorAll('.js-assign-queue').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const ticketId = this.getAttribute('data-ticket-id');
+                        const queue = this.getAttribute('data-queue-value');
+                        
+                        if (queue) {
+                            const form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = '/agent/tickets/' + ticketId + '/assign-queue';
+                            
+                            const queueInput = document.createElement('input');
+                            queueInput.type = 'hidden';
+                            queueInput.name = 'queue';
+                            queueInput.value = queue;
+                            
+                            form.appendChild(queueInput);
+                            document.body.appendChild(form);
+                            form.submit();
+                        } else {
+                            alert('No queue suggested by AI. Please select a queue manually.');
+                        }
+                    });
+                });
+
+                document.querySelectorAll('.js-change-priority').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const ticketId = this.getAttribute('data-ticket-id');
+                        const priority = this.getAttribute('data-priority-value');
+                        
+                        if (confirm('Change priority to: ' + priority + '?')) {
+                            const form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = '/agent/tickets/' + ticketId + '/priority';
+                            
+                            const priorityInput = document.createElement('input');
+                            priorityInput.type = 'hidden';
+                            priorityInput.name = 'priority';
+                            priorityInput.value = priority;
+                            
+                            form.appendChild(priorityInput);
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+                    });
+                });
+
+                document.querySelectorAll('.js-assign-agent').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const ticketId = this.getAttribute('data-ticket-id');
+                        
+                        if (confirm('Assign this ticket to yourself?')) {
+                            const form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = '/agent/tickets/' + ticketId + '/assign-me';
+                            
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+                    });
+                });
+            </script>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,342 @@
+<!doctype html>
+<html
+    lang="en"
+    xmlns:th="http://www.thymeleaf.org"
+    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/common-layout}"
+>
+    <head>
+        <title>Escalations | SupportHub</title>
+    </head>
+
+    <body>
+        <div layout:fragment="contentBody" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div th:replace="~{fragments/flash-message :: flash-message-block}" th:remove="tag"></div>
+
+            <div class="mb-6">
+                <h1 class="text-2xl font-medium text-text-primary tracking-tight">
+                    <i class="fas fa-exclamation-triangle text-warning mr-3"></i>
+                    Escalations
+                </h1>
+            </div>
+
+            <div class="bg-surface border border-subtle rounded-2xl shadow-sm overflow-hidden">
+                <div class="border-b border-subtle">
+                    <nav class="flex -mb-px">
+                        <a
+                            th:href="@{/supervisor/escalations}"
+                            th:class="${selectedStatus == null} ? 'border-warning text-warning' : 'border-transparent text-text-muted hover:text-text-secondary hover:border-subtle'}"
+                            class="border-b-2 px-6 py-4 text-sm font-medium"
+                        >
+                            All
+                        </a>
+                        <a
+                            th:href="@{/supervisor/escalations(status=${T(com.dsi.support.agenticrouter.enums.EscalationFilterStatus).PENDING.name()})"
+                            th:class="${selectedStatus != null and selectedStatus.name() == 'PENDING'} ? 'border-warning text-warning' : 'border-transparent text-text-muted hover:text-text-secondary hover:border-subtle'}"
+                            class="border-b-2 px-6 py-4 text-sm font-medium"
+                        >
+                            Pending
+                            <span
+                                th:if="${escalations != null and escalations.totalElements > 0}"
+                                class="ml-2 bg-warning-light text-warning px-2 py-0.5 rounded-full text-xs font-bold"
+                                th:text="${escalations?.totalElements ?: 0}"
+                                >0</span
+                            >
+                        </a>
+                        <a
+                            th:href="@{/supervisor/escalations(status=${T(com.dsi.support.agenticrouter.enums.EscalationFilterStatus).RESOLVED.name()})"
+                            th:class="${selectedStatus != null and selectedStatus.name() == 'RESOLVED'} ? 'border-warning text-warning' : 'border-transparent text-text-muted hover:text-text-secondary hover:border-subtle'}"
+                            class="border-b-2 px-6 py-4 text-sm font-medium"
+                        >
+                            Resolved
+                        </a>
+                    </nav>
+                </div>
+
+                <div th:if="${escalations == null or escalations.empty}" class="p-12 text-center">
+                    <i class="fas fa-check-circle text-5xl text-success-light mb-4"></i>
+                    <p class="text-text-secondary text-lg">No escalations found</p>
+                </div>
+
+                <div th:if="${escalations != null and not escalations.empty}" class="divide-y divide-subtle">
+                    <div th:each="escalation : ${escalations}" class="hover:bg-surface-alt transition-colors duration-200">
+                        <div class="px-6 py-5">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <a
+                                            th:href="@{/agent/tickets/{id}(id=${escalation.ticket.id})}"
+                                            class="text-lg font-semibold text-text-primary hover:text-primary transition-colors"
+                                        >
+                                            <span th:text="${escalation.ticket.formattedTicketNo}">TKT-00000001</span>
+                                        </a>
+                                        <span
+                                            class="text-sm text-text-muted"
+                                            th:text="'| ' + ${escalation.ticket.subject}"
+                                            >Ticket Subject</span
+                                        >
+                                    </div>
+                                    <p class="text-text-muted text-sm mb-3" th:text="${escalation.reason}">
+                                        Escalation reason
+                                    </p>
+                                    <div class="flex items-center gap-4 text-sm">
+                                        <span class="text-text-muted">
+                                            <i class="far fa-clock mr-1"></i>
+                                            <span
+                                                th:text="${#temporals.format(escalation.createdAt, 'yyyy-MM-dd HH:mm')}"
+                                                >2024-01-15 10:30</span
+                                            >
+                                        </span>
+                                        <span
+                                            th:class="${escalation.resolved} ? 'px-2 py-1 text-xs font-bold rounded-full bg-success-light text-success' : 'px-2 py-1 text-xs font-bold rounded-full bg-warning-light text-warning'}"
+                                            th:text="${escalation.resolved ? 'Resolved' : 'Pending'}"
+                                            >Status</span
+                                        >
+                                    </div>
+                                </div>
+                                <div class="flex flex-col gap-2 ml-4">
+                                    <a
+                                        th:href="@{/agent/tickets/{id}(id=${escalation.ticket.id})}"
+                                        class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-text-secondary bg-surface-alt hover:bg-surface rounded-lg transition-colors"
+                                    >
+                                        <i class="fas fa-eye mr-2"></i>
+                                        View
+                                    </a>
+                                    <th:block th:if="${not escalation.resolved}">
+                                        <button
+                                            type="button"
+                                            th:attr="data-escalation-id=${escalation.id}"
+                                            class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-warning hover:bg-warning-dark rounded-lg transition-colors js-resolve-btn"
+                                        >
+                                            <i class="fas fa-check mr-2"></i>
+                                            Resolve
+                                        </button>
+                                    </th:block>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    th:if="${escalations != null and escalations.totalPages > 1}"
+                    class="border-t border-subtle px-6 py-4"
+                >
+                    <nav class="flex items-center justify-between">
+                        <div class="text-sm text-text-secondary">
+                            Showing
+                            <span class="font-medium" th:text="${(escalations.number * escalations.size) + 1}">1</span>
+                            to
+                            <span
+                                class="font-medium"
+                                th:text="${(escalations.number * escalations.size) + escalations.numberOfElements}"
+                                >20</span
+                            >
+                            of <span class="font-medium" th:text="${escalations.totalElements}">100</span> results
+                        </div>
+                        <div class="flex gap-2">
+                            <a
+                                th:if="${escalations.hasPrevious()}"
+                                th:href="${selectedStatus != null ? '/supervisor/escalations?page=' + (escalations.number - 1) : '/supervisor/escalations?status=' + selectedStatus.name() + '&page=' + (escalations.number - 1)}"
+                                class="px-4 py-2 text-sm font-medium text-text-secondary bg-surface border border-subtle rounded-lg hover:bg-surface-alt"
+                            >
+                                Previous
+                            </a>
+                            <span
+                                th:if="${not escalations.hasPrevious()}"
+                                class="px-4 py-2 text-sm font-medium text-text-subtle bg-surface-alt border border-subtle rounded-lg"
+                            >
+                                Previous
+                            </span>
+                            <a
+                                th:if="${escalations.hasNext()}"
+                                th:href="${selectedStatus != null ? '/supervisor/escalations?page=' + (escalations.number + 1) : '/supervisor/escalations?status=' + selectedStatus.name() + '&page=' + (escalations.number + 1)}"
+                                class="px-4 py-2 text-sm font-medium text-text-secondary bg-surface border border-subtle rounded-lg hover:bg-surface-alt"
+                            >
+                                Next
+                            </a>
+                            <span
+                                th:if="${not escalations.hasNext()}"
+                                class="px-4 py-2 text-sm font-medium text-text-subtle bg-surface-alt border border-subtle rounded-lg"
+                            >
+                                Next
+                            </span>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div class="border-b border-gray-200">
+                    <nav class="flex -mb-px">
+                        <a
+                            th:href="@{/supervisor/escalations}"
+                            th:class="${selectedStatus == null} ? 'border-amber-500 text-amber-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="border-b-2 px-6 py-4 text-sm font-medium"
+                        >
+                            All
+                        </a>
+                        <a
+                            th:href="@{/supervisor/escalations(status=${T(com.dsi.support.agenticrouter.enums.EscalationFilterStatus).PENDING.name()})"
+                            th:class="${selectedStatus != null and selectedStatus.name() == 'PENDING'} ? 'border-amber-500 text-amber-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="border-b-2 px-6 py-4 text-sm font-medium"
+                        >
+                            Pending
+                            <span
+                                th:if="${escalations != null and escalations.totalElements > 0}"
+                                class="ml-2 bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-xs font-bold"
+                                th:text="${escalations?.totalElements ?: 0}"
+                                >0</span
+                            >
+                        </a>
+                        <a
+                            th:href="@{/supervisor/escalations(status=${T(com.dsi.support.agenticrouter.enums.EscalationFilterStatus).RESOLVED.name()})"
+                            th:class="${selectedStatus != null and selectedStatus.name() == 'RESOLVED'} ? 'border-amber-500 text-amber-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="border-b-2 px-6 py-4 text-sm font-medium"
+                        >
+                            Resolved
+                        </a>
+                    </nav>
+                </div>
+
+                <div th:if="${escalations == null or escalations.empty}" class="p-12 text-center">
+                    <i class="fas fa-check-circle text-5xl text-green-200 mb-4"></i>
+                    <p class="text-gray-600 text-lg">No escalations found</p>
+                </div>
+
+                <div th:if="${escalations != null and not escalations.empty}" class="divide-y divide-gray-200">
+                    <div th:each="escalation : ${escalations}" class="hover:bg-gray-50 transition-colors duration-200">
+                        <div class="px-6 py-5">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <a
+                                            th:href="@{/agent/tickets/{id}(id=${escalation.ticket.id})}"
+                                            class="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                                        >
+                                            <span th:text="${escalation.ticket.formattedTicketNo}">TKT-00000001</span>
+                                        </a>
+                                        <span
+                                            class="text-sm text-gray-500"
+                                            th:text="'| ' + ${escalation.ticket.subject}"
+                                            >Ticket Subject</span
+                                        >
+                                    </div>
+                                    <p class="text-gray-600 text-sm mb-3" th:text="${escalation.reason}">
+                                        Escalation reason
+                                    </p>
+                                    <div class="flex items-center gap-4 text-sm">
+                                        <span class="text-gray-500">
+                                            <i class="far fa-clock mr-1"></i>
+                                            <span
+                                                th:text="${#temporals.format(escalation.createdAt, 'yyyy-MM-dd HH:mm')}"
+                                                >2024-01-15 10:30</span
+                                            >
+                                        </span>
+                                        <span
+                                            th:class="${escalation.resolved} ? 'px-2 py-1 text-xs font-bold rounded-full bg-green-100 text-green-800' : 'px-2 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-800'"
+                                            th:text="${escalation.resolved ? 'Resolved' : 'Pending'}"
+                                            >Status</span
+                                        >
+                                    </div>
+                                </div>
+                                <div class="flex flex-col gap-2 ml-4">
+                                    <a
+                                        th:href="@{/agent/tickets/{id}(id=${escalation.ticket.id})}"
+                                        class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                                    >
+                                        <i class="fas fa-eye mr-2"></i>
+                                        View
+                                    </a>
+                                    <th:block th:if="${not escalation.resolved}">
+                                        <button
+                                            type="button"
+                                            th:attr="data-escalation-id=${escalation.id}"
+                                            class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors js-resolve-btn"
+                                        >
+                                            <i class="fas fa-check mr-2"></i>
+                                            Resolve
+                                        </button>
+                                    </th:block>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    th:if="${escalations != null and escalations.totalPages > 1}"
+                    class="border-t border-gray-200 px-6 py-4"
+                >
+                    <nav class="flex items-center justify-between">
+                        <div class="text-sm text-gray-700">
+                            Showing
+                            <span class="font-medium" th:text="${(escalations.number * escalations.size) + 1}">1</span>
+                            to
+                            <span
+                                class="font-medium"
+                                th:text="${(escalations.number * escalations.size) + escalations.numberOfElements}"
+                                >20</span
+                            >
+                            of <span class="font-medium" th:text="${escalations.totalElements}">100</span> results
+                        </div>
+                        <div class="flex gap-2">
+                            <a
+                                th:if="${escalations.hasPrevious()}"
+                                th:href="${selectedStatus != null ? '/supervisor/escalations?page=' + (escalations.number - 1) : '/supervisor/escalations?status=' + selectedStatus.name() + '&page=' + (escalations.number - 1)}"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                            >
+                                Previous
+                            </a>
+                            <span
+                                th:if="${not escalations.hasPrevious()}"
+                                class="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-50 border border-gray-200 rounded-lg"
+                            >
+                                Previous
+                            </span>
+                            <a
+                                th:if="${escalations.hasNext()}"
+                                th:href="${selectedStatus != null ? '/supervisor/escalations?page=' + (escalations.number + 1) : '/supervisor/escalations?status=' + selectedStatus.name() + '&page=' + (escalations.number + 1)}"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                            >
+                                Next
+                            </a>
+                            <span
+                                th:if="${not escalations.hasNext()}"
+                                class="px-4 py-2 text-sm font-medium text-gray-400 bg-gray-50 border border-gray-200 rounded-lg"
+                            >
+                                Next
+                            </span>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <div layout:fragment="scripts">
+            <script th:inline="javascript">
+                document.querySelectorAll(".js-resolve-btn").forEach((btn) => {
+                    btn.addEventListener("click", function () {
+                        const escalationId = this.getAttribute("data-escalation-id");
+                        const notes = prompt("Enter resolution notes:");
+
+                        if (notes && notes.trim()) {
+                            const form = document.createElement("form");
+                            form.method = "POST";
+                            form.action = "/supervisor/escalations/" + escalationId + "/resolve";
+
+                            const notesInput = document.createElement("input");
+                            notesInput.type = "hidden";
+                            notesInput.name = "resolutionNotes";
+                            notesInput.value = notes;
+
+                            form.appendChild(notesInput);
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+                    });
+                });
+            </script>
+        </div>
+    </body>
+</html>

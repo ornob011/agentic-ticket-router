@@ -8,17 +8,17 @@
         <!-- Success Message -->
         <th:block th:if="${session.flushSuccessMessage != null}">
             <div
-                class="flash-message pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-green-200 bg-green-50 text-green-800 shadow-lg"
+                class="flash-message pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-success-light bg-success-lightest text-success-dark shadow-lg"
                 role="alert"
                 aria-live="polite"
             >
                 <div class="flex items-center gap-3 min-w-0">
-                    <i class="fa fa-circle-check text-green-600 text-lg flex-shrink-0" aria-hidden="true"></i>
+                    <i class="fa fa-circle-check text-success text-lg flex-shrink-0" aria-hidden="true"></i>
                     <p class="text-sm font-medium truncate" th:text="${session.flushSuccessMessage}">Success message</p>
                 </div>
                 <button
                     type="button"
-                    class="js-flash-dismiss flex-shrink-0 p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded transition-colors"
+                    class="js-flash-dismiss flex-shrink-0 p-1 text-success hover:text-success-dark hover:bg-success-light rounded transition-colors"
                     aria-label="Dismiss message"
                 >
                     <i class="fa fa-xmark text-lg" aria-hidden="true"></i>
@@ -29,17 +29,17 @@
         <!-- Error Message -->
         <th:block th:if="${session.flushErrorMessage != null}">
             <div
-                class="flash-message pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-red-200 bg-red-50 text-red-800 shadow-lg"
+                class="flash-message pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-error-light bg-error-lightest text-error-dark shadow-lg"
                 role="alert"
                 aria-live="assertive"
             >
                 <div class="flex items-center gap-3 min-w-0">
-                    <i class="fa fa-triangle-exclamation text-red-600 text-lg flex-shrink-0" aria-hidden="true"></i>
+                    <i class="fa fa-triangle-exclamation text-error text-lg flex-shrink-0" aria-hidden="true"></i>
                     <p class="text-sm font-medium truncate" th:text="${session.flushErrorMessage}">Error message</p>
                 </div>
                 <button
                     type="button"
-                    class="js-flash-dismiss flex-shrink-0 p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded transition-colors"
+                    class="js-flash-dismiss flex-shrink-0 p-1 text-error hover:text-error-dark hover:bg-error-light rounded transition-colors"
                     aria-label="Dismiss message"
                 >
                     <i class="fa fa-xmark text-lg" aria-hidden="true"></i>
@@ -50,17 +50,17 @@
         <!-- Warning Message -->
         <th:block th:if="${session.flushWarningMessage != null}">
             <div
-                class="flash-message pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 shadow-lg"
+                class="flash-message pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-warning-light bg-warning-lightest text-warning-dark shadow-lg"
                 role="alert"
                 aria-live="polite"
             >
                 <div class="flex items-center gap-3 min-w-0">
-                    <i class="fa fa-triangle-exclamation text-amber-600 text-lg flex-shrink-0" aria-hidden="true"></i>
+                    <i class="fa fa-triangle-exclamation text-warning text-lg flex-shrink-0" aria-hidden="true"></i>
                     <p class="text-sm font-medium truncate" th:text="${session.flushWarningMessage}">Warning message</p>
                 </div>
                 <button
                     type="button"
-                    class="js-flash-dismiss flex-shrink-0 p-1 text-amber-600 hover:text-amber-800 hover:bg-amber-100 rounded transition-colors"
+                    class="js-flash-dismiss flex-shrink-0 p-1 text-warning hover:text-warning-dark hover:bg-warning-light rounded transition-colors"
                     aria-label="Dismiss message"
                 >
                     <i class="fa fa-xmark text-lg" aria-hidden="true"></i>
@@ -71,17 +71,17 @@
         <!-- Info Message -->
         <th:block th:if="${session.flushInfoMessage != null}">
             <div
-                class="flash-message pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-blue-200 bg-blue-50 text-blue-800 shadow-lg"
+                class="flash-message pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-info-light bg-info-lightest text-info-dark shadow-lg"
                 role="alert"
                 aria-live="polite"
             >
                 <div class="flex items-center gap-3 min-w-0">
-                    <i class="fa fa-circle-info text-blue-600 text-lg flex-shrink-0" aria-hidden="true"></i>
+                    <i class="fa fa-circle-info text-info text-lg flex-shrink-0" aria-hidden="true"></i>
                     <p class="text-sm font-medium truncate" th:text="${session.flushInfoMessage}">Info message</p>
                 </div>
                 <button
                     type="button"
-                    class="js-flash-dismiss flex-shrink-0 p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
+                    class="js-flash-dismiss flex-shrink-0 p-1 text-info hover:text-info-dark hover:bg-info-light rounded transition-colors"
                     aria-label="Dismiss message"
                 >
                     <i class="fa fa-xmark text-lg" aria-hidden="true"></i>

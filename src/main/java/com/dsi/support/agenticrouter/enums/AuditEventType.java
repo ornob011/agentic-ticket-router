@@ -15,6 +15,7 @@ public enum AuditEventType {
     QUEUE_ASSIGNED("Ticket assigned to queue"),
     AGENT_ASSIGNED("Ticket assigned to specific agent"),
     ESCALATION_CREATED("Escalation created"),
+    ESCALATION_RESOLVED("Escalation resolved"),
     PRIORITY_CHANGED("Priority changed"),
     NOTIFICATION_SENT("Notification sent to user"),
     SLA_BREACH("SLA threshold breached"),
@@ -22,7 +23,9 @@ public enum AuditEventType {
     TICKET_REOPENED("Ticket reopened"),
     POLICY_GATE_TRIGGERED("Policy gate triggered"),
     MODEL_INFERENCE_FAILED("Model inference failed"),
-    MANUAL_INTERVENTION("Manual intervention by staff");
+    MANUAL_INTERVENTION("Manual intervention by staff"),
+    TICKET_ANALYSIS_EXECUTED("Ticket analysis executed"),
+    TICKET_ANALYSIS_FAILED("Ticket analysis failed");
 
     private static final Set<AuditEventType> SYSTEM_GENERATED =
         EnumSet.of(
@@ -37,6 +40,16 @@ public enum AuditEventType {
             MODEL_INFERENCE_FAILED
         );
 
+    private static final Set<AuditEventType> CUSTOMER_VISIBLE =
+        EnumSet.of(
+            QUEUE_ASSIGNED,
+            AGENT_ASSIGNED,
+            ESCALATION_CREATED,
+            PRIORITY_CHANGED,
+            TICKET_STATUS_CHANGED,
+            TICKET_REOPENED
+        );
+
     private final String description;
 
     AuditEventType(String description) {
@@ -49,5 +62,13 @@ public enum AuditEventType {
 
     public boolean isErrorEvent() {
         return ERROR_EVENTS.contains(this);
+    }
+
+    public boolean isCustomerVisible() {
+        return CUSTOMER_VISIBLE.contains(this);
+    }
+
+    public static Set<AuditEventType> getCustomerVisible() {
+        return CUSTOMER_VISIBLE;
     }
 }

@@ -1,0 +1,114 @@
+<!doctype html>
+<html
+    lang="en"
+    xmlns:th="http://www.thymeleaf.org"
+    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layouts/common-layout}"
+>
+    <head>
+        <title>Model Registry | SupportHub</title>
+    </head>
+
+    <body>
+        <div layout:fragment="contentBody" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div th:replace="~{fragments/flash-message :: flash-message-block}" th:remove="tag"></div>
+
+            <div class="mb-6">
+                <h1 class="text-2xl font-medium text-text-primary tracking-tight">
+                    <i class="fas fa-robot text-primary mr-3"></i>
+                    Model Registry
+                </h1>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <th:block th:each="model : ${models}">
+                    <div
+                        class="bg-surface rounded-2xl shadow-sm border-2 transition-all duration-300"
+                        th:classappend="${model.active} ? 'border-success' : 'border-subtle hover:border-subtle'}"
+                    >
+                        <div class="p-6">
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-lg font-medium text-text-primary mb-1" th:text="${model.modelTag}">
+                                        Model Tag
+                                    </h3>
+                                    <div
+                                        th:if="${model.active}"
+                                        class="inline-flex items-center px-2 py-1 text-xs font-bold rounded-full bg-success-light text-success"
+                                    >
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        Active
+                                    </div>
+                                    <div
+                                        th:if="${not model.active}"
+                                        class="inline-flex items-center px-2 py-1 text-xs font-bold rounded-full bg-surface-alt text-text-muted"
+                                    >
+                                        Inactive
+                                    </div>
+                                </div>
+                                <div th:if="${model.baseModel}" class="text-xs text-text-subtle uppercase tracking-wide">
+                                    <span th:text="${model.baseModel}">Base Model</span>
+                                </div>
+                            </div>
+
+                            <p class="text-text-muted text-sm mb-4" th:text="${model.description ?: 'No description'}">
+                                Model description
+                            </p>
+
+                            <div class="space-y-2 mb-4">
+                                <div th:if="${model.version}">
+                                    <span class="text-xs text-text-subtle font-medium">Version:</span>
+                                    <span class="text-sm text-text-primary ml-2" th:text="${model.version}">1.0.0</span>
+                                </div>
+                                <div th:if="${model.activatedBy}">
+                                    <span class="text-xs text-text-subtle font-medium">Activated By:</span>
+                                    <span class="text-sm text-text-primary ml-2" th:text="${model.activatedBy.fullName}"
+                                        >Admin</span
+                                    >
+                                </div>
+                                <div th:if="${model.activatedAt}">
+                                    <span class="text-xs text-text-subtle font-medium">Activated At:</span>
+                                    <span
+                                        class="text-sm text-text-primary ml-2"
+                                        th:text="${#temporals.format(model.activatedAt, 'yyyy-MM-dd HH:mm')}"
+                                        >2024-01-15 10:30</span
+                                    >
+                                </div>
+                            </div>
+
+                            <th:block th:if="${not model.active}">
+                                <form th:action="@{/admin/model-registry/activate}" method="post" class="inline-block">
+                                    <input type="hidden" name="modelTag" th:value="${model.modelTag}" />
+                                    <button
+                                        type="submit"
+                                        class="w-full px-4 py-2.5 text-sm font-medium text-white bg-primary hover:bg-primary-hover rounded-xl shadow-sm transition-all"
+                                    >
+                                        <i class="fas fa-power-off mr-2"></i>
+                                        Activate Model
+                                    </button>
+                                </form>
+                            </th:block>
+                            <th:block th:if="${model.active}">
+                                <button
+                                    disabled
+                                    class="w-full px-4 py-2.5 text-sm font-medium text-text-subtle bg-surface-alt rounded-xl cursor-not-allowed"
+                                >
+                                    <i class="fas fa-check mr-2"></i>
+                                    Currently Active
+                                </button>
+                            </th:block>
+                        </div>
+                    </div>
+                </th:block>
+            </div>
+
+            <div th:if="${models == null or models.empty}" class="text-center py-12">
+                <i class="fas fa-robot text-5xl text-subtle mb-4"></i>
+                <p class="text-text-secondary text-lg">No models registered</p>
+                <p class="text-text-muted text-sm mt-2">
+                    Models need to be registered in the database before they can be activated.
+                </p>
+            </div>
+        </div>
+    </body>
+</html>

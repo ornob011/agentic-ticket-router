@@ -1,5 +1,6 @@
 package com.dsi.support.agenticrouter.entity;
 
+import com.dsi.support.agenticrouter.enums.LlmOutputType;
 import com.dsi.support.agenticrouter.enums.ParseStatus;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
@@ -57,6 +58,14 @@ public class LlmOutput extends BaseEntity {
         length = 100
     )
     private String modelTag;
+
+    @NotNull(message = "Output type is required")
+    @Enumerated(EnumType.STRING)
+    @Column(
+        name = "output_type",
+        nullable = false
+    )
+    private LlmOutputType outputType;
 
     @NotNull(message = "Raw request is required")
     @JdbcTypeCode(SqlTypes.JSON)

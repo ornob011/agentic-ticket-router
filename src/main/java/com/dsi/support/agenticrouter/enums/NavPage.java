@@ -10,6 +10,7 @@ public enum NavPage {
     // Agent pages
     QUEUE,
     ALL_TICKETS,
+    REVIEW_QUEUE,
 
     // Supervisor pages
     ESCALATIONS,
