@@ -230,6 +230,11 @@ public class TicketService {
         );
 
         ticketStatusReplyHandlerEnumMap.put(
+            TicketStatus.RECEIVED,
+            reopenTicketHandler()
+        );
+
+        ticketStatusReplyHandlerEnumMap.put(
             TicketStatus.IN_PROGRESS,
             (supportTicket, customer) -> {
                 auditService.recordEvent(
