@@ -3,6 +3,9 @@
 -- (NO Postgres ENUM types; uses VARCHAR + CHECK constraints)
 -- =====================================================
 
+-- Enable the base vector engine
+CREATE EXTENSION IF NOT EXISTS vector;
+
 -- Drop existing objects (in reverse dependency order)
 DROP TABLE IF EXISTS notification CASCADE;
 DROP TABLE IF EXISTS audit_event CASCADE;
