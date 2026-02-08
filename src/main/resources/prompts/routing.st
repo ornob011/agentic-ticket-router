@@ -12,7 +12,7 @@ INPUT DATA:
    - Set `draft_reply` to `null`.
    - Extract the value into `action_parameters`.
 
-**ENUM VALUES:**
+**VALID ENUM VALUES (MUST use exactly one from each category):**
 - Category: {category}
 - Priority: {priority}
 - Queue: {queue}
@@ -21,10 +21,10 @@ INPUT DATA:
 **RESPONSE TEMPLATE:**
 \{
   "internal_note": "Analyzing Last Message: [INSERT_LAST_MESSAGE]. Is it a Question? [YES/NO]",
-  "category": "SELECT_FROM_ENUMS",
-  "priority": "SELECT_FROM_ENUMS",
-  "queue": "SELECT_FROM_ENUMS",
-  "next_action": "SELECT_FROM_ENUMS",
+  "category": "MUST_SELECT_ONE_FROM_ENUMS",
+  "priority": "MUST_SELECT_ONE_FROM_ENUMS",
+  "queue": "MUST_SELECT_ONE_FROM_ENUMS",
+  "next_action": "MUST_SELECT_ONE_FROM_ENUMS",
   "confidence": 1.0,
   "clarifying_question": null,
   "draft_reply": null,
@@ -38,6 +38,14 @@ INPUT DATA:
   \},
   "rationale_tags": ["latest_message"]
 \}
+
+**MANDATORY REQUIREMENTS:**
+1. `category` MUST be one of the valid Category enum values listed above
+2. `priority` MUST be one of the valid Priority enum values listed above
+3. `queue` MUST be one of the valid Queue enum values listed above
+4. `next_action` MUST be one of the valid Action enum values listed above
+5. Never leave any of these fields as "SELECT_FROM_ENUMS" or "MUST_SELECT_ONE_FROM_ENUMS"
+6. Always return valid enum values for these four fields
 
 **OVERRIDE RULES:**
 1. If `internal_note` says "Is it a Question? YES", then `action_parameters` MUST be `null`.
