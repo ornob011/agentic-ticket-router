@@ -3,6 +3,7 @@ package com.dsi.support.agenticrouter.service;
 import com.dsi.support.agenticrouter.dto.CreateTicketDto;
 import com.dsi.support.agenticrouter.entity.*;
 import com.dsi.support.agenticrouter.enums.*;
+import com.dsi.support.agenticrouter.event.CategoryDetectionEvent;
 import com.dsi.support.agenticrouter.event.TicketCreatedEvent;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.*;
@@ -64,7 +65,6 @@ public class TicketService {
     private final EscalationRepository escalationRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final AutonomousProgressService autonomousProgressService;
-    private final MessageCategoryService messageCategoryService;
 
     @Transactional(readOnly = true)
     public Page<SupportTicket> listCustomerTickets(
@@ -153,71 +153,16 @@ public class TicketService {
                                                                  )
                                                              );
 
-        MessageCategoryService.CategoryDetectionResult detectionResult = messageCategoryService.detectCategory(
-            content,
-            supportTicket
-        );
-
-        if (detectionResult.isSuccess()) {
-            if (Objects.nonNull(supportTicket.getCurrentCategory()) &&
-                !messageCategoryService.isSameCategory(
-                    supportTicket.getCurrentCategory(),
-                    detectionResult.getDetectedCategory()
-                )) {
-
-                TicketMessage ticketMessage = TicketMessage.builder()
-                                                           .ticket(supportTicket)
-                                                           .author(customer)
-                                                           .messageKind(MessageKind.CUSTOMER_MESSAGE)
-                                                           .content(content)
-                                                           .visibleToCustomer(true)
-                                                           .build();
-
-                TicketMessage systemMessage = TicketMessage.builder()
-                                                           .ticket(supportTicket)
-                                                           .author(null)
-                                                           .messageKind(MessageKind.SYSTEM_MESSAGE)
-                                                           .content(String.format(
-                                                               "Your message appears to be about a different topic (%s) than the original ticket (%s). " +
-                                                               "Please create a new support ticket for this inquiry. " +
-                                                               "Each ticket should address a single topic for faster resolution.",
-                                                               detectionResult.getDetectedCategory().name(),
-                                                               supportTicket.getCurrentCategory().name()
-                                                           ))
-                                                           .visibleToCustomer(true)
-                                                           .build();
-
-                ticketMessageRepository.save(ticketMessage);
-                ticketMessageRepository.save(systemMessage);
-
-                supportTicket.updateLastActivity();
-                supportTicket.setCurrentCategory(detectionResult.getDetectedCategory());
-                supportTicket.setStatus(TicketStatus.CLOSED);
-
-                supportTicketRepository.save(supportTicket);
-
-                auditService.recordEvent(
-                    AuditEventType.POLICY_GATE_TRIGGERED,
-                    supportTicket.getId(),
-                    null,
-                    String.format(
-                        "Blocked reply: category mismatch detected. Reply category: %s, Ticket category: %s",
-                        detectionResult.getDetectedCategory(),
-                        supportTicket.getCurrentCategory()
-                    ),
-                    null
-                );
-
-                notificationService.createNotification(
-                    customer.getId(),
-                    NotificationType.STATUS_CHANGE,
-                    "Topic Mismatch: " + supportTicket.getFormattedTicketNo(),
-                    "Your reply was about a different topic. Please create a new ticket for this inquiry.",
-                    supportTicket.getId()
-                );
-
-                return;
-            }
+        if (Objects.nonNull(supportTicket.getCurrentCategory())) {
+            eventPublisher.publishEvent(
+                new CategoryDetectionEvent(
+                    this,
+                    ticketId,
+                    content,
+                    customerId
+                )
+            );
+            return;
         }
 
         TicketMessage ticketMessage = TicketMessage.builder()
