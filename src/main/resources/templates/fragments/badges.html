@@ -5,7 +5,7 @@
     <span
         th:if="${status != null}"
         th:classappend="${status.name() == 'RECEIVED' ? 'bg-info-light text-info' :
-                       status.name() == 'TRIAGING' ? 'bg-warning-light text-warning' :
+                       status.name() == 'TRIAGING' ? 'bg-surface-alt text-text-secondary' :
                        status.name() == 'ASSIGNED' ? 'bg-success-light text-success' :
                        status.name() == 'IN_PROGRESS' ? 'bg-info-light text-info' :
                        status.name() == 'WAITING_CUSTOMER' ? 'bg-warning-light text-warning' :
@@ -23,7 +23,7 @@
         th:if="${priority != null}"
         th:classappend="${priority.name() == 'CRITICAL' ? 'bg-error-light text-error' :
                        priority.name() == 'HIGH' ? 'bg-warning-light text-warning' :
-                       priority.name() == 'MEDIUM' ? 'bg-warning-light text-warning' :
+                       priority.name() == 'MEDIUM' ? 'bg-surface-alt text-text-secondary' :
                        'bg-surface-alt text-text-muted'}"
         class="inline-flex items-center gap-2 px-3 py-1.5 text-[11px] font-semibold tracking-wide rounded-full border border-subtle">
         <i class="fas fa-bolt text-current opacity-70"></i>
