@@ -5,6 +5,7 @@ import com.dsi.support.agenticrouter.dto.TicketAnalysisResult;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.LlmOutputType;
 import com.dsi.support.agenticrouter.enums.ParseStatus;
+import com.dsi.support.agenticrouter.enums.TicketCategory;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.service.AuditService;
@@ -12,6 +13,8 @@ import com.dsi.support.agenticrouter.service.LlmOutputService;
 import com.dsi.support.agenticrouter.service.PromptService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.EnumUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.ai.ollama.api.OllamaChatOptions;
@@ -82,8 +85,13 @@ public class TicketAnalysisService {
                 null
             );
 
+            TicketCategory category = parseCategory(
+                responseText
+            );
+
             return TicketAnalysisResult.builder()
                                        .analysis(responseText)
+                                       .category(category)
                                        .build();
 
         } catch (Exception exception) {
@@ -108,8 +116,31 @@ public class TicketAnalysisService {
 
             return TicketAnalysisResult.builder()
                                        .analysis(null)
+                                       .category(null)
                                        .confidence(0.0)
                                        .build();
         }
+    }
+
+    private TicketCategory parseCategory(String responseText) {
+        String[] lines = StringUtils.splitPreserveAllTokens(
+            StringUtils.trimToEmpty(responseText),
+            '\n'
+        );
+
+        String lastLine = StringUtils.trimToEmpty(
+            lines[lines.length - 1]
+        );
+
+        String key = StringUtils.stripEnd(
+            lastLine,
+            StringUtils.CR
+        );
+
+        return EnumUtils.getEnumIgnoreCase(
+            TicketCategory.class,
+            key,
+            TicketCategory.OTHER
+        );
     }
 }

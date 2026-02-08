@@ -1,5 +1,6 @@
 package com.dsi.support.agenticrouter.dto;
 
+import com.dsi.support.agenticrouter.enums.TicketCategory;
 import lombok.Builder;
 import lombok.Data;
 
@@ -8,6 +9,8 @@ import lombok.Data;
 public class TicketAnalysisResult {
 
     private String analysis;
+
+    private TicketCategory category;
 
     private Double confidence;
 }

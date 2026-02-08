@@ -103,6 +103,7 @@ public class OllamaRouterService {
                                                 .param("priority", priorityValues)
                                                 .param("queue", queueValues)
                                                 .param("next_action", nextActionValues)
+                                                .param("suggested_category", Objects.requireNonNullElse(routerRequest.getSuggestedCategory(), "None"))
                                                 .param("ticket_no", routerRequest.getTicketNo())
                                                 .param("subject", routerRequest.getSubject())
                                                 .param("customer_name", routerRequest.getCustomerName())
