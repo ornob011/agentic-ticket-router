@@ -41,7 +41,7 @@ public class RouterOrchestrator {
     private static final String UNKNOWN_TITLE = "Unknown Title";
     private static final String NO_PREVIOUS_QUESTION = "None";
 
-    private final OllamaRouterService ollamaRouterService;
+    private final TicketRouterService ticketRouterService;
     private final PolicyEngine policyEngine;
     private final AgenticStateMachine agenticStateMachine;
     private final SupportTicketRepository supportTicketRepository;
@@ -78,7 +78,7 @@ public class RouterOrchestrator {
             analysisResult.getAnalysis()
         );
 
-        RouterResponse routerResponse = ollamaRouterService.getRoutingDecision(
+        RouterResponse routerResponse = ticketRouterService.getRoutingDecision(
             routerRequest,
             supportTicket.getId()
         );

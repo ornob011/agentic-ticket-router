@@ -9,8 +9,6 @@ import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.ModelRegistryRepository;
 import com.dsi.support.agenticrouter.service.LlmOutputService;
 import com.dsi.support.agenticrouter.service.PromptService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
@@ -18,8 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.ollama.OllamaChatModel;
-import org.springframework.ai.ollama.api.OllamaChatOptions;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,22 +28,21 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class OllamaRouterService {
+public class TicketRouterService {
 
     private static final String KEY_TEMPLATE_ID = "template_id";
 
-    private final OllamaChatModel ollamaChatModel;
+    private final ChatModel chatModel;
     private final ModelRegistryRepository modelRegistryRepository;
     private final LlmOutputService llmOutputService;
-    private final ObjectMapper objectMapper;
     private final PromptService promptService;
 
     @Retry(
-        name = "ollamaRetry",
+        name = "llmRetry",
         fallbackMethod = "routingFallback"
     )
     @CircuitBreaker(
-        name = "ollamaCircuit",
+        name = "llmCircuit",
         fallbackMethod = "routingFallback"
     )
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -84,76 +80,59 @@ public class OllamaRouterService {
             routerRequest.getRelevantArticles()
         );
 
-        ChatClient chatClient = ChatClient.builder(ollamaChatModel)
-                                          .defaultOptions(
-                                              OllamaChatOptions.builder()
-                                                               .format("json")
-                                                               .numCtx(32768)
-                                                               .temperature(0.0)
-                                                               .build()
-                                          )
+        ChatClient chatClient = ChatClient.builder(chatModel)
                                           .build();
 
-        String responseText = chatClient.prompt()
-                                        .system(promptService.getSystemPrompt())
-                                        .user(
-                                            promptUserSpec -> promptUserSpec
-                                                .text(promptService.getRoutingPrompt())
-                                                .param("category", categoryValues)
-                                                .param("priority", priorityValues)
-                                                .param("queue", queueValues)
-                                                .param("next_action", nextActionValues)
-                                                .param("ticket_no", routerRequest.getTicketNo())
-                                                .param("subject", routerRequest.getSubject())
-                                                .param("customer_name", routerRequest.getCustomerName())
-                                                .param("customer_tier", routerRequest.getCustomerTier())
-                                                .param("initial_message", routerRequest.getInitialMessage())
-                                                .param("conversation_history", routerRequest.getConversationHistory())
-                                                .param("analysis", routerRequest.getAnalysis())
-                                                .param("previous_clarifying_question",
-                                                    Objects.requireNonNullElse(
-                                                        routerRequest.getPreviousClarifyingQuestion(),
-                                                        "None"
-                                                    )
-                                                )
-                                                .param("relevant_articles", relevantArticles)
-                                                .param("remaining_actions",
-                                                    Objects.requireNonNullElse(
-                                                        routerRequest.getRemainingActions(),
-                                                        5
-                                                    ).toString()
-                                                )
-                                                .param("questions_asked",
-                                                    Objects.requireNonNullElse(
-                                                        routerRequest.getQuestionsAsked(),
-                                                        0
-                                                    ).toString()
-                                                )
-                                                .param("max_questions",
-                                                    Objects.requireNonNullElse(
-                                                        routerRequest.getMaxQuestions(),
-                                                        3
-                                                    ).toString()
-                                                )
-                                                .param("max_actions",
-                                                    Objects.requireNonNullElse(
-                                                        routerRequest.getMaxActions(),
-                                                        5
-                                                    ).toString()
-                                                )
-                                        )
-                                        .call()
-                                        .content();
-
-        RouterResponse routerResponse;
-        try {
-            routerResponse = objectMapper.readValue(
-                responseText,
-                RouterResponse.class
-            );
-        } catch (JsonProcessingException exception) {
-            throw new IllegalStateException("Failed to parse router response JSON", exception);
-        }
+        RouterResponse routerResponse = chatClient.prompt()
+                                                  .system(promptService.getSystemPrompt())
+                                                  .user(
+                                                      promptUserSpec -> promptUserSpec
+                                                          .text(promptService.getRoutingPrompt())
+                                                          .param("category", categoryValues)
+                                                          .param("priority", priorityValues)
+                                                          .param("queue", queueValues)
+                                                          .param("next_action", nextActionValues)
+                                                          .param("ticket_no", routerRequest.getTicketNo())
+                                                          .param("subject", routerRequest.getSubject())
+                                                          .param("customer_name", routerRequest.getCustomerName())
+                                                          .param("customer_tier", routerRequest.getCustomerTier())
+                                                          .param("initial_message", routerRequest.getInitialMessage())
+                                                          .param("conversation_history", routerRequest.getConversationHistory())
+                                                          .param("analysis", routerRequest.getAnalysis())
+                                                          .param("previous_clarifying_question",
+                                                              Objects.requireNonNullElse(
+                                                                  routerRequest.getPreviousClarifyingQuestion(),
+                                                                  "None"
+                                                              )
+                                                          )
+                                                          .param("relevant_articles", relevantArticles)
+                                                          .param("remaining_actions",
+                                                              Objects.requireNonNullElse(
+                                                                  routerRequest.getRemainingActions(),
+                                                                  5
+                                                              ).toString()
+                                                          )
+                                                          .param("questions_asked",
+                                                              Objects.requireNonNullElse(
+                                                                  routerRequest.getQuestionsAsked(),
+                                                                  0
+                                                              ).toString()
+                                                          )
+                                                          .param("max_questions",
+                                                              Objects.requireNonNullElse(
+                                                                  routerRequest.getMaxQuestions(),
+                                                                  3
+                                                              ).toString()
+                                                          )
+                                                          .param("max_actions",
+                                                              Objects.requireNonNullElse(
+                                                                  routerRequest.getMaxActions(),
+                                                                  5
+                                                              ).toString()
+                                                          )
+                                                  )
+                                                  .call()
+                                                  .entity(RouterResponse.class);
 
         validateRouterResponse(
             routerResponse
