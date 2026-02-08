@@ -27,7 +27,8 @@ public class PolicyEngine {
                                                                      .confidence(routerResponse.getConfidence())
                                                                      .clarifyingQuestion(routerResponse.getClarifyingQuestion())
                                                                      .draftReply(routerResponse.getDraftReply())
-                                                                     .rationaleTags(routerResponse.getRationaleTags());
+                                                                     .rationaleTags(routerResponse.getRationaleTags())
+                                                                     .actionParameters(routerResponse.getActionParameters());
 
         boolean policyTriggered = false;
 

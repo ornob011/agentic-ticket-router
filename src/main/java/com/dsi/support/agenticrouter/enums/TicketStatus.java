@@ -14,12 +14,17 @@ public enum TicketStatus {
     IN_PROGRESS("Agent actively working on ticket"),
     RESOLVED("Issue resolved, awaiting customer confirmation"),
     ESCALATED("Escalated to higher tier support"),
+    AUTO_ESCALATED("Autonomous processing exhausted - requires human review"),
     AUTO_CLOSED_PENDING("Pending auto-closure due to inactivity"),
-    CLOSED("Ticket closed");
+    CLOSED("Ticket closed"),
+
+
+    ;
 
     private static final Set<TicketStatus> TERMINAL =
         EnumSet.of(
-            CLOSED
+            CLOSED,
+            AUTO_ESCALATED
         );
 
     private static final Set<TicketStatus> CUSTOMER_ACTION_REQUIRED =

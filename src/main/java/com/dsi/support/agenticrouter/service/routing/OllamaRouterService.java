@@ -1,5 +1,6 @@
 package com.dsi.support.agenticrouter.service.routing;
 
+import com.dsi.support.agenticrouter.dto.ArticleSearchResult;
 import com.dsi.support.agenticrouter.dto.RouterRequest;
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.ModelRegistry;
@@ -14,6 +15,8 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.ai.ollama.api.OllamaChatOptions;
@@ -22,15 +25,15 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class OllamaRouterService {
+
+    private static final String KEY_TEMPLATE_ID = "template_id";
 
     private final OllamaChatModel ollamaChatModel;
     private final ModelRegistryRepository modelRegistryRepository;
@@ -77,6 +80,10 @@ public class OllamaRouterService {
                                         .map(Enum::name)
                                         .collect(Collectors.joining(" | "));
 
+        String relevantArticles = formatRelevantArticles(
+            routerRequest.getRelevantArticles()
+        );
+
         ChatClient chatClient = ChatClient.builder(ollamaChatModel)
                                           .defaultOptions(
                                               OllamaChatOptions.builder()
@@ -103,6 +110,37 @@ public class OllamaRouterService {
                                                 .param("initial_message", routerRequest.getInitialMessage())
                                                 .param("conversation_history", routerRequest.getConversationHistory())
                                                 .param("analysis", routerRequest.getAnalysis())
+                                                .param("previous_clarifying_question",
+                                                    Objects.requireNonNullElse(
+                                                        routerRequest.getPreviousClarifyingQuestion(),
+                                                        "None"
+                                                    )
+                                                )
+                                                .param("relevant_articles", relevantArticles)
+                                                .param("remaining_actions",
+                                                    Objects.requireNonNullElse(
+                                                        routerRequest.getRemainingActions(),
+                                                        5
+                                                    ).toString()
+                                                )
+                                                .param("questions_asked",
+                                                    Objects.requireNonNullElse(
+                                                        routerRequest.getQuestionsAsked(),
+                                                        0
+                                                    ).toString()
+                                                )
+                                                .param("max_questions",
+                                                    Objects.requireNonNullElse(
+                                                        routerRequest.getMaxQuestions(),
+                                                        3
+                                                    ).toString()
+                                                )
+                                                .param("max_actions",
+                                                    Objects.requireNonNullElse(
+                                                        routerRequest.getMaxActions(),
+                                                        5
+                                                    ).toString()
+                                                )
                                         )
                                         .call()
                                         .content();
@@ -134,6 +172,25 @@ public class OllamaRouterService {
         return routerResponse;
     }
 
+    private String formatRelevantArticles(
+        List<ArticleSearchResult> articles
+    ) {
+        if (CollectionUtils.isEmpty(articles)) {
+            return "No relevant articles found.";
+        }
+
+        return articles.stream()
+                       .map(article -> String.format(
+                           "- Article ID: %d | Title: %s | Similarity: %.2f | Category: %s | Priority: %d",
+                           article.getArticleId(),
+                           article.getTitle(),
+                           article.getSimilarityScore(),
+                           article.getCategory(),
+                           article.getPriority()
+                       ))
+                       .collect(Collectors.joining("\n"));
+    }
+
     private void validateRouterResponse(
         RouterResponse routerResponse
     ) {
@@ -144,10 +201,44 @@ public class OllamaRouterService {
         Objects.requireNonNull(routerResponse.getNextAction(), "next_action is required");
         Objects.requireNonNull(routerResponse.getConfidence(), "confidence is required");
 
+        validateTemplateId(
+            routerResponse
+        );
+
         if (routerResponse.getConfidence().compareTo(BigDecimal.ZERO) < 0
             || routerResponse.getConfidence().compareTo(BigDecimal.ONE) > 0
         ) {
             throw new IllegalStateException("Confidence must be between 0 and 1");
+        }
+    }
+
+    private void validateTemplateId(
+        RouterResponse routerResponse
+    ) {
+        if (!NextAction.USE_TEMPLATE.equals(routerResponse.getNextAction())) {
+            return;
+        }
+
+        Map<String, ?> actionParameters = routerResponse.getActionParameters();
+
+        String templateIdText = Optional.ofNullable(actionParameters)
+                                        .map(params -> params.get(KEY_TEMPLATE_ID))
+                                        .map(Object::toString)
+                                        .map(StringUtils::trimToNull)
+                                        .orElse(null);
+
+        if (StringUtils.isBlank(templateIdText)) {
+            return;
+        }
+
+        if (!StringUtils.isNumeric(templateIdText)) {
+            throw new IllegalStateException("template_id must be numeric");
+        }
+
+        long templateId = Long.parseLong(templateIdText);
+
+        if (templateId <= 0L) {
+            throw new IllegalStateException("template_id must be positive");
         }
     }
 

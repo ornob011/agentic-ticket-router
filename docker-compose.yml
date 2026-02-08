@@ -1,6 +1,6 @@
 services:
   agentic_ticketing_postgres:
-    image: postgres:16.2-alpine
+    image: pgvector/pgvector:pg16
     container_name: dsi_agentic_ticketing_postgres
     restart: unless-stopped
 

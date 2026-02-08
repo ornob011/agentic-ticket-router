@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 @Entity
 @Table(
@@ -71,6 +72,8 @@ import java.util.Objects;
 @Builder
 public class SupportTicket extends BaseEntity {
 
+    private static final TicketAutonomousMetadataConverter AUTONOMOUS_CONVERTER = new TicketAutonomousMetadataConverter();
+
     @Generated(event = EventType.INSERT)
     @Column(
         name = "ticket_no",
@@ -94,8 +97,7 @@ public class SupportTicket extends BaseEntity {
     @Size(max = 255)
     @Column(
         name = "subject",
-        nullable = false,
-        length = 255
+        nullable = false
     )
     private String subject;
 
@@ -196,6 +198,9 @@ public class SupportTicket extends BaseEntity {
     )
     private JsonNode metadata;
 
+    @Transient
+    private TicketAutonomousMetadata autonomousMetadataCache;
+
     @OneToMany(
         mappedBy = "ticket",
         cascade = CascadeType.ALL,
@@ -228,22 +233,111 @@ public class SupportTicket extends BaseEntity {
         }
     }
 
+    @PostLoad
+    @PostPersist
+    @PostUpdate
+    private void resetAutonomousCache() {
+        autonomousMetadataCache = null;
+    }
+
+    public void setMetadata(JsonNode metadata) {
+        this.metadata = metadata;
+        this.autonomousMetadataCache = null;
+    }
+
     public String getFormattedTicketNo() {
-        return Objects.nonNull(ticketNo)
-            ? String.format("TKT-%08d", ticketNo)
-            : "PENDING";
+        if (Objects.isNull(ticketNo)) {
+            return "PENDING";
+        }
+
+        return String.format("TKT-%08d", ticketNo);
+    }
+
+    public TicketAutonomousMetadata getAutonomousMetadata() {
+        if (Objects.nonNull(autonomousMetadataCache)) {
+            return autonomousMetadataCache;
+        }
+
+        if (Objects.isNull(metadata)) {
+            autonomousMetadataCache = new TicketAutonomousMetadata();
+            return autonomousMetadataCache;
+        }
+
+        autonomousMetadataCache = AUTONOMOUS_CONVERTER.convertToEntityAttribute(metadata);
+        return autonomousMetadataCache;
+    }
+
+    public void setAutonomousMetadata(TicketAutonomousMetadata value) {
+        autonomousMetadataCache = value;
+
+        if (Objects.isNull(value)) {
+            metadata = null;
+            return;
+        }
+
+        metadata = AUTONOMOUS_CONVERTER.convertToDatabaseColumn(value);
+    }
+
+    public boolean isInAutonomousLoop() {
+        return status == TicketStatus.TRIAGING || status == TicketStatus.WAITING_CUSTOMER;
+    }
+
+    private void mutateAutonomousMetadata(
+        Consumer<TicketAutonomousMetadata> mutator
+    ) {
+        TicketAutonomousMetadata m = getAutonomousMetadata();
+        mutator.accept(m);
+        setAutonomousMetadata(m);
+    }
+
+    public int getAutonomousActionCount() {
+        return getAutonomousMetadata().getAutonomousActionCount();
+    }
+
+    public void incrementAutonomousActionCount() {
+        mutateAutonomousMetadata(
+            TicketAutonomousMetadata::incrementActionCount
+        );
+    }
+
+    public void recordClarifyingQuestion(
+        String question
+    ) {
+        mutateAutonomousMetadata(
+            autonomousMetadata -> autonomousMetadata.recordClarifyingQuestion(question)
+        );
+    }
+
+    public int getQuestionCount() {
+        return getAutonomousMetadata().getQuestionCount();
+    }
+
+    public boolean hasFrustrationDetected() {
+        return getAutonomousMetadata().isHasFrustrationDetected();
+    }
+
+    public void setFrustrationDetected(
+        boolean detected
+    ) {
+        mutateAutonomousMetadata(
+            autonomousMetadata -> autonomousMetadata.setHasFrustrationDetected(detected)
+        );
+    }
+
+    public TicketQueue getCurrentQueue() {
+        return assignedQueue;
     }
 
     public boolean requiresCustomerAction() {
-        return Objects.nonNull(status) && status.requiresCustomerAction();
+        return status.requiresCustomerAction();
     }
 
     public boolean requiresAgentAction() {
-        return Objects.nonNull(status) && status.requiresAgentAction();
+        return status.requiresAgentAction();
     }
 
     public boolean isTerminal() {
-        return Objects.nonNull(status) && status.isTerminalState();
+        return status.isTerminalState();
     }
 
     public void updateLastActivity() {
@@ -258,6 +352,7 @@ public class SupportTicket extends BaseEntity {
         if (Objects.isNull(message)) {
             return;
         }
+
         message.setTicket(this);
         messages.add(message);
     }
@@ -266,6 +361,7 @@ public class SupportTicket extends BaseEntity {
         if (Objects.isNull(routing)) {
             return;
         }
+
         routing.setTicket(this);
         routings.add(routing);
     }

@@ -25,7 +25,8 @@ public enum AuditEventType {
     MODEL_INFERENCE_FAILED("Model inference failed"),
     MANUAL_INTERVENTION("Manual intervention by staff"),
     TICKET_ANALYSIS_EXECUTED("Ticket analysis executed"),
-    TICKET_ANALYSIS_FAILED("Ticket analysis failed");
+    TICKET_ANALYSIS_FAILED("Ticket analysis failed"),
+    TEMPLATE_AUTO_SELECTED("Template auto-selected by system");
 
     private static final Set<AuditEventType> SYSTEM_GENERATED =
         EnumSet.of(
