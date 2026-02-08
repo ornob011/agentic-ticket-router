@@ -58,6 +58,24 @@
     --success-lightest: #e9fbf5;
     --success-dark: #0b3d2e;
 
+    --triage: #8b5cf6;
+    --triage-foreground: #ffffff;
+    --triage-light: #ede9fe;
+    --triage-lightest: #f5f3ff;
+    --triage-dark: #5b21b6;
+
+    --assigned: #06b6d4;
+    --assigned-foreground: #ffffff;
+    --assigned-light: #cffafe;
+    --assigned-lightest: #ecfeff;
+    --assigned-dark: #0e7490;
+
+    --priority-medium: #6366f1;
+    --priority-medium-foreground: #ffffff;
+    --priority-medium-light: #e0e7ff;
+    --priority-medium-lightest: #eef2ff;
+    --priority-medium-dark: #4338ca;
+
     --error: var(--destructive);
     --error-foreground: var(--destructive-foreground);
     --error-light: #ffd0d3;
@@ -146,6 +164,24 @@
     --info-light: #0f2b3f;
     --info-lightest: #071925;
     --info-dark: #b7e3ff;
+
+    --triage: #a78bfa;
+    --triage-foreground: #ffffff;
+    --triage-light: #3b1e5c;
+    --triage-lightest: #1f0e35;
+    --triage-dark: #ddd6fe;
+
+    --assigned: #22d3ee;
+    --assigned-foreground: #ffffff;
+    --assigned-light: #0c3f4d;
+    --assigned-lightest: #051e26;
+    --assigned-dark: #a5f3fc;
+
+    --priority-medium: #818cf8;
+    --priority-medium-foreground: #ffffff;
+    --priority-medium-light: #2e2f55;
+    --priority-medium-lightest: #181a2f;
+    --priority-medium-dark: #c7d2fe;
 }
 
 @theme {
@@ -203,6 +239,22 @@
     --color-success-light: var(--success-light);
     --color-success-lightest: var(--success-lightest);
     --color-success-dark: var(--success-dark);
+    --color-success-primary: var(--success-primary);
+
+    --color-triage: var(--triage);
+    --color-triage-light: var(--triage-light);
+    --color-triage-lightest: var(--triage-lightest);
+    --color-triage-dark: var(--triage-dark);
+
+    --color-assigned: var(--assigned);
+    --color-assigned-light: var(--assigned-light);
+    --color-assigned-lightest: var(--assigned-lightest);
+    --color-assigned-dark: var(--assigned-dark);
+
+    --color-priority-medium: var(--priority-medium);
+    --color-priority-medium-light: var(--priority-medium-light);
+    --color-priority-medium-lightest: var(--priority-medium-lightest);
+    --color-priority-medium-dark: var(--priority-medium-dark);
 
     --color-warning: var(--warning);
     --color-warning-foreground: var(--warning-foreground);
