@@ -20,7 +20,8 @@ INPUTS:
      - If Knowledge Empty -> Action: `ASSIGN_QUEUE`. Set `draft_reply` to `null` (Do NOT hallucinate).
 
 3. **CHECK FOR VAGUE INPUT:**
-   - If unclear -> Action: `ASK_CLARIFYING`. Write a `clarifying_question`.
+   - If unclear -> Action: `ASK_CLARIFYING`.
+   - **REQUIRED**: Write a specific question asking what the customer needs.
 
 **CONFIDENCE CALCULATION:**
 - If Request is Clear/Simple (Command or Simple Question) -> Set `confidence` to 1.0.
@@ -40,8 +41,8 @@ INPUTS:
   "queue": "SELECT_FROM_ENUMS",
   "next_action": "SELECT_FROM_ENUMS",
   "confidence": 0.9,
-  "clarifying_question": null,
-  "draft_reply": null,
+  "clarifying_question": "WRITE_QUESTION_HERE_IF_ACTION_IS_ASK_CLARIFYING",
+  "draft_reply": "WRITE_REPLY_HERE_IF_ACTION_IS_AUTO_RESOLVE",
   "action_parameters": \{
       "phone_number": null,
       "company_name": null,
@@ -55,7 +56,7 @@ INPUTS:
 
 **CRITICAL OVERRIDES (You MUST apply these):**
 1. If Action=`UPDATE_CUSTOMER_PROFILE`, replace `null` in `action_parameters` with the EXTRACTED VALUE.
-2. If Action=`AUTO_RESOLVE`, replace `draft_reply` `null` with a summary of `{relevant_articles}`. **DO NOT use placeholders.**
-3. If Action=`ASK_CLARIFYING`, replace `clarifying_question` `null` with a specific question.
-4. If Action=`ASSIGN_QUEUE`, ensure `draft_reply` is `null`.
-5. **Update `confidence` based on the Calculation Rule (1.0 or 0.7).**
+2. If Action=`AUTO_RESOLVE`, replace "WRITE_REPLY_HERE_IF_ACTION_IS_AUTO_RESOLVE" with a summary of `{relevant_articles}`.
+3. If Action=`ASK_CLARIFYING`, replace "WRITE_QUESTION_HERE_IF_ACTION_IS_ASK_CLARIFYING" with your specific question.
+4. If Action=`ASSIGN_QUEUE`, set `clarifying_question` to null and `draft_reply` to null.
+5. Update `confidence` based on the Calculation Rule (1.0 or 0.7).
