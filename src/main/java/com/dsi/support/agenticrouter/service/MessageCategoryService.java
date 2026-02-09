@@ -24,9 +24,6 @@ import java.util.Objects;
 @Slf4j
 public class MessageCategoryService {
 
-    private static final double DEFAULT_TEMPERATURE = 0.0;
-    private static final int NUM_CONTEXT = 32768;
-
     private final OllamaChatModel ollamaChatModel;
     private final LlmOutputService llmOutputService;
     private final AuditService auditService;
