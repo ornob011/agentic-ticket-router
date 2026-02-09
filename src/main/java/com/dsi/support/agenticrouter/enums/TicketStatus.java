@@ -48,6 +48,13 @@ public enum TicketStatus {
             TRIAGING
         );
 
+    private static final Set<TicketStatus> REQUIRES_CATEGORY_MISMATCH_CHECK =
+        EnumSet.of(
+            CLOSED,
+            AUTO_CLOSED_PENDING,
+            AUTO_ESCALATED
+        );
+
     private final String description;
 
     TicketStatus(String description) {
@@ -68,5 +75,9 @@ public enum TicketStatus {
 
     public boolean isActiveWork() {
         return ACTIVE_WORK.contains(this);
+    }
+
+    public boolean isClosedForReplies() {
+        return REQUIRES_CATEGORY_MISMATCH_CHECK.contains(this);
     }
 }

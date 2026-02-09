@@ -153,7 +153,20 @@ public class TicketService {
                                                                  )
                                                              );
 
-        if (Objects.nonNull(supportTicket.getCurrentCategory())) {
+        if (Objects.nonNull(supportTicket.getStatus())
+            && supportTicket.getStatus().isClosedForReplies()
+            && Objects.nonNull(supportTicket.getCurrentCategory())
+        ) {
+            TicketMessage customerMessage = TicketMessage.builder()
+                                                         .ticket(supportTicket)
+                                                         .content(content)
+                                                         .messageKind(MessageKind.CUSTOMER_MESSAGE)
+                                                         .author(supportTicket.getCustomer())
+                                                         .visibleToCustomer(true)
+                                                         .build();
+
+            ticketMessageRepository.save(customerMessage);
+
             eventPublisher.publishEvent(
                 new CategoryDetectionEvent(
                     this,

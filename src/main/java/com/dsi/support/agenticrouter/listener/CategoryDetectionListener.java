@@ -37,6 +37,10 @@ public class CategoryDetectionListener {
     ) {
         Long ticketId = categoryDetectionEvent.getTicketId();
 
+        Long customerId = categoryDetectionEvent.getCustomerId();
+
+        String replyContent = categoryDetectionEvent.getReplyContent();
+
         Optional<SupportTicket> supportTicketOpt = supportTicketRepository.findById(ticketId);
         if (supportTicketOpt.isEmpty()) {
             return;
@@ -44,17 +48,19 @@ public class CategoryDetectionListener {
 
         SupportTicket supportTicket = supportTicketOpt.get();
 
+        if (!supportTicket.getStatus().isClosedForReplies()) {
+            return;
+        }
+
         TicketCategory currentCategory = supportTicket.getCurrentCategory();
 
         if (Objects.isNull(currentCategory)) {
             return;
         }
 
-        String replyContent = categoryDetectionEvent.getReplyContent();
-
         MessageCategoryService.CategoryDetectionResult detectionResult = messageCategoryService.detectCategory(
             replyContent,
-            supportTicket
+            supportTicket.getId()
         );
 
         if (!detectionResult.isSuccess()) {
@@ -64,51 +70,82 @@ public class CategoryDetectionListener {
         TicketCategory detectedCategory = detectionResult.getDetectedCategory();
 
         if (messageCategoryService.isSameCategory(currentCategory, detectedCategory)) {
+            processSameCategoryBlockedReply(
+                supportTicket,
+                currentCategory,
+                customerId
+            );
+
             return;
         }
 
         processCategoryMismatch(
             supportTicket,
-            replyContent,
+            currentCategory,
             detectedCategory,
-            categoryDetectionEvent.getCustomerId()
+            customerId
+        );
+    }
+
+    private void processSameCategoryBlockedReply(
+        SupportTicket supportTicket,
+        TicketCategory category,
+        Long customerId
+    ) {
+        String message = String.format(
+            "We received your reply, but this ticket is closed and can’t accept further messages. " +
+            "Your reply matches the ticket topic (%s). " +
+            "Please create a NEW ticket to continue this request.",
+            formatCategory(category)
+        );
+
+        saveSystemMessage(
+            supportTicket,
+            message
+        );
+
+        supportTicket.updateLastActivity();
+        supportTicket.setStatus(TicketStatus.CLOSED);
+        supportTicketRepository.save(supportTicket);
+
+        auditService.recordEvent(
+            AuditEventType.POLICY_GATE_TRIGGERED,
+            supportTicket.getId(),
+            null,
+            String.format("Blocked reply: ticket not reusable (category matched: %s)", category),
+            null
+        );
+
+        notificationService.createNotification(
+            customerId,
+            NotificationType.TICKET_ACK,
+            "Ticket Closed: " + supportTicket.getFormattedTicketNo(),
+            "This ticket is closed and can’t accept replies. Please create a new ticket to continue.",
+            supportTicket.getId()
         );
     }
 
     private void processCategoryMismatch(
         SupportTicket supportTicket,
-        String replyContent,
+        TicketCategory originalCategory,
         TicketCategory detectedCategory,
         Long customerId
     ) {
-        TicketMessage customerMessage = TicketMessage.builder()
-                                                     .ticket(supportTicket)
-                                                     .content(replyContent)
-                                                     .messageKind(MessageKind.CUSTOMER_MESSAGE)
-                                                     .author(supportTicket.getCustomer())
-                                                     .visibleToCustomer(true)
-                                                     .build();
+        String message = String.format(
+            "We received your reply, but this ticket is closed and can’t accept further messages. " +
+            "Your reply appears to be about %s, while this ticket was created for %s. " +
+            "Please create a NEW ticket for %s so we can help you properly.",
+            formatCategory(detectedCategory),
+            formatCategory(originalCategory),
+            formatCategory(detectedCategory)
+        );
 
-        ticketMessageRepository.save(customerMessage);
-
-        TicketMessage systemMessage = TicketMessage.builder()
-                                                   .ticket(supportTicket)
-                                                   .author(null)
-                                                   .messageKind(MessageKind.SYSTEM_MESSAGE)
-                                                   .content(String.format(
-                                                       "Your message appears to be about a different topic (%s) than the original ticket (%s). " +
-                                                       "Please create a new support ticket for this inquiry. " +
-                                                       "Each ticket should address a single topic for faster resolution.",
-                                                       detectedCategory.name(),
-                                                       supportTicket.getCurrentCategory().name()
-                                                   ))
-                                                   .visibleToCustomer(true)
-                                                   .build();
-
-        ticketMessageRepository.save(systemMessage);
+        saveSystemMessage(
+            supportTicket,
+            message
+        );
 
         supportTicket.updateLastActivity();
-        supportTicket.setCurrentCategory(detectedCategory);
         supportTicket.setStatus(TicketStatus.CLOSED);
 
         supportTicketRepository.save(supportTicket);
@@ -118,9 +155,9 @@ public class CategoryDetectionListener {
             supportTicket.getId(),
             null,
             String.format(
-                "Blocked reply: category mismatch detected. Reply category: %s, Ticket category: %s",
+                "Blocked reply: category mismatch. Reply category: %s, Ticket category: %s",
                 detectedCategory,
-                supportTicket.getCurrentCategory()
+                originalCategory
             ),
             null
         );
@@ -133,4 +170,27 @@ public class CategoryDetectionListener {
             supportTicket.getId()
         );
     }
+
+    private void saveSystemMessage(
+        SupportTicket supportTicket,
+        String content
+    ) {
+        TicketMessage systemMessage = TicketMessage.builder()
+                                                   .ticket(supportTicket)
+                                                   .author(null)
+                                                   .messageKind(MessageKind.SYSTEM_MESSAGE)
+                                                   .content(content)
+                                                   .visibleToCustomer(true)
+                                                   .build();
+
+        ticketMessageRepository.save(systemMessage);
+    }
+
+    private String formatCategory(
+        TicketCategory ticketCategory
+    ) {
+        return ticketCategory.name()
+                             .replace('_', ' ');
+    }
+
 }

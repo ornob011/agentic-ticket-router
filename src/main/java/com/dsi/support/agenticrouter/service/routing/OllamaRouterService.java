@@ -19,7 +19,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.ollama.OllamaChatModel;
-import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -85,13 +84,6 @@ public class OllamaRouterService {
         );
 
         ChatClient chatClient = ChatClient.builder(ollamaChatModel)
-                                          .defaultOptions(
-                                              OllamaChatOptions.builder()
-                                                               .format("json")
-                                                               .numCtx(32768)
-                                                               .temperature(0.0)
-                                                               .build()
-                                          )
                                           .build();
 
         String responseText = chatClient.prompt()
