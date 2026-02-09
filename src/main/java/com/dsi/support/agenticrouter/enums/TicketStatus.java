@@ -51,7 +51,6 @@ public enum TicketStatus {
     private static final Set<TicketStatus> REQUIRES_CATEGORY_MISMATCH_CHECK =
         EnumSet.of(
             CLOSED,
-            RESOLVED,
             AUTO_CLOSED_PENDING,
             AUTO_ESCALATED
         );
