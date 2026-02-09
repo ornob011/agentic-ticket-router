@@ -59,7 +59,7 @@
                         <span>
                             Queue
                             <span class="font-medium text-text-primary"
-                                  th:text="${ticket.assignedQueue}">Queue</span>
+                                  th:text="${ticket.assignedQueue.displayName}">Queue</span>
                         </span>
                     </div>
                 </div>
@@ -250,7 +250,7 @@
                             <div class="flex items-start justify-between gap-4 bg-surface-alt border border-subtle rounded-2xl p-4"
                                  th:if="${ticket.assignedQueue}">
                                 <div class="text-text-muted">Queue</div>
-                                <div class="text-text-primary font-medium" th:text="${ticket.assignedQueue}">Queue</div>
+                                <div class="text-text-primary font-medium" th:text="${ticket.assignedQueue.displayName}">Queue</div>
                             </div>
                         </div>
                     </div>

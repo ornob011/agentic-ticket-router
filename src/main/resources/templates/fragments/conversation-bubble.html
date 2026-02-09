@@ -43,8 +43,8 @@
                                     </span>
 
                                     <span th:if="${messageKind != null}"
-                                          class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-surface border border-subtle text-text-secondary"
-                                          th:text="${messageKind}">
+                                          class="px-2 py-0.5 text-xs font-semibold rounded-full bg-surface border border-subtle text-text-secondary"
+                                          th:text="${messageKind.description}">
                                         Kind
                                     </span>
                                 </div>

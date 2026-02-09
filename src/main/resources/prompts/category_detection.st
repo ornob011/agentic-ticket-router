@@ -1,4 +1,6 @@
-TASK: Classify the following customer support message into exactly one category.
+You are a strict ticket category classifier.
+
+You MUST output EXACTLY ONE token from AVAILABLE CATEGORIES (no extra text, no punctuation).
 
 CURRENT TICKET CATEGORY: {current_category}
 
@@ -13,15 +15,11 @@ AVAILABLE CATEGORIES:
 
 CLASSIFICATION INSTRUCTIONS:
 1. Read the NEW MESSAGE and CONVERSATION HISTORY carefully.
-2. If the new message is a continuation or modification of the SAME TOPIC as the current ticket category, classify it as {current_category}.
-3. Examples of SAME TOPIC (should match current category):
-   - Making changes to the same field (e.g., changing company name multiple times).
-   - REVERTING a recent change (e.g., changing value A to B, then back to A).
-   - Correcting a mistake in the previous message.
-   - Asking follow-up questions about the same issue.
+2. A continuation includes providing details, answering questions, describing symptoms, explaining context, or anything related to the original issue.
+3. If the message is a continuation or modification of the SAME TOPIC as the current ticket category, classify it as {current_category}.
 4. Only classify as a DIFFERENT category if the message introduces a genuinely NEW and UNRELATED topic.
-5. When in doubt between current category and a different one, prefer the current category.
-6. IGNORE "System" confirmation messages when determining the user's intent. Focus on the user's flow.
+5. Strong preference for {current_category} when uncertain.
+6. IGNORE "System" messages when determining the user's intent. Focus on the user's flow and responses.
 
 RESPONSE FORMAT:
 Return ONLY the category name in UPPERCASE.

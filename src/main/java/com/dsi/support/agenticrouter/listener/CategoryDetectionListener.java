@@ -48,6 +48,10 @@ public class CategoryDetectionListener {
 
         SupportTicket supportTicket = supportTicketOpt.get();
 
+        if (!supportTicket.getStatus().isClosedForReplies()) {
+            return;
+        }
+
         TicketCategory currentCategory = supportTicket.getCurrentCategory();
 
         if (Objects.isNull(currentCategory)) {
@@ -142,7 +146,6 @@ public class CategoryDetectionListener {
         );
 
         supportTicket.updateLastActivity();
-        supportTicket.setCurrentCategory(detectedCategory);
         supportTicket.setStatus(TicketStatus.CLOSED);
 
         supportTicketRepository.save(supportTicket);
