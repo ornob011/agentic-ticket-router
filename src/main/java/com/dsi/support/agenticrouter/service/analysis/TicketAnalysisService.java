@@ -59,70 +59,43 @@ public class TicketAnalysisService {
                                    .build();
         }
 
-        String responseText;
-        try {
-            responseText = chatClient.prompt()
-                                     .system(promptService.getSystemPrompt())
-                                     .user(promptUserSpec -> promptUserSpec.text(promptService.getAnalysisPrompt())
-                                                                           .param("content", ticketAnalysisRequest.getContent()))
-                                     .call()
-                                     .content();
+        String responseText = chatClient.prompt()
+                                        .system(promptService.getSystemPrompt())
+                                        .user(promptUserSpec -> promptUserSpec.text(promptService.getAnalysisPrompt())
+                                                                              .param("content", ticketAnalysisRequest.getContent()))
+                                        .call()
+                                        .content();
 
-            llmOutputService.persistAnalysisOutput(
-                supportTicket,
-                ticketAnalysisRequest.getContent(),
-                responseText,
-                LlmOutputType.ANALYSIS,
-                ParseStatus.SUCCESS,
-                null,
-                0
-            );
+        llmOutputService.persistAnalysisOutput(
+            supportTicket,
+            ticketAnalysisRequest.getContent(),
+            responseText,
+            LlmOutputType.ANALYSIS,
+            ParseStatus.SUCCESS,
+            null,
+            0
+        );
 
-            auditService.recordTicketAnalysis(
-                supportTicket.getId(),
-                LlmOutputType.ANALYSIS.name(),
-                true,
-                null
-            );
+        auditService.recordTicketAnalysis(
+            supportTicket.getId(),
+            LlmOutputType.ANALYSIS.name(),
+            true,
+            null
+        );
 
-            TicketCategory category = parseCategory(
-                responseText
-            );
+        TicketCategory category = parseCategory(
+            responseText
+        );
 
-            return TicketAnalysisResult.builder()
-                                       .analysis(responseText)
-                                       .category(category)
-                                       .build();
-
-        } catch (Exception exception) {
-            log.error("Failed to analyze ticket {}", ticketAnalysisRequest.getTicketId(), exception);
-
-            llmOutputService.persistAnalysisOutput(
-                supportTicket,
-                ticketAnalysisRequest.getContent(),
-                null,
-                LlmOutputType.ANALYSIS,
-                ParseStatus.MODEL_ERROR,
-                exception.getMessage(),
-                0
-            );
-
-            auditService.recordTicketAnalysis(
-                supportTicket.getId(),
-                LlmOutputType.ANALYSIS.name(),
-                false,
-                exception.getMessage()
-            );
-
-            return TicketAnalysisResult.builder()
-                                       .analysis(null)
-                                       .category(null)
-                                       .confidence(0.0)
-                                       .build();
-        }
+        return TicketAnalysisResult.builder()
+                                   .analysis(responseText)
+                                   .category(category)
+                                   .build();
     }
 
-    private TicketCategory parseCategory(String responseText) {
+    private TicketCategory parseCategory(
+        String responseText
+    ) {
         String[] lines = StringUtils.splitPreserveAllTokens(
             StringUtils.trimToEmpty(responseText),
             '\n'

@@ -121,7 +121,7 @@ public class RouterOrchestrator {
 
     private RouterRequest buildRouterRequest(
         SupportTicket supportTicket,
-        com.dsi.support.agenticrouter.dto.TicketAnalysisResult analysisResult
+        TicketAnalysisResult ticketAnalysisResult
     ) {
         String conversationHistory = buildConversationText(
             supportTicket
@@ -164,8 +164,8 @@ public class RouterOrchestrator {
                             .customerTier(customerTierCode)
                             .initialMessage(initialMessage)
                             .conversationHistory(conversationHistory)
-                            .analysis(StringUtils.defaultString(analysisResult.getAnalysis()))
-                            .suggestedCategory(analysisResult.getCategory())
+                            .analysis(StringUtils.defaultString(ticketAnalysisResult.getAnalysis()))
+                            .suggestedCategory(ticketAnalysisResult.getCategory())
                             .previousClarifyingQuestion(lastClarifyingQuestion)
                             .relevantArticles(relevantArticles)
                             .remainingActions(remainingActions)
