@@ -75,7 +75,7 @@ public class RouterOrchestrator {
 
         RouterRequest routerRequest = buildRouterRequest(
             supportTicket,
-            analysisResult.getAnalysis()
+            analysisResult
         );
 
         RouterResponse routerResponse = ollamaRouterService.getRoutingDecision(
@@ -121,7 +121,7 @@ public class RouterOrchestrator {
 
     private RouterRequest buildRouterRequest(
         SupportTicket supportTicket,
-        String analysis
+        TicketAnalysisResult ticketAnalysisResult
     ) {
         String conversationHistory = buildConversationText(
             supportTicket
@@ -164,7 +164,8 @@ public class RouterOrchestrator {
                             .customerTier(customerTierCode)
                             .initialMessage(initialMessage)
                             .conversationHistory(conversationHistory)
-                            .analysis(StringUtils.defaultString(analysis))
+                            .analysis(StringUtils.defaultString(ticketAnalysisResult.getAnalysis()))
+                            .suggestedCategory(ticketAnalysisResult.getCategory())
                             .previousClarifyingQuestion(lastClarifyingQuestion)
                             .relevantArticles(relevantArticles)
                             .remainingActions(remainingActions)

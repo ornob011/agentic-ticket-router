@@ -33,6 +33,8 @@ STRICT RULES:
   - INVALID: "MEDIUM-HIGH", "Technical", "tech_q", "SECURITY_Q_HIGH"
   - VALID: "MEDIUM", "HIGH", "TECHNICAL", "TECH_Q", "SECURITY_Q"
 - Return ONLY JSON object, no markdown, no explanations
+- Extract values from the ACTUAL ticket content
+- Do NOT use example-based responses
 
 NEGATIVE EXAMPLES (DO NOT OUTPUT THESE):
 
@@ -52,17 +54,5 @@ INVALID (markdown):
   "category": "TECHNICAL"
 \}
 ```
-
-VALID OUTPUT EXAMPLE:
-\{
-  "category": "TECHNICAL",
-  "priority": "HIGH",
-  "queue": "TECH_Q",
-  "next_action": "ASSIGN_QUEUE",
-  "confidence": 0.85,
-  "clarifying_question": null,
-  "draft_reply": null,
-  "rationale_tags": ["computer shutdown", "technical issue"]
-\}
 
 Return ONLY valid JSON, no markdown, no explanation.

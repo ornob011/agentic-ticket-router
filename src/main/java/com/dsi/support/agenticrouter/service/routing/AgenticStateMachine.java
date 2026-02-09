@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
+
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -34,10 +36,44 @@ public class AgenticStateMachine {
             return;
         }
 
+        applyRoutingDecisions(
+            supportTicket,
+            routerResponse
+        );
+
         actionRegistry.execute(
             supportTicket,
             routerResponse
         );
+    }
+
+    private void applyRoutingDecisions(
+        SupportTicket supportTicket,
+        RouterResponse routerResponse
+    ) {
+        if (Objects.nonNull(routerResponse.getCategory())) {
+            supportTicket.setCurrentCategory(
+                routerResponse.getCategory()
+            );
+        }
+
+        if (Objects.nonNull(routerResponse.getPriority())) {
+            supportTicket.setCurrentPriority(
+                routerResponse.getPriority()
+            );
+        }
+
+        if (Objects.nonNull(routerResponse.getQueue())) {
+            supportTicket.setAssignedQueue(
+                routerResponse.getQueue()
+            );
+        }
+
+        supportTicket.setLatestRoutingConfidence(
+            routerResponse.getConfidence()
+        );
+
+        supportTicketRepository.save(supportTicket);
     }
 
     private void forceEscalation(

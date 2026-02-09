@@ -3,6 +3,7 @@ package com.dsi.support.agenticrouter.service;
 import com.dsi.support.agenticrouter.dto.CreateTicketDto;
 import com.dsi.support.agenticrouter.entity.*;
 import com.dsi.support.agenticrouter.enums.*;
+import com.dsi.support.agenticrouter.event.CategoryDetectionEvent;
 import com.dsi.support.agenticrouter.event.TicketCreatedEvent;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.*;
@@ -152,6 +153,18 @@ public class TicketService {
                                                                  )
                                                              );
 
+        if (Objects.nonNull(supportTicket.getCurrentCategory())) {
+            eventPublisher.publishEvent(
+                new CategoryDetectionEvent(
+                    this,
+                    ticketId,
+                    content,
+                    customerId
+                )
+            );
+            return;
+        }
+
         TicketMessage ticketMessage = TicketMessage.builder()
                                                    .ticket(supportTicket)
                                                    .author(customer)
@@ -221,6 +234,16 @@ public class TicketService {
 
         ticketStatusReplyHandlerEnumMap.put(
             TicketStatus.RESOLVED,
+            reopenTicketHandler()
+        );
+
+        ticketStatusReplyHandlerEnumMap.put(
+            TicketStatus.TRIAGING,
+            reopenTicketHandler()
+        );
+
+        ticketStatusReplyHandlerEnumMap.put(
+            TicketStatus.RECEIVED,
             reopenTicketHandler()
         );
 

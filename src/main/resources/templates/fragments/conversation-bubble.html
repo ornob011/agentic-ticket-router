@@ -3,13 +3,13 @@
 <body>
 <div th:fragment="conversationBubble"
      th:with="
-        bgClass=${systemGenerated ? 'bg-warning-light' : 'bg-surface-alt'},
-        alignClass=${systemGenerated ? 'justify-center' : (fromCustomer ? 'justify-start' : 'justify-end')},
-        accentClass=${systemGenerated ? 'border border-warning' : (fromCustomer ? 'border-l-4 border-primary border border-subtle' : 'border-r-4 border-success border border-subtle')},
-        bubbleClass=${bgClass + ' ' + accentClass},
-        avatarClass=${fromCustomer ? 'bg-primary' : (systemGenerated ? 'bg-warning' : 'bg-success')},
-        roleLabel=${systemGenerated ? 'System' : (fromCustomer ? 'Customer' : 'Agent')}
-     ">
+         bgClass=${systemGenerated ? 'bg-info-light' : 'bg-surface-alt'},
+         alignClass=${systemGenerated ? 'justify-center' : (fromCustomer ? 'justify-start' : 'justify-end')},
+         accentClass=${systemGenerated ? 'border border-info' : (fromCustomer ? 'border-l-4 border-primary border border-subtle' : 'border-r-4 border-success border border-subtle')},
+         bubbleClass=${bgClass + ' ' + accentClass},
+         avatarClass=${fromCustomer ? 'bg-primary' : (systemGenerated ? 'bg-indigo-500' : 'bg-success')},
+         roleLabel=${systemGenerated ? 'System' : (fromCustomer ? 'Customer' : 'Agent')}
+      ">
 
     <div class="flex py-6" th:classappend="${alignClass}">
         <div class="w-full"
@@ -58,7 +58,7 @@
 
                         <!-- Lightweight “meta” icon -->
                         <div class="shrink-0 text-text-subtle">
-                            <i th:if="${systemGenerated}" class="fas fa-triangle-exclamation"></i>
+                            <i th:if="${systemGenerated}" class="fas fa-info-circle"></i>
                             <i th:if="${!systemGenerated}" class="far fa-comment-dots"></i>
                         </div>
                     </div>
