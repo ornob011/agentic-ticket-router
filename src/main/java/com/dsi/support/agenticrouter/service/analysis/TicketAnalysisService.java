@@ -50,12 +50,6 @@ public class TicketAnalysisService {
 
         if (Objects.isNull(chatClient)) {
             chatClient = ChatClient.builder(ollamaChatModel)
-                                   .defaultOptions(
-                                       OllamaChatOptions.builder()
-                                                        .numCtx(32768)
-                                                        .temperature(0.0)
-                                                        .build()
-                                   )
                                    .build();
         }
 

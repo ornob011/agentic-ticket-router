@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.ollama.OllamaChatModel;
-import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,12 +42,6 @@ public class MessageCategoryService {
 
         if (Objects.isNull(chatClient)) {
             chatClient = ChatClient.builder(ollamaChatModel)
-                                   .defaultOptions(
-                                       OllamaChatOptions.builder()
-                                                        .numCtx(NUM_CONTEXT)
-                                                        .temperature(DEFAULT_TEMPERATURE)
-                                                        .build()
-                                   )
                                    .build();
         }
 
