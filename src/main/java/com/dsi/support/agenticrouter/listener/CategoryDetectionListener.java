@@ -17,6 +17,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.Objects;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -31,26 +32,47 @@ public class CategoryDetectionListener {
 
     @Async("ticketRoutingExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleCategoryDetection(CategoryDetectionEvent event) {
-        supportTicketRepository.findById(event.getTicketId()).ifPresent(supportTicket -> {
-            if (Objects.nonNull(supportTicket.getCurrentCategory())) {
-                MessageCategoryService.CategoryDetectionResult detectionResult = messageCategoryService.detectCategory(event.getReplyContent(), supportTicket);
+    public void handleCategoryDetection(
+        CategoryDetectionEvent categoryDetectionEvent
+    ) {
+        Long ticketId = categoryDetectionEvent.getTicketId();
 
-                if (detectionResult.isSuccess() &&
-                    !messageCategoryService.isSameCategory(
-                        supportTicket.getCurrentCategory(),
-                        detectionResult.getDetectedCategory()
-                    )) {
+        Optional<SupportTicket> supportTicketOpt = supportTicketRepository.findById(ticketId);
+        if (supportTicketOpt.isEmpty()) {
+            return;
+        }
 
-                    processCategoryMismatch(
-                        supportTicket,
-                        event.getReplyContent(),
-                        detectionResult.getDetectedCategory(),
-                        event.getCustomerId()
-                    );
-                }
-            }
-        });
+        SupportTicket supportTicket = supportTicketOpt.get();
+
+        TicketCategory currentCategory = supportTicket.getCurrentCategory();
+
+        if (Objects.isNull(currentCategory)) {
+            return;
+        }
+
+        String replyContent = categoryDetectionEvent.getReplyContent();
+
+        MessageCategoryService.CategoryDetectionResult detectionResult = messageCategoryService.detectCategory(
+            replyContent,
+            supportTicket
+        );
+
+        if (!detectionResult.isSuccess()) {
+            return;
+        }
+
+        TicketCategory detectedCategory = detectionResult.getDetectedCategory();
+
+        if (messageCategoryService.isSameCategory(currentCategory, detectedCategory)) {
+            return;
+        }
+
+        processCategoryMismatch(
+            supportTicket,
+            replyContent,
+            detectedCategory,
+            categoryDetectionEvent.getCustomerId()
+        );
     }
 
     private void processCategoryMismatch(
