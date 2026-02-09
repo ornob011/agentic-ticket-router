@@ -14,6 +14,15 @@ public enum TicketCategory {
     SECURITY("Security concerns and threats"),
     PRICING("Pricing plans and fee information"),
     OTHER("General inquiries and other topics"),
+    CANCEL("Cancellation procedures"),
+    CONTACT("Contact and support details"),
+    DELIVERY("Delivery and shipping info"),
+    FEEDBACK("User feedback and surveys"),
+    INVOICE("Invoice and billing details"),
+    ORDER("Order processing and status"),
+    PAYMENT("Payment methods and issues"),
+    REFUND("Refund policies and procedures"),
+    SUBSCRIPTION("Subscription plans and management"),
 
 
     ;
