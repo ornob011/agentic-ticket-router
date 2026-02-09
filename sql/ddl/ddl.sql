@@ -3,6 +3,9 @@
 -- (NO Postgres ENUM types; uses VARCHAR + CHECK constraints)
 -- =====================================================
 
+-- Enable the base vector engine
+CREATE EXTENSION IF NOT EXISTS vector;
+
 -- Drop existing objects (in reverse dependency order)
 DROP TABLE IF EXISTS notification CASCADE;
 DROP TABLE IF EXISTS audit_event CASCADE;
@@ -744,7 +747,7 @@ CREATE TABLE IF NOT EXISTS vector_store
   id        uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   content   text,
   metadata  jsonb,
-  embedding vector(4096)
+  embedding vector(768)
 );
 
 -- =====================================================
