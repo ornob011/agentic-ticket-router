@@ -21,6 +21,9 @@ public class PromptService {
     @Value("classpath:/prompts/repair.st")
     private Resource repairPromptResource;
 
+    @Value("classpath:/prompts/category_detection.st")
+    private Resource categoryDetectionPromptResource;
+
     public Resource getSystemPrompt() {
         return systemPromptResource;
     }
@@ -35,5 +38,9 @@ public class PromptService {
 
     public Resource getRepairPrompt() {
         return repairPromptResource;
+    }
+
+    public Resource getCategoryDetectionPrompt() {
+        return categoryDetectionPromptResource;
     }
 }

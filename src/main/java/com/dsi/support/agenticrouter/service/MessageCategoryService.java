@@ -13,8 +13,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.ai.ollama.api.OllamaChatOptions;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,12 +31,7 @@ public class MessageCategoryService {
     private final OllamaChatModel ollamaChatModel;
     private final LlmOutputService llmOutputService;
     private final AuditService auditService;
-
-    @Value("classpath:/prompts/system.st")
-    private Resource systemPromptResource;
-
-    @Value("classpath:/prompts/category_detection.st")
-    private Resource categoryDetectionPromptResource;
+    private final PromptService promptService;
 
     private ChatClient chatClient;
 
@@ -59,70 +52,41 @@ public class MessageCategoryService {
                                    .build();
         }
 
-        try {
-            String responseText = chatClient.prompt()
-                                            .system(systemPromptResource)
-                                            .user(userSpec -> userSpec
-                                                .text(categoryDetectionPromptResource)
-                                                .param("content", content))
-                                            .call()
-                                            .content();
+        String responseText = chatClient.prompt()
+                                        .system(promptService.getSystemPrompt())
+                                        .user(userSpec -> userSpec
+                                            .text(promptService.getCategoryDetectionPrompt())
+                                            .param("content", content))
+                                        .call()
+                                        .content();
 
-            long latencyMs = System.currentTimeMillis() - startTime;
+        long latencyMs = System.currentTimeMillis() - startTime;
 
-            String normalizedResponse = normalizeResponse(responseText);
-            TicketCategory detectedCategory = parseCategory(normalizedResponse);
+        String normalizedResponse = normalizeResponse(responseText);
+        TicketCategory detectedCategory = parseCategory(normalizedResponse);
 
-            llmOutputService.persistAnalysisOutput(
-                supportTicket,
-                content,
-                "Detected category: " + detectedCategory.name(),
-                LlmOutputType.CATEGORY_DETECTION,
-                ParseStatus.SUCCESS,
-                null,
-                latencyMs
-            );
+        llmOutputService.persistAnalysisOutput(
+            supportTicket,
+            content,
+            "Detected category: " + detectedCategory.name(),
+            LlmOutputType.CATEGORY_DETECTION,
+            ParseStatus.SUCCESS,
+            null,
+            latencyMs
+        );
 
-            auditService.recordEvent(
-                AuditEventType.TICKET_ANALYSIS_EXECUTED,
-                supportTicket.getId(),
-                null,
-                "Category detection: " + detectedCategory.name(),
-                null
-            );
+        auditService.recordEvent(
+            AuditEventType.TICKET_ANALYSIS_EXECUTED,
+            supportTicket.getId(),
+            null,
+            "Category detection: " + detectedCategory.name(),
+            null
+        );
 
-            return CategoryDetectionResult.builder()
-                                          .detectedCategory(detectedCategory)
-                                          .success(true)
-                                          .build();
-
-        } catch (Exception exception) {
-            long latencyMs = System.currentTimeMillis() - startTime;
-            log.error("Failed to detect category for ticket {}", supportTicket.getId(), exception);
-
-            llmOutputService.persistAnalysisOutput(
-                supportTicket,
-                content,
-                null,
-                LlmOutputType.CATEGORY_DETECTION,
-                ParseStatus.MODEL_ERROR,
-                exception.getMessage(),
-                latencyMs
-            );
-
-            auditService.recordEvent(
-                AuditEventType.TICKET_ANALYSIS_FAILED,
-                supportTicket.getId(),
-                null,
-                "Category detection failed: " + exception.getMessage(),
-                null
-            );
-
-            return CategoryDetectionResult.builder()
-                                          .success(false)
-                                          .errorMessage(exception.getMessage())
-                                          .build();
-        }
+        return CategoryDetectionResult.builder()
+                                      .detectedCategory(detectedCategory)
+                                      .success(true)
+                                      .build();
     }
 
     public boolean isSameCategory(
