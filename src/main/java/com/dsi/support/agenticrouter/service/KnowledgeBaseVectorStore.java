@@ -1,13 +1,20 @@
 package com.dsi.support.agenticrouter.service;
 
+import com.dsi.support.agenticrouter.configuration.VectorStoreIngestionConfiguration;
 import com.dsi.support.agenticrouter.entity.KnowledgeArticle;
 import com.dsi.support.agenticrouter.enums.VectorStoreMetadataKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
+import me.tongfei.progressbar.DelegatingProgressBarConsumer;
+import me.tongfei.progressbar.ProgressBar;
+import me.tongfei.progressbar.ProgressBarBuilder;
+import me.tongfei.progressbar.ProgressBarStyle;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.Filter;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -19,24 +26,64 @@ import java.util.*;
 public class KnowledgeBaseVectorStore {
 
     private static final String DOCUMENT_ID_PREFIX = "kb_article_";
-    private static final int REMOVE_ALL_TOP_K = 10000;
 
     private final VectorStore vectorStore;
+    private final VectorStoreIngestionConfiguration vectorStoreIngestionConfiguration;
 
     public List<Document> searchSimilar(
         String queryText,
         int topK,
         double similarityThreshold
     ) {
+        return searchSimilar(
+            queryText,
+            topK,
+            similarityThreshold,
+            activeFilter()
+        );
+    }
+
+    public List<Document> searchSimilar(
+        String queryText,
+        int topK,
+        double similarityThreshold,
+        Filter.Expression filterExpression
+    ) {
         Objects.requireNonNull(queryText, "queryText");
 
         SearchRequest searchRequest = buildSearchRequest(
             queryText,
             topK,
-            similarityThreshold
+            similarityThreshold,
+            filterExpression
         );
 
-        return vectorStore.similaritySearch(searchRequest);
+        List<Document> strictMatchDocuments = Optional.of(vectorStore.similaritySearch(searchRequest))
+                                                      .orElse(Collections.emptyList());
+
+        if (!strictMatchDocuments.isEmpty() || similarityThreshold <= 0D) {
+            return strictMatchDocuments;
+        }
+
+        SearchRequest relaxedSearchRequest = buildSearchRequest(
+            queryText,
+            topK,
+            0D,
+            filterExpression
+        );
+
+        List<Document> relaxedMatchDocuments = Optional.of(vectorStore.similaritySearch(relaxedSearchRequest))
+                                                       .orElse(Collections.emptyList());
+
+        if (!relaxedMatchDocuments.isEmpty()) {
+            log.debug(
+                "No documents found with threshold {}, returning {} relaxed matches",
+                similarityThreshold,
+                relaxedMatchDocuments.size()
+            );
+        }
+
+        return relaxedMatchDocuments;
     }
 
     public void syncArticles(
@@ -44,68 +91,99 @@ public class KnowledgeBaseVectorStore {
     ) {
         Objects.requireNonNull(knowledgeArticles, "knowledgeArticles list cannot be null");
 
-        log.info("Syncing {} articles to vector store", knowledgeArticles.size());
-
-        List<Document> documents = new ArrayList<>();
-        int total = knowledgeArticles.size();
-
-        for (int i = 0; i < total; i++) {
-            KnowledgeArticle knowledgeArticle = knowledgeArticles.get(i);
-
-            if (Objects.nonNull(knowledgeArticle.getId())) {
-                documents.add(
-                    createDocument(knowledgeArticle)
-                );
-            }
-
-            int current = i + 1;
-            if (current % 10 == 0 || current == total) {
-                log.info("Processing article {}/{}", current, total);
-            }
-        }
-
-        if (documents.isEmpty()) {
+        if (knowledgeArticles.isEmpty()) {
             return;
         }
 
-        vectorStore.add(documents);
+        log.info("Syncing {} articles to vector store", knowledgeArticles.size());
 
-        log.info("Synced {} documents to vector store", documents.size());
+        TokenTextSplitter tokenTextSplitter = TokenTextSplitter.builder()
+                                                               .withChunkSize(vectorStoreIngestionConfiguration.getSplitChunkSize())
+                                                               .withMinChunkSizeChars(vectorStoreIngestionConfiguration.getSplitMinChunkSizeChars())
+                                                               .withMinChunkLengthToEmbed(vectorStoreIngestionConfiguration.getSplitMinChunkLengthToEmbed())
+                                                               .withKeepSeparator(false)
+                                                               .build();
+
+        ProgressBarBuilder progressBarBuilder = new ProgressBarBuilder().setTaskName("Sync articles")
+                                                                        .setInitialMax(knowledgeArticles.size())
+                                                                        .setUpdateIntervalMillis(vectorStoreIngestionConfiguration.getProgressUpdateIntervalMs())
+                                                                        .setStyle(ProgressBarStyle.ASCII)
+                                                                        .setConsumer(new DelegatingProgressBarConsumer(log::info));
+
+        List<Document> ingestBatch = new ArrayList<>(vectorStoreIngestionConfiguration.getIngestBatchSize());
+        int syncedDocuments = 0;
+
+        for (KnowledgeArticle knowledgeArticle : ProgressBar.wrap(knowledgeArticles, progressBarBuilder)) {
+            if (Objects.isNull(knowledgeArticle.getId())) {
+                continue;
+            }
+
+            ingestBatch.add(
+                createDocument(knowledgeArticle)
+            );
+
+            if (ingestBatch.size() >= vectorStoreIngestionConfiguration.getIngestBatchSize()) {
+                List<Document> chunks = tokenTextSplitter.apply(ingestBatch);
+
+                vectorStore.add(chunks);
+
+                syncedDocuments += chunks.size();
+
+                ingestBatch.clear();
+            }
+        }
+
+        if (!ingestBatch.isEmpty()) {
+            List<Document> chunks = tokenTextSplitter.apply(ingestBatch);
+
+            vectorStore.add(chunks);
+
+            syncedDocuments += chunks.size();
+
+            ingestBatch.clear();
+        }
+
+        log.info("Synced {} chunk-documents to vector store", syncedDocuments);
     }
 
     public void removeAll() {
         log.warn("Removing all documents from vector store");
 
-        SearchRequest searchRequest = buildSearchRequest(
-            StringUtils.EMPTY,
-            REMOVE_ALL_TOP_K,
-            0.0
-        );
+        FilterExpressionBuilder filterExpressionBuilder = new FilterExpressionBuilder();
 
-        List<String> allDocumentIds = vectorStore.similaritySearch(searchRequest)
-                                                 .stream()
-                                                 .map(Document::getId)
-                                                 .toList();
+        Filter.Expression filterExpression = filterExpressionBuilder.gte(
+            VectorStoreMetadataKey.ARTICLE_ID.name(),
+            0L
+        ).build();
 
-        if (allDocumentIds.isEmpty()) {
-            log.info("No documents found to remove from vector store");
-            return;
-        }
+        vectorStore.delete(filterExpression);
 
-        vectorStore.delete(allDocumentIds);
-        log.info("Removed {} documents from vector store", allDocumentIds.size());
+        log.info("Successfully removed all documents from vector store using metadata filter");
     }
 
     private SearchRequest buildSearchRequest(
         String queryText,
         int topK,
-        double similarityThreshold
+        double similarityThreshold,
+        Filter.Expression filterExpression
     ) {
-        return SearchRequest.builder()
-                            .query(queryText)
-                            .topK(topK)
-                            .similarityThreshold(similarityThreshold)
-                            .build();
+        SearchRequest.Builder searchRequestBuilder = SearchRequest.builder()
+                                                                  .query(queryText)
+                                                                  .topK(topK)
+                                                                  .similarityThreshold(similarityThreshold);
+
+        if (Objects.nonNull(filterExpression)) {
+            searchRequestBuilder.filterExpression(filterExpression);
+        }
+
+        return searchRequestBuilder.build();
+    }
+
+    private Filter.Expression activeFilter() {
+        return new FilterExpressionBuilder().eq(
+            VectorStoreMetadataKey.ACTIVE.name(),
+            true
+        ).build();
     }
 
     private String getDocumentId(
@@ -122,7 +200,7 @@ public class KnowledgeBaseVectorStore {
     ) {
         String documentId = getDocumentId(article);
 
-        Map<String, Object> metadata = new HashMap<>();
+        Map<String, Object> metadata = HashMap.newHashMap(8);
 
         metadata.put(
             VectorStoreMetadataKey.ARTICLE_ID.name(),

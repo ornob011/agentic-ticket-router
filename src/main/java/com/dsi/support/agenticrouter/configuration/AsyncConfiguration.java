@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.config;
+package com.dsi.support.agenticrouter.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
