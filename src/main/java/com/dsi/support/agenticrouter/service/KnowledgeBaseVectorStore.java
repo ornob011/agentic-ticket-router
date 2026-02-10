@@ -1,6 +1,6 @@
 package com.dsi.support.agenticrouter.service;
 
-import com.dsi.support.agenticrouter.config.VectorStoreIngestionConfiguration;
+import com.dsi.support.agenticrouter.configuration.VectorStoreIngestionConfiguration;
 import com.dsi.support.agenticrouter.entity.KnowledgeArticle;
 import com.dsi.support.agenticrouter.enums.VectorStoreMetadataKey;
 import lombok.RequiredArgsConstructor;

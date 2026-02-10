@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.config;
+package com.dsi.support.agenticrouter.configuration;
 
 import jakarta.validation.constraints.Min;
 import lombok.Getter;
