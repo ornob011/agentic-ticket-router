@@ -6,13 +6,13 @@ import com.dsi.support.agenticrouter.repository.KnowledgeArticleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
 
 @Service
-@Transactional
 @RequiredArgsConstructor
 @Slf4j
 public class KnowledgeBaseService {
@@ -46,7 +46,7 @@ public class KnowledgeBaseService {
         knowledgeArticleRepository.save(article);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void initializeVectorStore() {
         log.info("Initializing vector store with existing articles");
 

@@ -10,7 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 
@@ -21,26 +21,30 @@ public class VectorStoreInitializationService {
 
     private final KnowledgeBaseService knowledgeBaseService;
     private final GlobalConfigRepository globalConfigRepository;
+    private final TransactionTemplate transactionTemplate;
 
     @EventListener(ApplicationReadyEvent.class)
-    @Transactional
     public void initializeVectorStore() {
         log.info("VectorStore initialization check triggered on application startup");
 
-        GlobalConfig globalConfig = globalConfigRepository.findByConfigKey(
-            GlobalConfigKey.VECTOR_STORE_INITIALIZED
-        ).orElse(
-            GlobalConfig.builder()
-                        .configKey(GlobalConfigKey.VECTOR_STORE_INITIALIZED)
-                        .build()
-        );
+        Boolean isInitialized = transactionTemplate.execute(status -> {
+            GlobalConfig globalConfig = globalConfigRepository.findByConfigKey(
+                GlobalConfigKey.VECTOR_STORE_INITIALIZED
+            ).orElse(
+                GlobalConfig.builder()
+                            .configKey(GlobalConfigKey.VECTOR_STORE_INITIALIZED)
+                            .build()
+            );
 
-        boolean isInitialized = globalConfig.getValue(
-            VectorStoreConfigKey.INITIALIZED.name(),
-            Boolean.class
-        );
+            Boolean value = globalConfig.getValue(
+                VectorStoreConfigKey.INITIALIZED.name(),
+                Boolean.class
+            );
 
-        if (isInitialized) {
+            return Boolean.TRUE.equals(value);
+        });
+
+        if (Boolean.TRUE.equals(isInitialized)) {
             log.info("VectorStore already initialized, skipping");
             return;
         }
@@ -49,45 +53,70 @@ public class VectorStoreInitializationService {
 
         knowledgeBaseService.initializeVectorStore();
 
-        globalConfig.setValue(
-            VectorStoreConfigKey.INITIALIZED.name(),
-            true
-        );
+        transactionTemplate.executeWithoutResult(status -> {
+            GlobalConfig globalConfig = globalConfigRepository.findByConfigKey(
+                GlobalConfigKey.VECTOR_STORE_INITIALIZED
+            ).orElse(
+                GlobalConfig.builder()
+                            .configKey(GlobalConfigKey.VECTOR_STORE_INITIALIZED)
+                            .build()
+            );
 
-        globalConfig.setUpdatedAt(Instant.now());
+            globalConfig.setValue(
+                VectorStoreConfigKey.INITIALIZED.name(),
+                true
+            );
 
-        globalConfigRepository.save(globalConfig);
+            globalConfig.setUpdatedAt(Instant.now());
+
+            globalConfigRepository.save(globalConfig);
+        });
     }
 
-    @Transactional
     public void forceReinitialize() {
         log.warn("Forcing vector store re-initialization");
 
-        GlobalConfig config = globalConfigRepository.findByConfigKey(
-            GlobalConfigKey.VECTOR_STORE_INITIALIZED
-        ).orElseThrow(
-            DataNotFoundException.supplier(
-                GlobalConfig.class,
+        transactionTemplate.executeWithoutResult(status -> {
+            GlobalConfig globalConfig = globalConfigRepository.findByConfigKey(
                 GlobalConfigKey.VECTOR_STORE_INITIALIZED
-            )
-        );
+            ).orElseThrow(
+                DataNotFoundException.supplier(
+                    GlobalConfig.class,
+                    GlobalConfigKey.VECTOR_STORE_INITIALIZED
+                )
+            );
 
-        config.setValue(
-            VectorStoreConfigKey.INITIALIZED.name(),
-            false
-        );
+            globalConfig.setValue(
+                VectorStoreConfigKey.INITIALIZED.name(),
+                false
+            );
 
-        globalConfigRepository.save(config);
+            globalConfig.setUpdatedAt(Instant.now());
+
+            globalConfigRepository.save(globalConfig);
+        });
 
         knowledgeBaseService.initializeVectorStore();
 
-        config.setValue(
-            VectorStoreConfigKey.INITIALIZED.name(),
-            true
-        );
-        config.setUpdatedAt(Instant.now());
+        transactionTemplate.executeWithoutResult(status -> {
+            GlobalConfig globalConfig = globalConfigRepository.findByConfigKey(
+                GlobalConfigKey.VECTOR_STORE_INITIALIZED
+            ).orElseThrow(
+                DataNotFoundException.supplier(
+                    GlobalConfig.class,
+                    GlobalConfigKey.VECTOR_STORE_INITIALIZED
+                )
+            );
 
-        globalConfigRepository.save(config);
+            globalConfig.setValue(
+                VectorStoreConfigKey.INITIALIZED.name(),
+                true
+            );
+
+            globalConfig.setUpdatedAt(Instant.now());
+
+            globalConfigRepository.save(globalConfig);
+        });
 
         log.info("VectorStore force re-initialization completed");
     }

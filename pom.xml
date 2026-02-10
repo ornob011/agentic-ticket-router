@@ -222,6 +222,13 @@
             <version>1.21</version>
         </dependency>
 
+        <!-- PROGRESS BAR -->
+        <dependency>
+            <groupId>me.tongfei</groupId>
+            <artifactId>progressbar</artifactId>
+            <version>0.10.2</version>
+        </dependency>
+
     </dependencies>
 
     <!-- DEPENDENCY MANAGEMENT (BOMS) -->
