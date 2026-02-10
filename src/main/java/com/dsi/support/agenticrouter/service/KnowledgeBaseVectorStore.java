@@ -1,6 +1,6 @@
 package com.dsi.support.agenticrouter.service;
 
-import com.dsi.support.agenticrouter.config.VectorStoreIngestionProperties;
+import com.dsi.support.agenticrouter.config.VectorStoreIngestionConfiguration;
 import com.dsi.support.agenticrouter.entity.KnowledgeArticle;
 import com.dsi.support.agenticrouter.enums.VectorStoreMetadataKey;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +28,7 @@ public class KnowledgeBaseVectorStore {
     private static final String DOCUMENT_ID_PREFIX = "kb_article_";
 
     private final VectorStore vectorStore;
-    private final VectorStoreIngestionProperties vectorStoreIngestionProperties;
+    private final VectorStoreIngestionConfiguration vectorStoreIngestionConfiguration;
 
     public List<Document> searchSimilar(
         String queryText,
@@ -58,19 +58,19 @@ public class KnowledgeBaseVectorStore {
         log.info("Syncing {} articles to vector store", knowledgeArticles.size());
 
         TokenTextSplitter tokenTextSplitter = TokenTextSplitter.builder()
-                                                               .withChunkSize(vectorStoreIngestionProperties.getSplitChunkSize())
-                                                               .withMinChunkSizeChars(vectorStoreIngestionProperties.getSplitMinChunkSizeChars())
-                                                               .withMinChunkLengthToEmbed(vectorStoreIngestionProperties.getSplitMinChunkLengthToEmbed())
+                                                               .withChunkSize(vectorStoreIngestionConfiguration.getSplitChunkSize())
+                                                               .withMinChunkSizeChars(vectorStoreIngestionConfiguration.getSplitMinChunkSizeChars())
+                                                               .withMinChunkLengthToEmbed(vectorStoreIngestionConfiguration.getSplitMinChunkLengthToEmbed())
                                                                .withKeepSeparator(false)
                                                                .build();
 
         ProgressBarBuilder progressBarBuilder = new ProgressBarBuilder().setTaskName("Sync articles")
                                                                         .setInitialMax(knowledgeArticles.size())
-                                                                        .setUpdateIntervalMillis(vectorStoreIngestionProperties.getProgressUpdateIntervalMs())
+                                                                        .setUpdateIntervalMillis(vectorStoreIngestionConfiguration.getProgressUpdateIntervalMs())
                                                                         .setStyle(ProgressBarStyle.ASCII)
                                                                         .setConsumer(new DelegatingProgressBarConsumer(log::info));
 
-        List<Document> ingestBatch = new ArrayList<>(vectorStoreIngestionProperties.getIngestBatchSize());
+        List<Document> ingestBatch = new ArrayList<>(vectorStoreIngestionConfiguration.getIngestBatchSize());
         int syncedDocuments = 0;
 
         for (KnowledgeArticle knowledgeArticle : ProgressBar.wrap(knowledgeArticles, progressBarBuilder)) {
@@ -82,7 +82,7 @@ public class KnowledgeBaseVectorStore {
                 createDocument(knowledgeArticle)
             );
 
-            if (ingestBatch.size() >= vectorStoreIngestionProperties.getIngestBatchSize()) {
+            if (ingestBatch.size() >= vectorStoreIngestionConfiguration.getIngestBatchSize()) {
                 List<Document> chunks = tokenTextSplitter.apply(ingestBatch);
 
                 vectorStore.add(chunks);

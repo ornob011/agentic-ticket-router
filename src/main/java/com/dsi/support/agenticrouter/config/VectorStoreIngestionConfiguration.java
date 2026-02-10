@@ -12,7 +12,7 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @Configuration
 @ConfigurationProperties(prefix = "agenticrouter.vectorstore.ingestion")
-public class VectorStoreIngestionProperties {
+public class VectorStoreIngestionConfiguration {
 
     @Min(1)
     private int ingestBatchSize = 200;
