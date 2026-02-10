@@ -3,27 +3,42 @@
 BEGIN;
 
 UPDATE model_registry
-SET active = FALSE,
-    is_default = FALSE,
+SET active         = FALSE,
+    is_default     = FALSE,
     deactivated_at = now(),
-    updated_at = now()
-WHERE is_default = TRUE
-  AND model_tag <> 'ollama-qwen2.5-3b-q8';
+    updated_at     = now()
+WHERE model_tag <> 'ollama-qwen2.5:3b-instruct';
 
 INSERT INTO model_registry
-(row_version, created_at, updated_at, model_tag, model_name, version,
- description, base_model, training_method, quantization, artifact_path,
- active, is_default, activated_at, deactivated_at, activated_by_id,
- performance_metrics, model_config)
-VALUES (0, now(), now(),
-        'ollama-qwen2.5-3b-q8',
+(row_version,
+ created_at,
+ updated_at,
+ model_tag,
+ model_name,
+ version,
+ description,
+ base_model,
+ training_method,
+ quantization,
+ artifact_path,
+ active,
+ is_default,
+ activated_at,
+ deactivated_at,
+ activated_by_id,
+ performance_metrics,
+ model_config)
+VALUES (0,
+        now(),
+        now(),
+        'ollama-qwen2.5:3b-instruct',
         'Qwen 2.5 3B Instruct (Ollama)',
         '3b',
-        'Default model for local Ollama inference (ollama run qwen2.5-3b-instruct:Q8_0) optimized for fast, accurate ticket analysis with maximum determinism (temperature=0.0).',
-        'qwen2.5-3b-instruct',
+        'Default model for local Ollama inference (ollama run qwen2.5:3b-instruct) optimized for fast, accurate ticket analysis with maximum determinism (temperature=0.0).',
+        'qwen2.5:3b-instruct',
         NULL,
-        'Q8_0',
-        'ollama://qwen2.5-3b-instruct:Q8_0',
+        NULL,
+        'ollama://qwen2.5:3b-instruct',
         TRUE,
         TRUE,
         now(),
