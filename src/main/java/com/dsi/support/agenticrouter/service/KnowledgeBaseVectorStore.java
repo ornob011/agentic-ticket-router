@@ -40,22 +40,36 @@ public class KnowledgeBaseVectorStore {
     }
 
     public void syncArticles(
-        List<KnowledgeArticle> articles
+        List<KnowledgeArticle> knowledgeArticles
     ) {
-        Objects.requireNonNull(articles, "articles");
+        Objects.requireNonNull(knowledgeArticles, "knowledgeArticles list cannot be null");
 
-        log.info("Syncing {} articles to vector store", articles.size());
+        log.info("Syncing {} articles to vector store", knowledgeArticles.size());
 
-        List<Document> documents = articles.stream()
-                                           .filter(article -> Objects.nonNull(article.getId()))
-                                           .map(this::createDocument)
-                                           .toList();
+        List<Document> documents = new ArrayList<>();
+        int total = knowledgeArticles.size();
+
+        for (int i = 0; i < total; i++) {
+            KnowledgeArticle knowledgeArticle = knowledgeArticles.get(i);
+
+            if (Objects.nonNull(knowledgeArticle.getId())) {
+                documents.add(
+                    createDocument(knowledgeArticle)
+                );
+            }
+
+            int current = i + 1;
+            if (current % 10 == 0 || current == total) {
+                log.info("Processing article {}/{}", current, total);
+            }
+        }
 
         if (documents.isEmpty()) {
             return;
         }
 
         vectorStore.add(documents);
+
         log.info("Synced {} documents to vector store", documents.size());
     }
 
