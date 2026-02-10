@@ -16,7 +16,7 @@ INPUTS:
    - Does the LAST message ask "How to...", "Can I...", or describe an issue?
    - **YES:**
      - **Check Knowledge**: Read `{relevant_articles}`.
-     - If Knowledge Found -> Action: `AUTO_RESOLVE`. Write a `draft_reply` using the article.
+     - If Knowledge Found -> Action: `USE_KNOWLEDGE_ARTICLE`. **You MUST set `action_parameters.article_id` to the chosen article's id.** Write a `draft_reply` using the article.
      - If Knowledge Empty -> Action: `ASSIGN_QUEUE`. Set `draft_reply` to `null` (Do NOT hallucinate).
 
 3. **CHECK FOR VAGUE INPUT:**
@@ -42,8 +42,9 @@ INPUTS:
   "next_action": "SELECT_FROM_ENUMS",
   "confidence": 0.9,
   "clarifying_question": "WRITE_QUESTION_HERE_IF_ACTION_IS_ASK_CLARIFYING",
-  "draft_reply": "WRITE_REPLY_HERE_IF_ACTION_IS_AUTO_RESOLVE",
+  "draft_reply": "WRITE_REPLY_HERE_IF_ACTION_IS_USE_KNOWLEDGE_ARTICLE",
   "action_parameters": \{
+      "article_id": null,
       "phone_number": null,
       "company_name": null,
       "address": null,
@@ -56,7 +57,7 @@ INPUTS:
 
 **CRITICAL OVERRIDES (You MUST apply these):**
 1. If Action=`UPDATE_CUSTOMER_PROFILE`, replace `null` in `action_parameters` with the EXTRACTED VALUE.
-2. If Action=`AUTO_RESOLVE`, replace "WRITE_REPLY_HERE_IF_ACTION_IS_AUTO_RESOLVE" with a summary of `{relevant_articles}`.
+2. If Action=`USE_KNOWLEDGE_ARTICLE`, **set `action_parameters.article_id` to the selected article id** and replace the draft reply with a summary of `{relevant_articles}`.
 3. If Action=`ASK_CLARIFYING`, replace "WRITE_QUESTION_HERE_IF_ACTION_IS_ASK_CLARIFYING" with your specific question.
 4. If Action=`ASSIGN_QUEUE`, set `clarifying_question` to null and `draft_reply` to null.
 5. Update `confidence` based on the Calculation Rule (1.0 or 0.7).
