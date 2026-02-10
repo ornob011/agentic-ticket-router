@@ -35,15 +35,55 @@ public class KnowledgeBaseVectorStore {
         int topK,
         double similarityThreshold
     ) {
+        return searchSimilar(
+            queryText,
+            topK,
+            similarityThreshold,
+            activeFilter()
+        );
+    }
+
+    public List<Document> searchSimilar(
+        String queryText,
+        int topK,
+        double similarityThreshold,
+        Filter.Expression filterExpression
+    ) {
         Objects.requireNonNull(queryText, "queryText");
 
         SearchRequest searchRequest = buildSearchRequest(
             queryText,
             topK,
-            similarityThreshold
+            similarityThreshold,
+            filterExpression
         );
 
-        return vectorStore.similaritySearch(searchRequest);
+        List<Document> strictMatchDocuments = Optional.of(vectorStore.similaritySearch(searchRequest))
+                                                      .orElse(Collections.emptyList());
+
+        if (!strictMatchDocuments.isEmpty() || similarityThreshold <= 0D) {
+            return strictMatchDocuments;
+        }
+
+        SearchRequest relaxedSearchRequest = buildSearchRequest(
+            queryText,
+            topK,
+            0D,
+            filterExpression
+        );
+
+        List<Document> relaxedMatchDocuments = Optional.of(vectorStore.similaritySearch(relaxedSearchRequest))
+                                                       .orElse(Collections.emptyList());
+
+        if (!relaxedMatchDocuments.isEmpty()) {
+            log.debug(
+                "No documents found with threshold {}, returning {} relaxed matches",
+                similarityThreshold,
+                relaxedMatchDocuments.size()
+            );
+        }
+
+        return relaxedMatchDocuments;
     }
 
     public void syncArticles(
@@ -124,13 +164,26 @@ public class KnowledgeBaseVectorStore {
     private SearchRequest buildSearchRequest(
         String queryText,
         int topK,
-        double similarityThreshold
+        double similarityThreshold,
+        Filter.Expression filterExpression
     ) {
-        return SearchRequest.builder()
-                            .query(queryText)
-                            .topK(topK)
-                            .similarityThreshold(similarityThreshold)
-                            .build();
+        SearchRequest.Builder searchRequestBuilder = SearchRequest.builder()
+                                                                  .query(queryText)
+                                                                  .topK(topK)
+                                                                  .similarityThreshold(similarityThreshold);
+
+        if (Objects.nonNull(filterExpression)) {
+            searchRequestBuilder.filterExpression(filterExpression);
+        }
+
+        return searchRequestBuilder.build();
+    }
+
+    private Filter.Expression activeFilter() {
+        return new FilterExpressionBuilder().eq(
+            VectorStoreMetadataKey.ACTIVE.name(),
+            true
+        ).build();
     }
 
     private String getDocumentId(
