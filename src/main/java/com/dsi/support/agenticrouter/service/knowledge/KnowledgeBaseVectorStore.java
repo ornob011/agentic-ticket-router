@@ -83,34 +83,14 @@ public class KnowledgeBaseVectorStore {
             return strictMatchDocuments;
         }
 
-        SearchRequest relaxedSearchRequest = buildSearchRequest(
-            queryText,
-            topK,
-            0D,
-            filterExpression
-        );
-
-        List<Document> relaxedMatchDocuments = Optional.of(vectorStore.similaritySearch(relaxedSearchRequest))
-                                                       .orElse(Collections.emptyList());
-
-        if (!relaxedMatchDocuments.isEmpty()) {
-            log.debug(
-                "VectorSearch({}) Outcome(strictThreshold:{},resultCount:{},mode:{})",
-                OperationalLogContext.PHASE_DECISION,
-                similarityThreshold,
-                relaxedMatchDocuments.size(),
-                "relaxed"
-            );
-        }
-
         log.debug(
             "VectorSearch({}) Outcome(resultCount:{},mode:{})",
             OperationalLogContext.PHASE_COMPLETE,
-            relaxedMatchDocuments.size(),
-            "relaxed"
+            0,
+            "strict"
         );
 
-        return relaxedMatchDocuments;
+        return Collections.emptyList();
     }
 
     public void syncArticles(
