@@ -17,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.ollama.OllamaChatModel;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +29,7 @@ import java.util.Objects;
 @Slf4j
 public class TicketAnalysisService {
 
-    private final OllamaChatModel ollamaChatModel;
+    private final ChatModel chatModel;
     private final PromptService promptService;
     private final SupportTicketRepository supportTicketRepository;
     private final AuditService auditService;
@@ -56,7 +56,7 @@ public class TicketAnalysisService {
                                                              );
 
         if (Objects.isNull(chatClient)) {
-            chatClient = ChatClient.builder(ollamaChatModel)
+            chatClient = ChatClient.builder(chatModel)
                                    .build();
         }
 

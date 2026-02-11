@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 public class RouterOrchestrator {
 
     private static final int TOP_K_ARTICLES = 5;
-    private static final double ARTICLE_SIMILARITY_THRESHOLD = 0.75;
+    private static final double ARTICLE_SIMILARITY_THRESHOLD = 0.82;
     private static final int MIN_QUERY_LENGTH = 10;
 
     private static final int MAX_AUTONOMOUS_ACTIONS = 5;
@@ -42,7 +42,7 @@ public class RouterOrchestrator {
     private static final String UNKNOWN_TITLE = "Unknown Title";
     private static final String NO_PREVIOUS_QUESTION = "None";
 
-    private final OllamaRouterService ollamaRouterService;
+    private final TicketRouterService ticketRouterService;
     private final PolicyEngine policyEngine;
     private final AgenticStateMachine agenticStateMachine;
     private final SupportTicketRepository supportTicketRepository;
@@ -102,7 +102,7 @@ public class RouterOrchestrator {
             analysisResult
         );
 
-        RouterResponse routerResponse = ollamaRouterService.getRoutingDecision(
+        RouterResponse routerResponse = ticketRouterService.getRoutingDecision(
             routerRequest,
             supportTicket.getId()
         );
@@ -276,7 +276,7 @@ public class RouterOrchestrator {
     ) {
         return StringUtils.trim(
             StringUtils.joinWith(
-                " ",
+                StringUtils.SPACE,
                 StringUtils.defaultString(subject),
                 StringUtils.defaultString(initialMessage)
             )
