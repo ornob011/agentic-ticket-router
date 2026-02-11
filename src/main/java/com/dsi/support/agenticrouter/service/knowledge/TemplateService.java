@@ -1,10 +1,11 @@
-package com.dsi.support.agenticrouter.service;
+package com.dsi.support.agenticrouter.service.knowledge;
 
 import com.dsi.support.agenticrouter.entity.ArticleTemplate;
 import com.dsi.support.agenticrouter.enums.TicketCategory;
 import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.ArticleTemplateRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -27,6 +28,13 @@ public class TemplateService {
         Long templateId,
         Map<String, String> variables
     ) {
+        log.debug(
+            "TemplateFill({}) Template(id:{}) Outcome(variableCount:{})",
+            OperationalLogContext.PHASE_START,
+            templateId,
+            Objects.nonNull(variables) ? variables.size() : 0
+        );
+
         ArticleTemplate articleTemplate = articleTemplateRepository.findById(templateId)
                                                                    .orElseThrow(
                                                                        DataNotFoundException.supplier(
@@ -59,6 +67,14 @@ public class TemplateService {
             );
         }
 
+        log.debug(
+            "TemplateFill({}) Template(id:{},name:{}) Outcome(contentLength:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            articleTemplate.getId(),
+            articleTemplate.getName(),
+            content.length()
+        );
+
         return content;
     }
 
@@ -68,16 +84,22 @@ public class TemplateService {
         String subject
     ) {
         log.debug(
-            "Finding template for category={}, priority={}, subject={}",
+            "TemplateSelect({}) Outcome(category:{},priority:{},subjectLength:{})",
+            OperationalLogContext.PHASE_START,
             category,
             priority,
-            subject
+            StringUtils.length(subject)
         );
 
         List<List<ArticleTemplate>> templateCandidatesByStrategy = new ArrayList<>();
 
         if (Objects.nonNull(category) && Objects.nonNull(priority)) {
-            log.debug("Trying exact category + priority match");
+            log.debug(
+                "TemplateSelect({}) Outcome(strategy:{})",
+                OperationalLogContext.PHASE_DECISION,
+                "exact_category_priority"
+            );
+
             templateCandidatesByStrategy.add(
                 articleTemplateRepository.findByCategoryAndPriority(
                     category,
@@ -87,7 +109,12 @@ public class TemplateService {
         }
 
         if (Objects.nonNull(category)) {
-            log.debug("No exact match found, trying category-only match");
+            log.debug(
+                "TemplateSelect({}) Outcome(strategy:{})",
+                OperationalLogContext.PHASE_DECISION,
+                "category_only"
+            );
+
             templateCandidatesByStrategy.add(
                 articleTemplateRepository.findByCategoryOnly(
                     category
@@ -96,7 +123,12 @@ public class TemplateService {
         }
 
         if (Objects.nonNull(priority)) {
-            log.debug("No category match found, trying priority-only match");
+            log.debug(
+                "TemplateSelect({}) Outcome(strategy:{})",
+                OperationalLogContext.PHASE_DECISION,
+                "priority_only"
+            );
+
             templateCandidatesByStrategy.add(
                 articleTemplateRepository.findByPriorityOnly(
                     priority
@@ -104,7 +136,12 @@ public class TemplateService {
             );
         }
 
-        log.debug("No specific match found, using global template");
+        log.debug(
+            "TemplateSelect({}) Outcome(strategy:{})",
+            OperationalLogContext.PHASE_DECISION,
+            "global"
+        );
+
         templateCandidatesByStrategy.add(
             articleTemplateRepository.findGlobalTemplates()
         );
@@ -126,14 +163,20 @@ public class TemplateService {
         }
 
         if (Objects.isNull(selectedTemplate)) {
-            log.warn("No templates found for selection criteria");
+            log.warn(
+                "TemplateSelect({}) Outcome(reason:{})",
+                OperationalLogContext.PHASE_FAIL,
+                "no_templates_found"
+            );
+
             return null;
         }
 
         log.info(
-            "Selected template: {} (id={}) for category={}, priority={}",
-            selectedTemplate.getName(),
+            "TemplateSelect({}) Template(id:{},name:{}) Outcome(category:{},priority:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             selectedTemplate.getId(),
+            selectedTemplate.getName(),
             category,
             priority
         );

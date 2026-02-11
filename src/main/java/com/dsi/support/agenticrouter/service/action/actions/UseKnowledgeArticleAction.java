@@ -9,10 +9,11 @@ import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.KnowledgeArticleRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
-import com.dsi.support.agenticrouter.service.AuditService;
-import com.dsi.support.agenticrouter.service.KnowledgeBaseService;
-import com.dsi.support.agenticrouter.service.NotificationService;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
+import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.service.knowledge.KnowledgeBaseService;
+import com.dsi.support.agenticrouter.service.notification.NotificationService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -52,6 +53,13 @@ public class UseKnowledgeArticleAction implements TicketAction {
         SupportTicket supportTicket,
         RouterResponse response
     ) {
+        log.info(
+            "UseKnowledgeArticleAction({}) SupportTicket(id:{},status:{})",
+            OperationalLogContext.PHASE_START,
+            supportTicket.getId(),
+            supportTicket.getStatus()
+        );
+
         ActionParams actionParams = new ActionParams(response);
 
         Long articleId = actionParams.articleId();
@@ -63,6 +71,15 @@ public class UseKnowledgeArticleAction implements TicketAction {
                                                                      articleId
                                                                  )
                                                              );
+
+        log.info(
+            "UseKnowledgeArticleAction({}) SupportTicket(id:{}) KnowledgeArticle(id:{},category:{},priority:{})",
+            OperationalLogContext.PHASE_DECISION,
+            supportTicket.getId(),
+            article.getId(),
+            article.getCategory(),
+            article.getPriority()
+        );
 
         TicketMessage ticketMessage = TicketMessage.builder()
                                                    .ticket(supportTicket)
@@ -78,6 +95,13 @@ public class UseKnowledgeArticleAction implements TicketAction {
         );
 
         supportTicketRepository.save(supportTicket);
+
+        log.info(
+            "UseKnowledgeArticleAction({}) SupportTicket(id:{},status:{})",
+            OperationalLogContext.PHASE_PERSIST,
+            supportTicket.getId(),
+            supportTicket.getStatus()
+        );
 
         knowledgeBaseService.recordUsage(
             articleId,
@@ -98,6 +122,14 @@ public class UseKnowledgeArticleAction implements TicketAction {
             null,
             "Knowledge base article sent: " + article.getTitle(),
             AuditMetadata.articleId(articleId)
+        );
+
+        log.info(
+            "UseKnowledgeArticleAction({}) SupportTicket(id:{},status:{}) KnowledgeArticle(id:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            articleId
         );
     }
 

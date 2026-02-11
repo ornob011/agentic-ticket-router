@@ -9,9 +9,10 @@ import com.dsi.support.agenticrouter.repository.CustomerProfileRepository;
 import com.dsi.support.agenticrouter.repository.LanguageRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
-import com.dsi.support.agenticrouter.service.AuditService;
-import com.dsi.support.agenticrouter.service.NotificationService;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
+import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.service.notification.NotificationService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -56,6 +57,13 @@ public class UpdateCustomerProfileAction implements TicketAction {
         SupportTicket supportTicket,
         RouterResponse routerResponse
     ) {
+        log.info(
+            "UpdateCustomerProfileAction({}) SupportTicket(id:{},status:{})",
+            OperationalLogContext.PHASE_START,
+            supportTicket.getId(),
+            supportTicket.getStatus()
+        );
+
         ActionParams actionParams = new ActionParams(
             Objects.requireNonNull(
                 routerResponse.getActionParameters(),
@@ -176,6 +184,14 @@ public class UpdateCustomerProfileAction implements TicketAction {
             notificationTitles.get(hasChanges),
             notificationBodies.get(hasChanges),
             supportTicket.getId()
+        );
+
+        log.info(
+            "UpdateCustomerProfileAction({}) SupportTicket(id:{},status:{}) Outcome(profileChanged:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            hasChanges
         );
     }
 

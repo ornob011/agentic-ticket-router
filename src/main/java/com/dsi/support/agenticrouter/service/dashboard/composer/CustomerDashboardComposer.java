@@ -5,9 +5,12 @@ import com.dsi.support.agenticrouter.entity.AppUser;
 import com.dsi.support.agenticrouter.enums.UserRole;
 import com.dsi.support.agenticrouter.service.dashboard.RoleDashboardComposer;
 import com.dsi.support.agenticrouter.service.dashboard.section.CustomerDashboardSectionAssembler;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Component
+@Slf4j
 public class CustomerDashboardComposer implements RoleDashboardComposer {
 
     private final CustomerDashboardSectionAssembler customerSectionAssembler;
@@ -25,9 +28,22 @@ public class CustomerDashboardComposer implements RoleDashboardComposer {
     public DashboardDto composeDashboardViewFor(AppUser dashboardOwner) {
         Long dashboardOwnerId = dashboardOwner.getId();
 
-        return DashboardDto.builder()
-                           .user(dashboardOwner)
-                           .customerData(customerSectionAssembler.buildCustomerSectionFor(dashboardOwnerId))
-                           .build();
+        log.debug(
+            "DashboardComposeCustomer({}) Actor(id:{},role:{})",
+            OperationalLogContext.PHASE_START,
+            dashboardOwnerId,
+            dashboardOwner.getRole()
+        );
+
+        DashboardDto dashboardDto = DashboardDto.builder()
+                                                .user(dashboardOwner)
+                                                .customerData(customerSectionAssembler.buildCustomerSectionFor(dashboardOwnerId))
+                                                .build();
+        log.debug(
+            "DashboardComposeCustomer({}) Actor(id:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            dashboardOwnerId
+        );
+        return dashboardDto;
     }
 }

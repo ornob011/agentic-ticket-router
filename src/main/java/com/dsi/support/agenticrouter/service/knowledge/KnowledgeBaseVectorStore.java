@@ -1,14 +1,16 @@
-package com.dsi.support.agenticrouter.service;
+package com.dsi.support.agenticrouter.service.knowledge;
 
 import com.dsi.support.agenticrouter.configuration.VectorStoreIngestionConfiguration;
 import com.dsi.support.agenticrouter.entity.KnowledgeArticle;
 import com.dsi.support.agenticrouter.enums.VectorStoreMetadataKey;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.tongfei.progressbar.DelegatingProgressBarConsumer;
 import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
 import me.tongfei.progressbar.ProgressBarStyle;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -49,6 +51,15 @@ public class KnowledgeBaseVectorStore {
         double similarityThreshold,
         Filter.Expression filterExpression
     ) {
+        log.debug(
+            "VectorSearch({}) Outcome(queryLength:{},topK:{},similarityThreshold:{},hasFilter:{})",
+            OperationalLogContext.PHASE_START,
+            StringUtils.length(queryText),
+            topK,
+            similarityThreshold,
+            Objects.nonNull(filterExpression)
+        );
+
         Objects.requireNonNull(queryText, "queryText");
 
         SearchRequest searchRequest = buildSearchRequest(
@@ -62,6 +73,13 @@ public class KnowledgeBaseVectorStore {
                                                       .orElse(Collections.emptyList());
 
         if (!strictMatchDocuments.isEmpty() || similarityThreshold <= 0D) {
+            log.debug(
+                "VectorSearch({}) Outcome(resultCount:{},mode:{})",
+                OperationalLogContext.PHASE_COMPLETE,
+                strictMatchDocuments.size(),
+                "strict"
+            );
+
             return strictMatchDocuments;
         }
 
@@ -77,11 +95,20 @@ public class KnowledgeBaseVectorStore {
 
         if (!relaxedMatchDocuments.isEmpty()) {
             log.debug(
-                "No documents found with threshold {}, returning {} relaxed matches",
+                "VectorSearch({}) Outcome(strictThreshold:{},resultCount:{},mode:{})",
+                OperationalLogContext.PHASE_DECISION,
                 similarityThreshold,
-                relaxedMatchDocuments.size()
+                relaxedMatchDocuments.size(),
+                "relaxed"
             );
         }
+
+        log.debug(
+            "VectorSearch({}) Outcome(resultCount:{},mode:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            relaxedMatchDocuments.size(),
+            "relaxed"
+        );
 
         return relaxedMatchDocuments;
     }
@@ -92,10 +119,20 @@ public class KnowledgeBaseVectorStore {
         Objects.requireNonNull(knowledgeArticles, "knowledgeArticles list cannot be null");
 
         if (knowledgeArticles.isEmpty()) {
+            log.debug(
+                "VectorSync({}) Outcome(reason:{})",
+                OperationalLogContext.PHASE_SKIP,
+                "no_articles"
+            );
             return;
         }
 
-        log.info("Syncing {} articles to vector store", knowledgeArticles.size());
+        log.info(
+            "VectorSync({}) Outcome(articleCount:{},batchSize:{})",
+            OperationalLogContext.PHASE_START,
+            knowledgeArticles.size(),
+            vectorStoreIngestionConfiguration.getIngestBatchSize()
+        );
 
         TokenTextSplitter tokenTextSplitter = TokenTextSplitter.builder()
                                                                .withChunkSize(vectorStoreIngestionConfiguration.getSplitChunkSize())
@@ -143,11 +180,18 @@ public class KnowledgeBaseVectorStore {
             ingestBatch.clear();
         }
 
-        log.info("Synced {} chunk-documents to vector store", syncedDocuments);
+        log.info(
+            "VectorSync({}) Outcome(chunkDocumentCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            syncedDocuments
+        );
     }
 
     public void removeAll() {
-        log.warn("Removing all documents from vector store");
+        log.warn(
+            "VectorRemoveAll({})",
+            OperationalLogContext.PHASE_START
+        );
 
         FilterExpressionBuilder filterExpressionBuilder = new FilterExpressionBuilder();
 
@@ -158,7 +202,11 @@ public class KnowledgeBaseVectorStore {
 
         vectorStore.delete(filterExpression);
 
-        log.info("Successfully removed all documents from vector store using metadata filter");
+        log.info(
+            "VectorRemoveAll({}) Outcome(status:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            "success"
+        );
     }
 
     private SearchRequest buildSearchRequest(

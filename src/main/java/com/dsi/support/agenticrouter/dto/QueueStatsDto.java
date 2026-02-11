@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.dto.api;
+package com.dsi.support.agenticrouter.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

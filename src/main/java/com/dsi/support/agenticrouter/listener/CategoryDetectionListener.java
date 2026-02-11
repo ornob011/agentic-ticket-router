@@ -6,11 +6,13 @@ import com.dsi.support.agenticrouter.enums.*;
 import com.dsi.support.agenticrouter.event.CategoryDetectionEvent;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
-import com.dsi.support.agenticrouter.service.AuditService;
-import com.dsi.support.agenticrouter.service.MessageCategoryService;
-import com.dsi.support.agenticrouter.service.NotificationService;
+import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.service.notification.NotificationService;
+import com.dsi.support.agenticrouter.service.ticket.MessageCategoryService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -41,20 +43,51 @@ public class CategoryDetectionListener {
 
         String replyContent = categoryDetectionEvent.getReplyContent();
 
+        log.info(
+            "CategoryDetection({}) SupportTicket(id:{}) Actor(id:{}) Outcome(replyLength:{})",
+            OperationalLogContext.PHASE_START,
+            ticketId,
+            customerId,
+            StringUtils.length(replyContent)
+        );
+
         Optional<SupportTicket> supportTicketOpt = supportTicketRepository.findById(ticketId);
         if (supportTicketOpt.isEmpty()) {
+            log.warn(
+                "CategoryDetection({}) SupportTicket(id:{}) Outcome(reason:{})",
+                OperationalLogContext.PHASE_SKIP,
+                ticketId,
+                "ticket_not_found"
+            );
+
             return;
         }
 
         SupportTicket supportTicket = supportTicketOpt.get();
 
         if (!supportTicket.getStatus().isClosedForReplies()) {
+            log.debug(
+                "CategoryDetection({}) SupportTicket(id:{},status:{}) Outcome(reason:{})",
+                OperationalLogContext.PHASE_SKIP,
+                supportTicket.getId(),
+                supportTicket.getStatus(),
+                "ticket_open_for_reply"
+            );
+
             return;
         }
 
         TicketCategory currentCategory = supportTicket.getCurrentCategory();
 
         if (Objects.isNull(currentCategory)) {
+            log.debug(
+                "CategoryDetection({}) SupportTicket(id:{},status:{}) Outcome(reason:{})",
+                OperationalLogContext.PHASE_SKIP,
+                supportTicket.getId(),
+                supportTicket.getStatus(),
+                "missing_current_category"
+            );
+
             return;
         }
 
@@ -64,16 +97,41 @@ public class CategoryDetectionListener {
         );
 
         if (!detectionResult.isSuccess()) {
+            log.warn(
+                "CategoryDetection({}) SupportTicket(id:{},status:{}) Outcome(reason:{})",
+                OperationalLogContext.PHASE_FAIL,
+                supportTicket.getId(),
+                supportTicket.getStatus(),
+                "category_detection_unsuccessful"
+            );
+
             return;
         }
 
         TicketCategory detectedCategory = detectionResult.getDetectedCategory();
+
+        log.info(
+            "CategoryDetection({}) SupportTicket(id:{},status:{}) Outcome(currentCategory:{},detectedCategory:{})",
+            OperationalLogContext.PHASE_DECISION,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            currentCategory,
+            detectedCategory
+        );
 
         if (messageCategoryService.isSameCategory(currentCategory, detectedCategory)) {
             processSameCategoryBlockedReply(
                 supportTicket,
                 currentCategory,
                 customerId
+            );
+
+            log.info(
+                "CategoryDetection({}) SupportTicket(id:{},status:{}) Outcome(action:{})",
+                OperationalLogContext.PHASE_COMPLETE,
+                supportTicket.getId(),
+                supportTicket.getStatus(),
+                "same_category_block_reply"
             );
 
             return;
@@ -84,6 +142,14 @@ public class CategoryDetectionListener {
             currentCategory,
             detectedCategory,
             customerId
+        );
+
+        log.info(
+            "CategoryDetection({}) SupportTicket(id:{},status:{}) Outcome(action:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            "category_mismatch_block_reply"
         );
     }
 
@@ -107,6 +173,14 @@ public class CategoryDetectionListener {
         supportTicket.updateLastActivity();
         supportTicket.setStatus(TicketStatus.CLOSED);
         supportTicketRepository.save(supportTicket);
+
+        log.info(
+            "CategoryDetectionBlockedReply({}) SupportTicket(id:{},status:{}) Outcome(category:{})",
+            OperationalLogContext.PHASE_PERSIST,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            category
+        );
 
         auditService.recordEvent(
             AuditEventType.POLICY_GATE_TRIGGERED,
@@ -149,6 +223,15 @@ public class CategoryDetectionListener {
         supportTicket.setStatus(TicketStatus.CLOSED);
 
         supportTicketRepository.save(supportTicket);
+
+        log.info(
+            "CategoryDetectionBlockedReply({}) SupportTicket(id:{},status:{}) Outcome(originalCategory:{},detectedCategory:{})",
+            OperationalLogContext.PHASE_PERSIST,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            originalCategory,
+            detectedCategory
+        );
 
         auditService.recordEvent(
             AuditEventType.POLICY_GATE_TRIGGERED,

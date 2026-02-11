@@ -8,16 +8,16 @@ import com.dsi.support.agenticrouter.enums.ParseStatus;
 import com.dsi.support.agenticrouter.enums.TicketCategory;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
-import com.dsi.support.agenticrouter.service.AuditService;
-import com.dsi.support.agenticrouter.service.LlmOutputService;
-import com.dsi.support.agenticrouter.service.PromptService;
+import com.dsi.support.agenticrouter.service.ai.LlmOutputService;
+import com.dsi.support.agenticrouter.service.ai.PromptService;
+import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.ollama.OllamaChatModel;
-import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +40,13 @@ public class TicketAnalysisService {
     public TicketAnalysisResult analyzeTicket(
         TicketAnalysisRequest ticketAnalysisRequest
     ) {
+        log.info(
+            "TicketAnalysis({}) SupportTicket(id:{}) Outcome(contentLength:{})",
+            OperationalLogContext.PHASE_START,
+            ticketAnalysisRequest.getTicketId(),
+            StringUtils.length(ticketAnalysisRequest.getContent())
+        );
+
         SupportTicket supportTicket = supportTicketRepository.findById(ticketAnalysisRequest.getTicketId())
                                                              .orElseThrow(
                                                                  DataNotFoundException.supplier(
@@ -79,6 +86,14 @@ public class TicketAnalysisService {
 
         TicketCategory category = parseCategory(
             responseText
+        );
+
+        log.info(
+            "TicketAnalysis({}) SupportTicket(id:{}) Outcome(category:{},analysisLength:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            category,
+            StringUtils.length(responseText)
         );
 
         return TicketAnalysisResult.builder()

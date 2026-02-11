@@ -1,9 +1,11 @@
-package com.dsi.support.agenticrouter.service;
+package com.dsi.support.agenticrouter.service.auth;
 
 import com.dsi.support.agenticrouter.entity.AppUser;
 import com.dsi.support.agenticrouter.enums.UserRole;
 import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.security.CustomUserDetails;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -18,6 +20,7 @@ import java.util.Objects;
 import java.util.Set;
 
 @Service
+@Slf4j
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final AppUserRepository appUserRepository;
@@ -29,6 +32,11 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        log.debug(
+            "UserDetailsLoad({}) AppUser(usernameLength:{})",
+            OperationalLogContext.PHASE_START,
+            StringUtils.length(StringUtils.trimToEmpty(username))
+        );
 
         String normalizedUsername = StringUtils.lowerCase(StringUtils.trimToEmpty(username));
         if (StringUtils.isBlank(normalizedUsername)) {
@@ -48,10 +56,21 @@ public class CustomUserDetailsService implements UserDetailsService {
             );
         }
 
-        return new CustomUserDetails(
+        UserDetails userDetails = new CustomUserDetails(
             user,
             buildAuthorities(user.getRole())
         );
+
+        log.debug(
+            "UserDetailsLoad({}) AppUser(id:{},username:{},role:{},active:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            user.getId(),
+            user.getUsername(),
+            user.getRole(),
+            user.isActive()
+        );
+
+        return userDetails;
     }
 
     private Set<GrantedAuthority> buildAuthorities(

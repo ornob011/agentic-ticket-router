@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.service;
+package com.dsi.support.agenticrouter.service.ticket;
 
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.PolicyConfig;
@@ -6,6 +6,8 @@ import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.entity.TicketAutonomousMetadata;
 import com.dsi.support.agenticrouter.enums.NextAction;
 import com.dsi.support.agenticrouter.enums.PolicyConfigKey;
+import com.dsi.support.agenticrouter.service.policy.PolicyConfigService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -53,6 +55,14 @@ public class AutonomousProgressService {
         SupportTicket supportTicket,
         RouterResponse routerResponse
     ) {
+        log.debug(
+            "AutonomousTrack({}) SupportTicket(id:{},status:{}) RouterResponse(nextAction:{})",
+            OperationalLogContext.PHASE_START,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            routerResponse.getNextAction()
+        );
+
         supportTicket.incrementAutonomousActionCount();
 
         if (NextAction.ASK_CLARIFYING.equals(routerResponse.getNextAction())) {
@@ -62,17 +72,36 @@ public class AutonomousProgressService {
                 supportTicket.recordClarifyingQuestion(question);
             }
         }
+
+        log.debug(
+            "AutonomousTrack({}) SupportTicket(id:{}) Outcome(actionCount:{},questionCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getAutonomousActionCount(),
+            supportTicket.getQuestionCount()
+        );
     }
 
     public boolean shouldContinueAutonomous(
         SupportTicket supportTicket
     ) {
         TicketAutonomousMetadata autonomousMetadata = supportTicket.getAutonomousMetadata();
-
-        return autonomousMetadata.shouldContinue(
+        boolean shouldContinue = autonomousMetadata.shouldContinue(
             getMaxAutonomousActions(),
             getMaxQuestions()
         );
+
+        log.debug(
+            "AutonomousContinueDecision({}) SupportTicket(id:{},status:{}) Outcome(shouldContinue:{},actionCount:{},questionCount:{})",
+            OperationalLogContext.PHASE_DECISION,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            shouldContinue,
+            autonomousMetadata.getAutonomousActionCount(),
+            autonomousMetadata.getQuestionCount()
+        );
+
+        return shouldContinue;
     }
 
     public boolean shouldEscalate(

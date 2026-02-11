@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.service;
+package com.dsi.support.agenticrouter.service.notification;
 
 import com.dsi.support.agenticrouter.entity.AppUser;
 import com.dsi.support.agenticrouter.entity.Notification;
@@ -8,7 +8,10 @@ import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.NotificationRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +21,7 @@ import java.util.List;
 @Service
 @Transactional
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
@@ -31,6 +35,16 @@ public class NotificationService {
         String body,
         Long ticketId
     ) {
+        log.debug(
+            "NotificationCreate({}) Actor(recipientId:{}) SupportTicket(id:{}) Notification(type:{},titleLength:{},bodyLength:{})",
+            OperationalLogContext.PHASE_START,
+            recipientId,
+            ticketId,
+            type,
+            StringUtils.length(title),
+            StringUtils.length(body)
+        );
+
         AppUser recipient = appUserRepository.findById(recipientId)
                                              .orElseThrow(
                                                  DataNotFoundException.supplier(
@@ -57,27 +71,60 @@ public class NotificationService {
                                                 .build();
 
         notificationRepository.save(notification);
+
+        log.info(
+            "NotificationCreate({}) Notification(id:{},type:{},read:{}) Actor(recipientId:{}) SupportTicket(id:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            notification.getId(),
+            notification.getNotificationType(),
+            notification.isRead(),
+            recipientId,
+            ticketId
+        );
     }
 
     @Transactional(readOnly = true)
     public List<Notification> getUnreadNotifications(
         Long userId
     ) {
-        return notificationRepository.findByRecipient_IdAndReadFalseOrderByCreatedAtDesc(
+        List<Notification> notifications = notificationRepository.findByRecipient_IdAndReadFalseOrderByCreatedAtDesc(
             userId
         );
+
+        log.debug(
+            "NotificationUnreadList({}) Actor(userId:{}) Outcome(resultCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            userId,
+            notifications.size()
+        );
+
+        return notifications;
     }
 
     public void markAsRead(
         Long notificationId,
         Long userId
     ) {
+        log.debug(
+            "NotificationMarkRead({}) Notification(id:{}) Actor(userId:{})",
+            OperationalLogContext.PHASE_START,
+            notificationId,
+            userId
+        );
+
         notificationRepository.findById(notificationId)
                               .ifPresent(
                                   notification -> {
                                       if (notification.getRecipient().getId().equals(userId)) {
                                           notification.setRead(true);
                                           notificationRepository.save(notification);
+                                          log.info(
+                                              "NotificationMarkRead({}) Notification(id:{},read:{}) Actor(userId:{})",
+                                              OperationalLogContext.PHASE_COMPLETE,
+                                              notification.getId(),
+                                              notification.isRead(),
+                                              userId
+                                          );
                                       }
                                   }
                               );
@@ -87,7 +134,16 @@ public class NotificationService {
     public long getUnreadCount(
         Long userId
     ) {
-        return notificationRepository.countByRecipientIdAndRead(userId, Boolean.FALSE);
+        long unreadCount = notificationRepository.countByRecipientIdAndRead(userId, Boolean.FALSE);
+
+        log.debug(
+            "NotificationUnreadCount({}) Actor(userId:{}) Outcome(unreadCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            userId,
+            unreadCount
+        );
+
+        return unreadCount;
     }
 
     @Transactional
@@ -99,13 +155,29 @@ public class NotificationService {
         );
 
         notificationRepository.deleteAll(oldNotifications);
+
+        log.info(
+            "NotificationDeleteRead({}) Outcome(before:{},deletedCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            before,
+            oldNotifications.size()
+        );
     }
 
     @Transactional(readOnly = true)
     public List<Notification> getRecentNotifications(
         Long userId
     ) {
-        return notificationRepository.findByRecipient_IdOrderByCreatedAtDesc(userId);
+        List<Notification> notifications = notificationRepository.findByRecipient_IdOrderByCreatedAtDesc(userId);
+
+        log.debug(
+            "NotificationRecentList({}) Actor(userId:{}) Outcome(resultCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            userId,
+            notifications.size()
+        );
+
+        return notifications;
     }
 
     @Transactional
@@ -121,5 +193,12 @@ public class NotificationService {
         }
 
         notificationRepository.saveAll(unreadNotifications);
+
+        log.info(
+            "NotificationMarkAllRead({}) Actor(userId:{}) Outcome(updatedCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            userId,
+            unreadNotifications.size()
+        );
     }
 }

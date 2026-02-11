@@ -9,8 +9,9 @@ import com.dsi.support.agenticrouter.enums.VectorStoreMetadataKey;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
-import com.dsi.support.agenticrouter.service.KnowledgeBaseVectorStore;
 import com.dsi.support.agenticrouter.service.analysis.TicketAnalysisService;
+import com.dsi.support.agenticrouter.service.knowledge.KnowledgeBaseVectorStore;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -54,6 +55,12 @@ public class RouterOrchestrator {
     public void routeTicket(
         Long ticketId
     ) {
+        log.info(
+            "TicketRoute({}) SupportTicket(id:{})",
+            OperationalLogContext.PHASE_START,
+            ticketId
+        );
+
         SupportTicket supportTicket = supportTicketRepository.findById(ticketId)
                                                              .orElseThrow(
                                                                  () -> new DataNotFoundException(
@@ -65,12 +72,29 @@ public class RouterOrchestrator {
         supportTicket.setStatus(TicketStatus.TRIAGING);
         supportTicket = supportTicketRepository.save(supportTicket);
 
+        log.info(
+            "TicketRoute({}) SupportTicket(id:{},ticketNo:{},status:{})",
+            OperationalLogContext.PHASE_PERSIST,
+            supportTicket.getId(),
+            supportTicket.getFormattedTicketNo(),
+            supportTicket.getStatus()
+        );
+
         TicketAnalysisRequest analysisRequest = buildAnalysisRequest(
             supportTicket
         );
 
         TicketAnalysisResult analysisResult = ticketAnalysisService.analyzeTicket(
             analysisRequest
+        );
+
+        log.debug(
+            "TicketRoute({}) SupportTicket(id:{},status:{}) Outcome(analysisCategory:{},analysisLength:{})",
+            OperationalLogContext.PHASE_DECISION,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            analysisResult.getCategory(),
+            StringUtils.length(analysisResult.getAnalysis())
         );
 
         RouterRequest routerRequest = buildRouterRequest(
@@ -83,13 +107,43 @@ public class RouterOrchestrator {
             supportTicket.getId()
         );
 
+        log.info(
+            "TicketRoute({}) SupportTicket(id:{},status:{}) RouterResponse(nextAction:{},queue:{},priority:{},confidence:{})",
+            OperationalLogContext.PHASE_DECISION,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            routerResponse.getNextAction(),
+            routerResponse.getQueue(),
+            routerResponse.getPriority(),
+            routerResponse.getConfidence()
+        );
+
         routerResponse = policyEngine.applyPolicyGates(
             routerResponse
+        );
+
+        log.info(
+            "TicketRoute({}) SupportTicket(id:{},status:{}) RouterResponse(nextAction:{},queue:{},priority:{},confidence:{})",
+            OperationalLogContext.PHASE_DECISION,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            routerResponse.getNextAction(),
+            routerResponse.getQueue(),
+            routerResponse.getPriority(),
+            routerResponse.getConfidence()
         );
 
         agenticStateMachine.executeAction(
             supportTicket,
             routerResponse
+        );
+
+        log.info(
+            "TicketRoute({}) SupportTicket(id:{},status:{}) Outcome(nextAction:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            routerResponse.getNextAction()
         );
     }
 
@@ -185,7 +239,14 @@ public class RouterOrchestrator {
         );
 
         if (vectorQuery.length() < MIN_QUERY_LENGTH) {
-            log.debug("Search query too short, skipping vector search");
+            log.debug(
+                "RelevantArticleSearch({}) Outcome(queryLength:{},minLength:{},reason:{})",
+                OperationalLogContext.PHASE_SKIP,
+                vectorQuery.length(),
+                MIN_QUERY_LENGTH,
+                "query_too_short"
+            );
+
             return new ArrayList<>();
         }
 
@@ -193,6 +254,15 @@ public class RouterOrchestrator {
             vectorQuery,
             TOP_K_ARTICLES,
             ARTICLE_SIMILARITY_THRESHOLD
+        );
+
+        log.debug(
+            "RelevantArticleSearch({}) Outcome(queryLength:{},topK:{},similarityThreshold:{},resultCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            vectorQuery.length(),
+            TOP_K_ARTICLES,
+            ARTICLE_SIMILARITY_THRESHOLD,
+            documents.size()
         );
 
         return documents.stream()

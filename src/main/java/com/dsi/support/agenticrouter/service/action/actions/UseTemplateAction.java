@@ -8,9 +8,10 @@ import com.dsi.support.agenticrouter.enums.AuditEventType;
 import com.dsi.support.agenticrouter.enums.MessageKind;
 import com.dsi.support.agenticrouter.enums.NextAction;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
-import com.dsi.support.agenticrouter.service.AuditService;
-import com.dsi.support.agenticrouter.service.TemplateService;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
+import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.service.knowledge.TemplateService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -44,6 +45,17 @@ public class UseTemplateAction implements TicketAction {
         SupportTicket supportTicket,
         RouterResponse response
     ) {
+        log.info(
+            "UseTemplateAction({}) SupportTicket(id:{},status:{},queue:{},priority:{}) RouterResponse(confidence:{},actionParamCount:{})",
+            OperationalLogContext.PHASE_START,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            supportTicket.getAssignedQueue(),
+            supportTicket.getCurrentPriority(),
+            response.getConfidence(),
+            Objects.nonNull(response.getActionParameters()) ? response.getActionParameters().size() : 0
+        );
+
         ActionParams actionParams = new ActionParams(response);
 
         Long templateId = actionParams.templateId();
@@ -59,7 +71,12 @@ public class UseTemplateAction implements TicketAction {
         Long actualTemplateId = Objects.requireNonNullElseGet(
             templateId,
             () -> {
-                log.info("LLM did not provide template_id, auto-selecting");
+                log.info(
+                    "UseTemplateAction({}) SupportTicket(id:{}) Outcome(reason:{})",
+                    OperationalLogContext.PHASE_DECISION,
+                    supportTicket.getId(),
+                    "template_id_missing_auto_select"
+                );
 
                 Long selectedTemplateId = autoSelectTemplateId(
                     supportTicket
@@ -67,8 +84,11 @@ public class UseTemplateAction implements TicketAction {
 
                 if (Objects.isNull(selectedTemplateId)) {
                     log.warn(
-                        "No suitable template found for ticket {}",
-                        supportTicket.getId()
+                        "UseTemplateAction({}) SupportTicket(id:{},status:{}) Outcome(reason:{})",
+                        OperationalLogContext.PHASE_FAIL,
+                        supportTicket.getId(),
+                        supportTicket.getStatus(),
+                        "no_matching_template"
                     );
 
                     throw new IllegalStateException(
@@ -94,12 +114,29 @@ public class UseTemplateAction implements TicketAction {
 
         ticketMessageRepository.save(ticketMessage);
 
+        log.info(
+            "UseTemplateAction({}) SupportTicket(id:{},status:{}) Outcome(templateId:{},messageKind:{})",
+            OperationalLogContext.PHASE_PERSIST,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            actualTemplateId,
+            MessageKind.AUTO_REPLY
+        );
+
         auditService.recordEvent(
             AuditEventType.MESSAGE_POSTED,
             supportTicket.getId(),
             null,
             "Template used: " + actualTemplateId,
             null
+        );
+
+        log.info(
+            "UseTemplateAction({}) SupportTicket(id:{},status:{}) Outcome(templateId:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            actualTemplateId
         );
     }
 
@@ -119,10 +156,13 @@ public class UseTemplateAction implements TicketAction {
         }
 
         log.info(
-            "Auto-selected template: {} (id={}) for ticket {}",
-            selectedTemplate.getName(),
+            "UseTemplateAutoSelect({}) SupportTicket(id:{},category:{},priority:{}) Template(id:{},name:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getCurrentCategory(),
+            supportTicket.getCurrentPriority(),
             selectedTemplate.getId(),
-            supportTicket.getId()
+            selectedTemplate.getName()
         );
 
         auditService.recordEvent(
