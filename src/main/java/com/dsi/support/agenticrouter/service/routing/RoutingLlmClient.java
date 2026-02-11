@@ -153,7 +153,7 @@ public class RoutingLlmClient implements RoutingModelClient {
 
         for (int i = lines.size() - 1; i >= 0; i--) {
             String line = lines.get(i);
-            if (!StringUtils.contains(line, "CUSTOMER_MESSAGE:")) {
+            if (line == null || !line.contains("CUSTOMER_MESSAGE:")) {
                 continue;
             }
 
