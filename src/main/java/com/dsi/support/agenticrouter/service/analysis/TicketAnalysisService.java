@@ -11,6 +11,7 @@ import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.service.ai.LlmOutputService;
 import com.dsi.support.agenticrouter.service.ai.PromptService;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.EnumUtils;
