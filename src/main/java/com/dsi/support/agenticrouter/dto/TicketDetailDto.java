@@ -1,6 +1,9 @@
 package com.dsi.support.agenticrouter.dto;
 
-import com.dsi.support.agenticrouter.enums.*;
+import com.dsi.support.agenticrouter.enums.TicketCategory;
+import com.dsi.support.agenticrouter.enums.TicketPriority;
+import com.dsi.support.agenticrouter.enums.TicketQueue;
+import com.dsi.support.agenticrouter.enums.TicketStatus;
 import lombok.*;
 
 import java.math.BigDecimal;

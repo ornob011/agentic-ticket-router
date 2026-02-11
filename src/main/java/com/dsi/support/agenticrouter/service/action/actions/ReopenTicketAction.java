@@ -6,9 +6,10 @@ import com.dsi.support.agenticrouter.enums.AuditEventType;
 import com.dsi.support.agenticrouter.enums.NextAction;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
-import com.dsi.support.agenticrouter.service.AuditService;
-import com.dsi.support.agenticrouter.service.NotificationService;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
+import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.service.notification.NotificationService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -36,12 +37,28 @@ public class ReopenTicketAction implements TicketAction {
         SupportTicket supportTicket,
         RouterResponse routerResponse
     ) {
+        log.info(
+            "ReopenTicketAction({}) SupportTicket(id:{},status:{},reopenCount:{})",
+            OperationalLogContext.PHASE_START,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            supportTicket.getReopenCount()
+        );
+
         supportTicket.setStatus(TicketStatus.RECEIVED);
         supportTicket.setResolvedAt(null);
         supportTicket.setClosedAt(null);
         supportTicket.incrementReopenCount();
         supportTicket.updateLastActivity();
         supportTicketRepository.save(supportTicket);
+
+        log.info(
+            "ReopenTicketAction({}) SupportTicket(id:{},status:{},reopenCount:{})",
+            OperationalLogContext.PHASE_PERSIST,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            supportTicket.getReopenCount()
+        );
 
         auditService.recordEvent(
             AuditEventType.TICKET_REOPENED,
@@ -57,6 +74,14 @@ public class ReopenTicketAction implements TicketAction {
             "Ticket Reopened: " + supportTicket.getFormattedTicketNo(),
             "Your ticket has been reopened and will be processed.",
             supportTicket.getId()
+        );
+
+        log.info(
+            "ReopenTicketAction({}) SupportTicket(id:{},status:{},reopenCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            supportTicket.getReopenCount()
         );
     }
 }

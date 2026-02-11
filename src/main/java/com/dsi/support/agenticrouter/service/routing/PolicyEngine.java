@@ -5,13 +5,16 @@ import com.dsi.support.agenticrouter.entity.PolicyConfig;
 import com.dsi.support.agenticrouter.enums.*;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.PolicyConfigRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PolicyEngine {
 
     private final PolicyConfigRepository policyConfigRepository;
@@ -19,6 +22,16 @@ public class PolicyEngine {
     public RouterResponse applyPolicyGates(
         RouterResponse routerResponse
     ) {
+        log.info(
+            "PolicyEvaluate({}) RouterResponse(category:{},priority:{},queue:{},nextAction:{},confidence:{})",
+            OperationalLogContext.PHASE_START,
+            routerResponse.getCategory(),
+            routerResponse.getPriority(),
+            routerResponse.getQueue(),
+            routerResponse.getNextAction(),
+            routerResponse.getConfidence()
+        );
+
         RouterResponse.RouterResponseBuilder builder = RouterResponse.builder()
                                                                      .category(routerResponse.getCategory())
                                                                      .priority(routerResponse.getPriority())
@@ -37,6 +50,15 @@ public class PolicyEngine {
             builder.nextAction(NextAction.ESCALATE);
             builder.priority(TicketPriority.HIGH);
             policyTriggered = true;
+
+            log.warn(
+                "PolicyEvaluate({}) Outcome(policy:{},nextAction:{},queue:{},priority:{})",
+                OperationalLogContext.PHASE_DECISION,
+                "security_content_escalation",
+                NextAction.ESCALATE,
+                TicketQueue.SECURITY_Q,
+                TicketPriority.HIGH
+            );
         }
 
         if (TicketPriority.CRITICAL.equals(routerResponse.getPriority())) {
@@ -52,6 +74,15 @@ public class PolicyEngine {
             if (routerResponse.getConfidence().compareTo(criticalMinConf) < 0) {
                 builder.nextAction(NextAction.HUMAN_REVIEW);
                 policyTriggered = true;
+
+                log.warn(
+                    "PolicyEvaluate({}) Outcome(policy:{},confidence:{},threshold:{},nextAction:{})",
+                    OperationalLogContext.PHASE_DECISION,
+                    "critical_min_conf",
+                    routerResponse.getConfidence(),
+                    criticalMinConf,
+                    NextAction.HUMAN_REVIEW
+                );
             }
         }
 
@@ -66,9 +97,30 @@ public class PolicyEngine {
 
         if (routerResponse.getConfidence().compareTo(autoRouteThreshold) < 0 && !policyTriggered) {
             builder.nextAction(NextAction.HUMAN_REVIEW);
+
+            log.info(
+                "PolicyEvaluate({}) Outcome(policy:{},confidence:{},threshold:{},nextAction:{})",
+                OperationalLogContext.PHASE_DECISION,
+                "auto_route_threshold",
+                routerResponse.getConfidence(),
+                autoRouteThreshold,
+                NextAction.HUMAN_REVIEW
+            );
         }
 
-        return builder.build();
+        RouterResponse gatedResponse = builder.build();
+
+        log.info(
+            "PolicyEvaluate({}) RouterResponse(category:{},priority:{},queue:{},nextAction:{},confidence:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            gatedResponse.getCategory(),
+            gatedResponse.getPriority(),
+            gatedResponse.getQueue(),
+            gatedResponse.getNextAction(),
+            gatedResponse.getConfidence()
+        );
+
+        return gatedResponse;
     }
 
     private boolean isSecurityContent(

@@ -6,9 +6,10 @@ import com.dsi.support.agenticrouter.enums.AuditEventType;
 import com.dsi.support.agenticrouter.enums.NextAction;
 import com.dsi.support.agenticrouter.enums.NotificationType;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
-import com.dsi.support.agenticrouter.service.AuditService;
-import com.dsi.support.agenticrouter.service.NotificationService;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
+import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.service.notification.NotificationService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -47,6 +48,21 @@ public class TriggerNotificationAction implements TicketAction {
     private final AuditService auditService;
     private final NotificationService notificationService;
 
+    private static Optional<String> text(
+        Object value
+    ) {
+        return Optional.ofNullable(value)
+                       .map(Object::toString)
+                       .map(StringUtils::trim)
+                       .filter(StringUtils::isNotBlank);
+    }
+
+    private static Optional<String> enumKey(
+        Object value
+    ) {
+        return text(value).map(String::toUpperCase);
+    }
+
     @Override
     public boolean canHandle(
         NextAction actionType
@@ -60,6 +76,13 @@ public class TriggerNotificationAction implements TicketAction {
         SupportTicket supportTicket,
         RouterResponse routerResponse
     ) {
+        log.info(
+            "TriggerNotificationAction({}) SupportTicket(id:{},status:{})",
+            OperationalLogContext.PHASE_START,
+            supportTicket.getId(),
+            supportTicket.getStatus()
+        );
+
         Map<String, Object> params = Objects.requireNonNull(
             routerResponse.getActionParameters(),
             "Action parameters are required"
@@ -74,6 +97,15 @@ public class TriggerNotificationAction implements TicketAction {
 
         String title = text(params.get(KEY_TITLE)).orElse(defaultTitle);
         String body = text(params.get(KEY_BODY)).orElse(DEFAULT_BODY);
+
+        log.info(
+            "TriggerNotificationAction({}) SupportTicket(id:{}) Notification(type:{},titleLength:{},bodyLength:{})",
+            OperationalLogContext.PHASE_DECISION,
+            supportTicket.getId(),
+            type,
+            StringUtils.length(title),
+            StringUtils.length(body)
+        );
 
         notificationService.createNotification(
             supportTicket.getCustomer().getId(),
@@ -93,20 +125,13 @@ public class TriggerNotificationAction implements TicketAction {
             "System triggered notification: " + title,
             null
         );
-    }
 
-    private static Optional<String> text(
-        Object value
-    ) {
-        return Optional.ofNullable(value)
-                       .map(Object::toString)
-                       .map(StringUtils::trim)
-                       .filter(StringUtils::isNotBlank);
-    }
-
-    private static Optional<String> enumKey(
-        Object value
-    ) {
-        return text(value).map(String::toUpperCase);
+        log.info(
+            "TriggerNotificationAction({}) SupportTicket(id:{},status:{}) Notification(type:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            type
+        );
     }
 }

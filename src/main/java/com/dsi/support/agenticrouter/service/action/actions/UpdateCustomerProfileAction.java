@@ -9,15 +9,17 @@ import com.dsi.support.agenticrouter.repository.CustomerProfileRepository;
 import com.dsi.support.agenticrouter.repository.LanguageRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
-import com.dsi.support.agenticrouter.service.AuditService;
-import com.dsi.support.agenticrouter.service.NotificationService;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
+import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.service.notification.NotificationService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -55,6 +57,13 @@ public class UpdateCustomerProfileAction implements TicketAction {
         SupportTicket supportTicket,
         RouterResponse routerResponse
     ) {
+        log.info(
+            "UpdateCustomerProfileAction({}) SupportTicket(id:{},status:{})",
+            OperationalLogContext.PHASE_START,
+            supportTicket.getId(),
+            supportTicket.getStatus()
+        );
+
         ActionParams actionParams = new ActionParams(
             Objects.requireNonNull(
                 routerResponse.getActionParameters(),
@@ -64,6 +73,10 @@ public class UpdateCustomerProfileAction implements TicketAction {
 
         CustomerProfile customerProfile = supportTicket.getCustomer()
                                                        .getCustomerProfile();
+
+        ProfileSnapshot beforeSnapshot = ProfileSnapshot.from(
+            customerProfile
+        );
 
         ProfileChangeLog changeLog = new ProfileChangeLog();
 
@@ -103,16 +116,52 @@ public class UpdateCustomerProfileAction implements TicketAction {
             changeLog
         );
 
-        if (!changeLog.hasChanges()) {
-            return;
-        }
+        boolean hasChanges = changeLog.hasChanges();
 
-        customerProfileRepository.save(customerProfile);
+        String noChangeDetails = renderNoChangeDetails(
+            actionParams,
+            beforeSnapshot,
+            customerProfile
+        );
+
+        Map<Boolean, String> systemMessages = Map.of(
+            Boolean.TRUE,
+            "Your profile has been updated: " + changeLog.render(),
+            Boolean.FALSE,
+            "No profile changes were necessary.\n" + noChangeDetails
+        );
+
+        Map<Boolean, String> auditMessages = Map.of(
+            Boolean.TRUE,
+            "Customer profile updated: " + changeLog.render(),
+            Boolean.FALSE,
+            "Customer profile update requested, but no changes were necessary."
+        );
+
+        Map<Boolean, String> notificationTitles = Map.of(
+            Boolean.TRUE,
+            "Profile Updated",
+            Boolean.FALSE,
+            "No Profile Changes"
+        );
+
+        Map<Boolean, String> notificationBodies = Map.of(
+            Boolean.TRUE,
+            "Your profile has been updated based on your ticket information.",
+            Boolean.FALSE,
+            "We reviewed your ticket information, but your profile already matched it. No changes were made."
+        );
+
+        Optional.of(hasChanges)
+                .filter(Boolean::booleanValue)
+                .ifPresent(
+                    ignored -> customerProfileRepository.save(customerProfile)
+                );
 
         TicketMessage systemMessage = TicketMessage.builder()
                                                    .ticket(supportTicket)
                                                    .messageKind(MessageKind.SYSTEM_MESSAGE)
-                                                   .content("Your profile has been updated: " + changeLog.render())
+                                                   .content(systemMessages.get(hasChanges))
                                                    .visibleToCustomer(true)
                                                    .build();
 
@@ -125,16 +174,24 @@ public class UpdateCustomerProfileAction implements TicketAction {
             AuditEventType.MESSAGE_POSTED,
             supportTicket.getId(),
             null,
-            "Customer profile updated: " + changeLog.render(),
+            auditMessages.get(hasChanges),
             null
         );
 
         notificationService.createNotification(
             supportTicket.getCustomer().getId(),
             NotificationType.STATUS_CHANGE,
-            "Profile Updated",
-            "Your profile has been updated based on your ticket information.",
+            notificationTitles.get(hasChanges),
+            notificationBodies.get(hasChanges),
             supportTicket.getId()
+        );
+
+        log.info(
+            "UpdateCustomerProfileAction({}) SupportTicket(id:{},status:{}) Outcome(profileChanged:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            hasChanges
         );
     }
 
@@ -253,15 +310,108 @@ public class UpdateCustomerProfileAction implements TicketAction {
         changeLog.addChange(field, oldValue, newValue);
     }
 
-    private static final class ActionParams {
+    private String renderNoChangeDetails(
+        ActionParams actionParams,
+        ProfileSnapshot beforeSnapshot,
+        CustomerProfile currentProfile
+    ) {
+        Map<String, Comparison> comparisons = new LinkedHashMap<>();
 
-        private final Map<String, Object> values;
+        actionParams.companyName()
+                    .ifPresent(requested -> comparisons.put(
+                        KEY_COMPANY_NAME,
+                        new Comparison(
+                            requested,
+                            beforeSnapshot.companyName(),
+                            currentProfile.getCompanyName()
+                        )
+                    ));
 
-        private ActionParams(
-            Map<String, Object> values
-        ) {
-            this.values = values;
-        }
+        actionParams.phoneNumber()
+                    .ifPresent(requested -> comparisons.put(
+                        KEY_PHONE_NUMBER,
+                        new Comparison(
+                            requested,
+                            beforeSnapshot.phoneNumber(),
+                            currentProfile.getPhoneNumber()
+                        )
+                    ));
+
+        actionParams.address()
+                    .ifPresent(requested -> comparisons.put(
+                        KEY_ADDRESS,
+                        new Comparison(
+                            requested,
+                            beforeSnapshot.address(),
+                            currentProfile.getAddress()
+                        )
+                    ));
+
+        actionParams.city()
+                    .ifPresent(requested -> comparisons.put(
+                        KEY_CITY,
+                        new Comparison(
+                            requested,
+                            beforeSnapshot.city(),
+                            currentProfile.getCity()
+                        )
+                    ));
+
+        actionParams.postalCode()
+                    .ifPresent(requested -> comparisons.put(
+                        KEY_POSTAL_CODE,
+                        new Comparison(
+                            requested,
+                            beforeSnapshot.postalCode(),
+                            currentProfile.getPostalCode()
+                        )
+                    ));
+
+        actionParams.preferredLanguageCode()
+                    .ifPresent(requested -> comparisons.put(
+                        KEY_PREFERRED_LANGUAGE_CODE,
+                        new Comparison(
+                            requested,
+                            beforeSnapshot.preferredLanguageCode(),
+                            currentProfile.getPreferredLanguage().getCode()
+                        )
+                    ));
+
+        StringBuilder stringBuilder = new StringBuilder();
+
+        Optional.of(comparisons.isEmpty())
+                .filter(Boolean::booleanValue)
+                .ifPresent(
+                    ignored -> stringBuilder.append("No updatable fields were provided in the ticket payload.")
+                );
+
+        Optional.of(comparisons.isEmpty())
+                .filter(isEmpty -> !isEmpty)
+                .ifPresent(
+                    ignored -> {
+                        stringBuilder.append("Requested vs current values:\n");
+                        comparisons.forEach((field, comparison) -> stringBuilder.append("- ")
+                                                                                .append(field)
+                                                                                .append(": requested='")
+                                                                                .append(safe(comparison.requested()))
+                                                                                .append("' | current='")
+                                                                                .append(safe(comparison.current()))
+                                                                                .append("'\n"));
+                    }
+                );
+
+        return stringBuilder.toString();
+    }
+
+    private String safe(
+        Object value
+    ) {
+        return Objects.toString(value, StringUtils.EMPTY);
+    }
+
+    private record ActionParams(
+        Map<String, Object> values
+    ) {
 
         public Optional<String> companyName() {
             return text(KEY_COMPANY_NAME);
@@ -332,5 +482,36 @@ public class UpdateCustomerProfileAction implements TicketAction {
             changeDescription.setLength(length - CHANGE_SEPARATOR.length());
             return changeDescription.toString();
         }
+    }
+
+    private record ProfileSnapshot(
+        String companyName,
+        String phoneNumber,
+        String address,
+        String city,
+        String postalCode,
+        String preferredLanguageCode
+    ) {
+
+        public static ProfileSnapshot from(
+            CustomerProfile profile
+        ) {
+            return new ProfileSnapshot(
+                profile.getCompanyName(),
+                profile.getPhoneNumber(),
+                profile.getAddress(),
+                profile.getCity(),
+                profile.getPostalCode(),
+                profile.getPreferredLanguage().getCode()
+            );
+        }
+    }
+
+    private record Comparison(
+        Object requested,
+        Object before,
+        Object current
+    ) {
+
     }
 }

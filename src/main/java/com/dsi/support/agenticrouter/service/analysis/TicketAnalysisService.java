@@ -5,13 +5,16 @@ import com.dsi.support.agenticrouter.dto.TicketAnalysisResult;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.LlmOutputType;
 import com.dsi.support.agenticrouter.enums.ParseStatus;
+import com.dsi.support.agenticrouter.enums.TicketCategory;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
-import com.dsi.support.agenticrouter.service.AuditService;
-import com.dsi.support.agenticrouter.service.LlmOutputService;
-import com.dsi.support.agenticrouter.service.PromptService;
+import com.dsi.support.agenticrouter.service.ai.LlmOutputService;
+import com.dsi.support.agenticrouter.service.ai.PromptService;
+import com.dsi.support.agenticrouter.service.audit.AuditService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.EnumUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Service;
@@ -36,6 +39,13 @@ public class TicketAnalysisService {
     public TicketAnalysisResult analyzeTicket(
         TicketAnalysisRequest ticketAnalysisRequest
     ) {
+        log.info(
+            "TicketAnalysis({}) SupportTicket(id:{}) Outcome(contentLength:{})",
+            OperationalLogContext.PHASE_START,
+            ticketAnalysisRequest.getTicketId(),
+            StringUtils.length(ticketAnalysisRequest.getContent())
+        );
+
         SupportTicket supportTicket = supportTicketRepository.findById(ticketAnalysisRequest.getTicketId())
                                                              .orElseThrow(
                                                                  DataNotFoundException.supplier(
@@ -49,60 +59,69 @@ public class TicketAnalysisService {
                                    .build();
         }
 
-        String responseText;
-        try {
-            responseText = chatClient.prompt()
-                                     .system(promptService.getSystemPrompt())
-                                     .user(promptUserSpec -> promptUserSpec.text(promptService.getAnalysisPrompt())
-                                                                           .param("content", ticketAnalysisRequest.getContent()))
-                                     .call()
-                                     .content();
+        String responseText = chatClient.prompt()
+                                        .system(promptService.getSystemPrompt())
+                                        .user(promptUserSpec -> promptUserSpec.text(promptService.getAnalysisPrompt())
+                                                                              .param("content", ticketAnalysisRequest.getContent()))
+                                        .call()
+                                        .content();
 
-            llmOutputService.persistAnalysisOutput(
-                supportTicket,
-                ticketAnalysisRequest.getContent(),
-                responseText,
-                LlmOutputType.ANALYSIS,
-                ParseStatus.SUCCESS,
-                null,
-                0
-            );
+        llmOutputService.persistAnalysisOutput(
+            supportTicket,
+            ticketAnalysisRequest.getContent(),
+            responseText,
+            LlmOutputType.ANALYSIS,
+            ParseStatus.SUCCESS,
+            null,
+            0
+        );
 
-            auditService.recordTicketAnalysis(
-                supportTicket.getId(),
-                LlmOutputType.ANALYSIS.name(),
-                true,
-                null
-            );
+        auditService.recordTicketAnalysis(
+            supportTicket.getId(),
+            LlmOutputType.ANALYSIS.name(),
+            true,
+            null
+        );
 
-            return TicketAnalysisResult.builder()
-                                       .analysis(responseText)
-                                       .build();
+        TicketCategory category = parseCategory(
+            responseText
+        );
 
-        } catch (Exception exception) {
-            log.error("Failed to analyze ticket {}", ticketAnalysisRequest.getTicketId(), exception);
+        log.info(
+            "TicketAnalysis({}) SupportTicket(id:{}) Outcome(category:{},analysisLength:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            category,
+            StringUtils.length(responseText)
+        );
 
-            llmOutputService.persistAnalysisOutput(
-                supportTicket,
-                ticketAnalysisRequest.getContent(),
-                null,
-                LlmOutputType.ANALYSIS,
-                ParseStatus.MODEL_ERROR,
-                exception.getMessage(),
-                0
-            );
+        return TicketAnalysisResult.builder()
+                                   .analysis(responseText)
+                                   .category(category)
+                                   .build();
+    }
 
-            auditService.recordTicketAnalysis(
-                supportTicket.getId(),
-                LlmOutputType.ANALYSIS.name(),
-                false,
-                exception.getMessage()
-            );
+    private TicketCategory parseCategory(
+        String responseText
+    ) {
+        String[] lines = StringUtils.splitPreserveAllTokens(
+            StringUtils.trimToEmpty(responseText),
+            '\n'
+        );
 
-            return TicketAnalysisResult.builder()
-                                       .analysis(null)
-                                       .confidence(0.0)
-                                       .build();
-        }
+        String lastLine = StringUtils.trimToEmpty(
+            lines[lines.length - 1]
+        );
+
+        String key = StringUtils.stripEnd(
+            lastLine,
+            StringUtils.CR
+        );
+
+        return EnumUtils.getEnumIgnoreCase(
+            TicketCategory.class,
+            key,
+            TicketCategory.OTHER
+        );
     }
 }

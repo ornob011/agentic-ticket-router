@@ -2,6 +2,7 @@ package com.dsi.support.agenticrouter.listener;
 
 import com.dsi.support.agenticrouter.event.TicketCreatedEvent;
 import com.dsi.support.agenticrouter.service.routing.RouterOrchestrator;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -19,9 +20,19 @@ public class TicketRoutingListener {
     public void handleTicketCreated(
         TicketCreatedEvent event
     ) {
-        log.info("Handling ticket created event for ticket ID: {}", event.getTicketId());
+        log.info(
+            "TicketCreatedEventHandle({}) SupportTicket(id:{})",
+            OperationalLogContext.PHASE_START,
+            event.getTicketId()
+        );
 
         routerOrchestrator.routeTicket(
+            event.getTicketId()
+        );
+
+        log.info(
+            "TicketCreatedEventHandle({}) SupportTicket(id:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             event.getTicketId()
         );
     }

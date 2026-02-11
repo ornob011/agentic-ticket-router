@@ -288,7 +288,19 @@ CREATE TABLE support_ticket
                                                             'SHIPPING',
                                                             'SECURITY',
                                                             'PRICING',
-                                                            'OTHER'
+                                                            'OTHER',
+                                                            'PRICING',
+                                                            'ACCOUNT',
+                                                            'CANCEL',
+                                                            'CONTACT',
+                                                            'DELIVERY',
+                                                            'FEEDBACK',
+                                                            'INVOICE',
+                                                            'ORDER',
+                                                            'PAYMENT',
+                                                            'REFUND',
+                                                            'SHIPPING',
+                                                            'SUBSCRIPTION'
       )),
 
   CONSTRAINT chk_support_ticket_priority
@@ -352,7 +364,8 @@ CREATE TABLE llm_output
   CONSTRAINT chk_llm_output_type
     CHECK (output_type IN (
                            'ROUTING',
-                           'ANALYSIS'
+                           'ANALYSIS',
+                           'CATEGORY_DETECTION'
       )),
 
   CONSTRAINT chk_llm_parse_status
@@ -638,10 +651,33 @@ CREATE TABLE knowledge_article
   failure_count BIGINT       NOT NULL DEFAULT 0,
 
   CONSTRAINT chk_kb_category CHECK (category IN
-                                    ('BILLING', 'TECHNICAL', 'ACCOUNT', 'SHIPPING', 'SECURITY', 'OTHER', 'PRICING')),
+                                    ('BILLING',
+                                     'TECHNICAL',
+                                     'ACCOUNT',
+                                     'SHIPPING',
+                                     'SECURITY',
+                                     'OTHER',
+                                     'PRICING',
+                                     'ACCOUNT',
+                                     'CANCEL',
+                                     'CONTACT',
+                                     'DELIVERY',
+                                     'FEEDBACK',
+                                     'INVOICE',
+                                     'ORDER',
+                                     'PAYMENT',
+                                     'REFUND',
+                                     'SHIPPING',
+                                     'SUBSCRIPTION'
+                                    )),
   CONSTRAINT chk_kb_type CHECK (article_type IN
-                                ('SOLUTION', 'FAQ', 'PROCEDURAL_GUIDE', 'TROUBLESHOOTING', 'QUICK_SOLUTION',
-                                 'FEATURE_OVERVIEW'))
+                                ('SOLUTION',
+                                 'FAQ',
+                                 'PROCEDURAL_GUIDE',
+                                 'TROUBLESHOOTING',
+                                 'QUICK_SOLUTION',
+                                 'FEATURE_OVERVIEW'
+                                ))
 );
 
 CREATE INDEX idx_kb_article_category_active ON knowledge_article (category, active);

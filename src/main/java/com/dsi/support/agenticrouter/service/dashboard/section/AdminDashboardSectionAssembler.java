@@ -5,12 +5,15 @@ import com.dsi.support.agenticrouter.enums.LlmOutputType;
 import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.LlmOutputRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
-import com.dsi.support.agenticrouter.service.ModelService;
+import com.dsi.support.agenticrouter.service.ai.ModelService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
 @Component
+@Slf4j
 public class AdminDashboardSectionAssembler {
 
     private final AppUserRepository appUserRepository;
@@ -31,6 +34,11 @@ public class AdminDashboardSectionAssembler {
     }
 
     public DashboardDto.AdminData buildAdminSection() {
+        log.debug(
+            "DashboardSectionAdmin({})",
+            OperationalLogContext.PHASE_START
+        );
+
         long totalRegisteredUsers = appUserRepository.count();
         long totalTicketsInSystem = supportTicketRepository.count();
 
@@ -49,12 +57,24 @@ public class AdminDashboardSectionAssembler {
 
         String activeModelTag = modelService.getActiveModelTag();
 
-        return new DashboardDto.AdminData(
+        DashboardDto.AdminData adminData = new DashboardDto.AdminData(
             totalRegisteredUsers,
             totalTicketsInSystem,
             activeModelTag,
             routingSuccessRate,
             avgRoutingLatency
         );
+
+        log.debug(
+            "DashboardSectionAdmin({}) Outcome(totalUsers:{},totalTickets:{},activeModelTag:{},routingSuccessRate:{},avgRoutingLatency:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            totalRegisteredUsers,
+            totalTicketsInSystem,
+            activeModelTag,
+            routingSuccessRate,
+            avgRoutingLatency
+        );
+
+        return adminData;
     }
 }

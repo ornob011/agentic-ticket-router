@@ -8,8 +8,9 @@ import com.dsi.support.agenticrouter.enums.MessageKind;
 import com.dsi.support.agenticrouter.enums.NextAction;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
-import com.dsi.support.agenticrouter.service.AuditService;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
+import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -40,6 +41,14 @@ public class AddInternalNoteAction implements TicketAction {
     ) {
         String internalNote = routerResponse.getInternalNote();
 
+        log.info(
+            "AddInternalNoteAction({}) SupportTicket(id:{},status:{}) RouterResponse(noteLength:{})",
+            OperationalLogContext.PHASE_START,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            StringUtils.length(internalNote)
+        );
+
         if (StringUtils.isBlank(internalNote)) {
             throw new NullPointerException(
                 "Internal note content cannot be null or empty"
@@ -57,12 +66,27 @@ public class AddInternalNoteAction implements TicketAction {
         supportTicket.updateLastActivity();
         supportTicketRepository.save(supportTicket);
 
+        log.info(
+            "AddInternalNoteAction({}) SupportTicket(id:{},status:{}) Outcome(messageKind:{})",
+            OperationalLogContext.PHASE_PERSIST,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            MessageKind.INTERNAL_NOTE
+        );
+
         auditService.recordEvent(
             AuditEventType.MESSAGE_POSTED,
             supportTicket.getId(),
             null,
             "System added internal note",
             null
+        );
+
+        log.info(
+            "AddInternalNoteAction({}) SupportTicket(id:{},status:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus()
         );
     }
 }

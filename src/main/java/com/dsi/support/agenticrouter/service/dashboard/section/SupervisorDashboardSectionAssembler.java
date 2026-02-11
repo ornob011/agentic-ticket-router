@@ -3,6 +3,8 @@ package com.dsi.support.agenticrouter.service.dashboard.section;
 import com.dsi.support.agenticrouter.dto.DashboardDto;
 import com.dsi.support.agenticrouter.repository.EscalationRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -10,6 +12,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Component
+@Slf4j
 public class SupervisorDashboardSectionAssembler {
 
     private final EscalationRepository escalationRepository;
@@ -24,6 +27,11 @@ public class SupervisorDashboardSectionAssembler {
     }
 
     public DashboardDto.SupervisorData buildSupervisorSection() {
+        log.debug(
+            "DashboardSectionSupervisor({})",
+            OperationalLogContext.PHASE_START
+        );
+
         long pendingEscalations = escalationRepository.countByResolvedFalse();
 
         Instant slaBreachCutoffInstant = Instant.now()
@@ -50,10 +58,20 @@ public class SupervisorDashboardSectionAssembler {
                                                         )
                                                         .toList();
 
-        return DashboardDto.SupervisorData.builder()
-                                          .pendingEscalations(pendingEscalations)
-                                          .slaBreaches(slaBreaches)
-                                          .recentEscalations(mostRecentOpenEscalations)
-                                          .build();
+        DashboardDto.SupervisorData supervisorData = DashboardDto.SupervisorData.builder()
+                                                                                .pendingEscalations(pendingEscalations)
+                                                                                .slaBreaches(slaBreaches)
+                                                                                .recentEscalations(mostRecentOpenEscalations)
+                                                                                .build();
+
+        log.debug(
+            "DashboardSectionSupervisor({}) Outcome(pendingEscalations:{},slaBreaches:{},recentEscalationCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            pendingEscalations,
+            slaBreaches,
+            mostRecentOpenEscalations.size()
+        );
+
+        return supervisorData;
     }
 }

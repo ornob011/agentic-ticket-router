@@ -6,8 +6,9 @@ import com.dsi.support.agenticrouter.enums.AuditEventType;
 import com.dsi.support.agenticrouter.enums.NextAction;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
-import com.dsi.support.agenticrouter.service.AuditService;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
+import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -36,6 +37,15 @@ public class AssignQueueAction implements TicketAction {
         SupportTicket supportTicket,
         RouterResponse routerResponse
     ) {
+        log.info(
+            "AssignQueueAction({}) SupportTicket(id:{},status:{}) RouterResponse(queue:{},confidence:{})",
+            OperationalLogContext.PHASE_START,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            routerResponse.getQueue(),
+            routerResponse.getConfidence()
+        );
+
         supportTicket.setAssignedQueue(routerResponse.getQueue());
         supportTicket.setStatus(TicketStatus.ASSIGNED);
 
@@ -44,6 +54,14 @@ public class AssignQueueAction implements TicketAction {
         }
 
         supportTicketRepository.save(supportTicket);
+
+        log.info(
+            "AssignQueueAction({}) SupportTicket(id:{},status:{},queue:{})",
+            OperationalLogContext.PHASE_PERSIST,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            supportTicket.getAssignedQueue()
+        );
 
         auditService.recordEvent(
             AuditEventType.QUEUE_ASSIGNED,
@@ -55,6 +73,14 @@ public class AssignQueueAction implements TicketAction {
                 routerResponse.getConfidence()
             ),
             null
+        );
+
+        log.info(
+            "AssignQueueAction({}) SupportTicket(id:{},status:{},queue:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            supportTicket.getAssignedQueue()
         );
     }
 }

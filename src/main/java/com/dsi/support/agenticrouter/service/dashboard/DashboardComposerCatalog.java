@@ -1,6 +1,8 @@
 package com.dsi.support.agenticrouter.service.dashboard;
 
 import com.dsi.support.agenticrouter.enums.UserRole;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;
@@ -9,6 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 
 @Component
+@Slf4j
 public final class DashboardComposerCatalog {
 
     private final Map<UserRole, RoleDashboardComposer> composerByRole;
@@ -16,6 +19,12 @@ public final class DashboardComposerCatalog {
     public DashboardComposerCatalog(
         List<RoleDashboardComposer> discoveredComposers
     ) {
+        log.debug(
+            "DashboardComposerCatalogBuild({}) Outcome(discoveredCount:{})",
+            OperationalLogContext.PHASE_START,
+            discoveredComposers.size()
+        );
+
         EnumMap<UserRole, RoleDashboardComposer> composerEnumMap = new EnumMap<>(UserRole.class);
 
         for (RoleDashboardComposer roleDashboardComposer : discoveredComposers) {
@@ -39,11 +48,23 @@ public final class DashboardComposerCatalog {
         }
 
         this.composerByRole = Map.copyOf(composerEnumMap);
+
+        log.info(
+            "DashboardComposerCatalogBuild({}) Outcome(mappedRoles:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            composerByRole.keySet()
+        );
     }
 
     public RoleDashboardComposer composerSupporting(
         UserRole role
     ) {
+        log.debug(
+            "DashboardComposerResolve({}) Outcome(role:{})",
+            OperationalLogContext.PHASE_START,
+            role
+        );
+
         RoleDashboardComposer composer = composerByRole.get(role);
 
         if (Objects.isNull(composer)) {
@@ -51,6 +72,13 @@ public final class DashboardComposerCatalog {
                 "No dashboard composer found for role " + role
             );
         }
+
+        log.debug(
+            "DashboardComposerResolve({}) Outcome(role:{},composer:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            role,
+            composer.getClass().getSimpleName()
+        );
 
         return composer;
     }

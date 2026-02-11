@@ -9,8 +9,9 @@ import com.dsi.support.agenticrouter.enums.NextAction;
 import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
-import com.dsi.support.agenticrouter.service.AuditService;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
+import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -43,6 +44,15 @@ public class ChangePriorityAction implements TicketAction {
         TicketPriority newPriority = routerResponse.getPriority();
         TicketPriority oldPriority = supportTicket.getCurrentPriority();
 
+        log.info(
+            "ChangePriorityAction({}) SupportTicket(id:{},status:{},priority:{}) RouterResponse(priority:{})",
+            OperationalLogContext.PHASE_START,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            oldPriority,
+            newPriority
+        );
+
         if (Objects.isNull(newPriority)) {
             throw new IllegalStateException("Priority is required");
         }
@@ -50,6 +60,14 @@ public class ChangePriorityAction implements TicketAction {
         supportTicket.setCurrentPriority(newPriority);
         supportTicket.updateLastActivity();
         supportTicketRepository.save(supportTicket);
+
+        log.info(
+            "ChangePriorityAction({}) SupportTicket(id:{},status:{},priority:{})",
+            OperationalLogContext.PHASE_PERSIST,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            supportTicket.getCurrentPriority()
+        );
 
         if (!newPriority.equals(oldPriority)) {
             String messageContent = String.format(
@@ -74,5 +92,14 @@ public class ChangePriorityAction implements TicketAction {
                 null
             );
         }
+
+        log.info(
+            "ChangePriorityAction({}) SupportTicket(id:{},status:{},priority:{}) Outcome(priorityChanged:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            supportTicket.getCurrentPriority(),
+            !newPriority.equals(oldPriority)
+        );
     }
 }

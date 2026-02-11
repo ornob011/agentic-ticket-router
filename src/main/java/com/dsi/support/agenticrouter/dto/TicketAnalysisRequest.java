@@ -1,8 +1,8 @@
 package com.dsi.support.agenticrouter.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Data;
-import jakarta.validation.constraints.NotNull;
 
 @Data
 @Builder
