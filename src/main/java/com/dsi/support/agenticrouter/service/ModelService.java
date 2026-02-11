@@ -5,6 +5,7 @@ import com.dsi.support.agenticrouter.entity.ModelRegistry;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.ModelRegistryRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,40 +24,71 @@ public class ModelService {
 
     @Transactional(readOnly = true)
     public String getActiveModelTag() {
-        return modelRegistryRepository.findByActiveTrue()
-                                      .stream()
-                                      .findFirst()
-                                      .map(ModelRegistry::getModelTag)
-                                      .orElseThrow(
-                                          DataNotFoundException.supplier(
-                                              ModelRegistry.class,
-                                              "active model"
-                                          )
-                                      );
+        String activeModelTag = modelRegistryRepository.findByActiveTrue()
+                                                       .stream()
+                                                       .findFirst()
+                                                       .map(ModelRegistry::getModelTag)
+                                                       .orElseThrow(
+                                                           DataNotFoundException.supplier(
+                                                               ModelRegistry.class,
+                                                               "active model"
+                                                           )
+                                                       );
+
+        log.debug(
+            "ModelLookup(complete) ModelRegistry(tag:{},active:{})",
+            activeModelTag,
+            true
+        );
+
+        return activeModelTag;
     }
 
     @Transactional(readOnly = true)
     public ModelRegistry getActiveModel() {
-        return modelRegistryRepository.findByActiveTrue()
-                                      .stream()
-                                      .findFirst()
-                                      .orElseThrow(
-                                          DataNotFoundException.supplier(
-                                              ModelRegistry.class,
-                                              "active model"
-                                          )
-                                      );
+        ModelRegistry activeModel = modelRegistryRepository.findByActiveTrue()
+                                                           .stream()
+                                                           .findFirst()
+                                                           .orElseThrow(
+                                                               DataNotFoundException.supplier(
+                                                                   ModelRegistry.class,
+                                                                   "active model"
+                                                               )
+                                                           );
+
+        log.info(
+            "ModelLookup(complete) ModelRegistry(id:{},tag:{},active:{})",
+            activeModel.getId(),
+            activeModel.getModelTag(),
+            activeModel.isActive()
+        );
+
+        return activeModel;
     }
 
     @Transactional(readOnly = true)
     public List<ModelRegistry> getAllModels() {
-        return modelRegistryRepository.findAll();
+        List<ModelRegistry> models = modelRegistryRepository.findAll();
+
+        log.debug(
+            "ModelList(complete) Outcome(modelCount:{})",
+            models.size()
+        );
+
+        return models;
     }
 
     public void activateModel(
         String modelTag,
         Long activatorId
     ) {
+        log.info(
+            "ModelActivate({}) ModelRegistry(tag:{}) Actor(id:{})",
+            OperationalLogContext.PHASE_START,
+            modelTag,
+            activatorId
+        );
+
         AppUser activator = appUserRepository.findById(activatorId)
                                              .orElseThrow(
                                                  DataNotFoundException.supplier(
@@ -69,6 +101,13 @@ public class ModelService {
                                .forEach(model -> {
                                    model.deactivate();
                                    modelRegistryRepository.save(model);
+                                   log.debug(
+                                       "ModelActivate({}) ModelRegistry(id:{},tag:{},active:{})",
+                                       OperationalLogContext.PHASE_PERSIST,
+                                       model.getId(),
+                                       model.getModelTag(),
+                                       model.isActive()
+                                   );
                                });
 
         ModelRegistry modelToActivate = modelRegistryRepository.findByModelTag(modelTag)
@@ -81,5 +120,15 @@ public class ModelService {
 
         modelToActivate.activate(activator);
         modelRegistryRepository.save(modelToActivate);
+
+        log.info(
+            "ModelActivate({}) ModelRegistry(id:{},tag:{},active:{}) Actor(id:{},role:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            modelToActivate.getId(),
+            modelToActivate.getModelTag(),
+            modelToActivate.isActive(),
+            activator.getId(),
+            activator.getRole()
+        );
     }
 }

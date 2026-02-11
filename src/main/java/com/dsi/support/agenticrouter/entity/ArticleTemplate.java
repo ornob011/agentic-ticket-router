@@ -57,6 +57,13 @@ public class ArticleTemplate extends BaseEntity {
     @Builder.Default
     private Boolean active = true;
 
+    private static String preview(
+        String content
+    ) {
+        String safe = StringUtils.defaultString(content);
+        return StringUtils.abbreviate(safe, TEMPLATE_PREVIEW_LENGTH);
+    }
+
     @PostLoad
     @PostPersist
     @PostUpdate
@@ -78,12 +85,5 @@ public class ArticleTemplate extends BaseEntity {
                ", applicablePriorities=" + applicablePriorities +
                ", active=" + active +
                '}';
-    }
-
-    private static String preview(
-        String content
-    ) {
-        String safe = StringUtils.defaultString(content);
-        return StringUtils.abbreviate(safe, TEMPLATE_PREVIEW_LENGTH);
     }
 }

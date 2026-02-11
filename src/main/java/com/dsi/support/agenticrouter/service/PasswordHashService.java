@@ -1,15 +1,13 @@
 package com.dsi.support.agenticrouter.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class PasswordHashService {
-    private static final Logger logger = LoggerFactory.getLogger(PasswordHashService.class);
-
     private final PasswordEncoder passwordEncoder;
 
     public PasswordHashService(
@@ -21,26 +19,51 @@ public class PasswordHashService {
     public String getPasswordHash(
         String rawValue
     ) {
+        log.debug(
+            "PasswordHashGenerate(start) Outcome(rawLength:{})",
+            StringUtils.length(rawValue)
+        );
+
         if (StringUtils.isBlank(rawValue)) {
             throw new IllegalArgumentException("Password value must not be null or empty");
         }
 
-        return passwordEncoder.encode(
+        String passwordHash = passwordEncoder.encode(
             rawValue
         );
+
+        log.debug(
+            "PasswordHashGenerate(complete) Outcome(hashLength:{})",
+            StringUtils.length(passwordHash)
+        );
+
+        return passwordHash;
     }
 
     public boolean passwordHashMatches(
         String rawValue,
         String hashValue
     ) {
+        log.debug(
+            "PasswordHashVerify(start) Outcome(rawLength:{},hashLength:{})",
+            StringUtils.length(rawValue),
+            StringUtils.length(hashValue)
+        );
+
         if (StringUtils.isBlank(rawValue) || StringUtils.isBlank(hashValue)) {
             return false;
         }
 
-        return passwordEncoder.matches(
+        boolean matches = passwordEncoder.matches(
             rawValue,
             hashValue
         );
+
+        log.debug(
+            "PasswordHashVerify(complete) Outcome(matches:{})",
+            matches
+        );
+
+        return matches;
     }
 }

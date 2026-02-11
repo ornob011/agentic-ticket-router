@@ -8,6 +8,7 @@ import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.service.AuditService;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -34,10 +35,28 @@ public class HumanReviewAction implements TicketAction {
         SupportTicket supportTicket,
         RouterResponse routerResponse
     ) {
+        log.info(
+            "HumanReviewAction({}) SupportTicket(id:{},status:{}) RouterResponse(queue:{},confidence:{},category:{})",
+            OperationalLogContext.PHASE_START,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            routerResponse.getQueue(),
+            routerResponse.getConfidence(),
+            routerResponse.getCategory()
+        );
+
         supportTicket.setStatus(TicketStatus.TRIAGING);
         supportTicket.setAssignedQueue(routerResponse.getQueue());
 
         supportTicketRepository.save(supportTicket);
+
+        log.info(
+            "HumanReviewAction({}) SupportTicket(id:{},status:{},queue:{})",
+            OperationalLogContext.PHASE_PERSIST,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            supportTicket.getAssignedQueue()
+        );
 
         auditService.recordEvent(
             AuditEventType.POLICY_GATE_TRIGGERED,
@@ -49,6 +68,14 @@ public class HumanReviewAction implements TicketAction {
                 routerResponse.getCategory()
             ),
             null
+        );
+
+        log.info(
+            "HumanReviewAction({}) SupportTicket(id:{},status:{},queue:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            supportTicket.getAssignedQueue()
         );
     }
 }

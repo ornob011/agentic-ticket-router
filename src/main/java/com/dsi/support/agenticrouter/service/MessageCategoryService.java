@@ -9,6 +9,7 @@ import com.dsi.support.agenticrouter.enums.TicketCategory;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,13 @@ public class MessageCategoryService {
         Long supportTicketId
     ) {
         long startTime = System.currentTimeMillis();
+
+        log.info(
+            "CategoryDetection({}) SupportTicket(id:{}) Outcome(contentLength:{})",
+            OperationalLogContext.PHASE_START,
+            supportTicketId,
+            StringUtils.length(content)
+        );
 
         if (Objects.isNull(chatClient)) {
             chatClient = ChatClient.builder(ollamaChatModel)
@@ -89,6 +97,16 @@ public class MessageCategoryService {
 
         TicketCategory detectedCategory = parseCategory(
             normalizedResponse
+        );
+
+        log.info(
+            "CategoryDetection({}) SupportTicket(id:{},status:{},currentCategory:{}) Outcome(detectedCategory:{},latencyMs:{})",
+            OperationalLogContext.PHASE_DECISION,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            supportTicket.getCurrentCategory(),
+            detectedCategory,
+            latencyMs
         );
 
         llmOutputService.persistAnalysisOutput(

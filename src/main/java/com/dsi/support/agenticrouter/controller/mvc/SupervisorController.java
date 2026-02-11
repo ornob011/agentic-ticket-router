@@ -5,6 +5,7 @@ import com.dsi.support.agenticrouter.entity.Escalation;
 import com.dsi.support.agenticrouter.enums.EscalationFilterStatus;
 import com.dsi.support.agenticrouter.enums.NavPage;
 import com.dsi.support.agenticrouter.service.TicketService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.Utils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -37,6 +38,15 @@ public class SupervisorController {
         @RequestParam(defaultValue = "20") int size,
         Model model
     ) {
+        log.info(
+            "EscalationList({}) Actor(id:{}) Outcome(statusFilter:{},page:{},size:{})",
+            OperationalLogContext.PHASE_START,
+            Utils.getLoggedInUserId(),
+            status,
+            page,
+            size
+        );
+
         Pageable pageable = PageRequest.of(
             page,
             size,
@@ -66,6 +76,13 @@ public class SupervisorController {
         model.addAttribute("selectedStatus", status);
         model.addAttribute("currentPage", page);
 
+        log.info(
+            "EscalationList({}) Actor(id:{}) Outcome(resultCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            Utils.getLoggedInUserId(),
+            escalations.getNumberOfElements()
+        );
+
         return "supervisor/escalations";
     }
 
@@ -78,7 +95,23 @@ public class SupervisorController {
         Model model,
         HttpServletRequest request
     ) {
+        log.info(
+            "EscalationResolve({}) Escalation(id:{}) Actor(id:{}) Outcome(notesLength:{})",
+            OperationalLogContext.PHASE_START,
+            escalationId,
+            Utils.getLoggedInUserId(),
+            resolveEscalationDto.getResolutionNotes() != null ? resolveEscalationDto.getResolutionNotes().trim().length() : 0
+        );
+
         if (bindingResult.hasErrors()) {
+            log.warn(
+                "EscalationResolve({}) Escalation(id:{}) Actor(id:{}) Outcome(validationErrors:{})",
+                OperationalLogContext.PHASE_FAIL,
+                escalationId,
+                Utils.getLoggedInUserId(),
+                bindingResult.getErrorCount()
+            );
+
             Escalation escalation = ticketService.getEscalationById(escalationId);
 
             model.addAttribute("escalation", escalation);
@@ -91,6 +124,13 @@ public class SupervisorController {
         ticketService.resolveEscalation(
             escalationId,
             resolveEscalationDto.getResolutionNotes()
+        );
+
+        log.info(
+            "EscalationResolve({}) Escalation(id:{}) Actor(id:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            escalationId,
+            Utils.getLoggedInUserId()
         );
 
         Utils.setSuccessMessageCode(
@@ -108,10 +148,24 @@ public class SupervisorController {
         @PathVariable Long escalationId,
         Model model
     ) {
+        log.info(
+            "EscalationDetailView({}) Escalation(id:{}) Actor(id:{})",
+            OperationalLogContext.PHASE_START,
+            escalationId,
+            Utils.getLoggedInUserId()
+        );
+
         Escalation escalation = ticketService.getEscalationById(escalationId);
         model.addAttribute("escalation", escalation);
         model.addAttribute("resolveEscalationDto", new ResolveEscalationDto());
         model.addAttribute("currentPage", NavPage.ESCALATIONS);
+
+        log.info(
+            "EscalationDetailView({}) Escalation(id:{}) SupportTicket(id:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            escalation.getId(),
+            escalation.getTicket().getId()
+        );
 
         return "supervisor/escalation-detail";
     }

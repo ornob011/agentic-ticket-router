@@ -9,6 +9,7 @@ import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.PolicyConfigRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +34,10 @@ public class SlaSchedulerService {
     @Scheduled(cron = "0 0 * * * ?")
     @Transactional
     public void checkCustomerResponseTimeout() {
-        log.info("Checking customer response timeouts");
+        log.info(
+            "SlaCustomerTimeoutCheck({})",
+            OperationalLogContext.PHASE_START
+        );
 
         int slaHours = PolicyConfigKey.getIntValue(
             policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.SLA_CUSTOMER_RESPONSE_HOURS)
@@ -49,6 +53,13 @@ public class SlaSchedulerService {
                 TicketStatus.WAITING_CUSTOMER
             ),
             slaThreshold
+        );
+
+        log.info(
+            "SlaCustomerTimeoutCheck({}) Outcome(slaHours:{},candidateCount:{})",
+            OperationalLogContext.PHASE_DECISION,
+            slaHours,
+            waitingTickets.size()
         );
 
         for (SupportTicket ticket : waitingTickets) {
@@ -82,13 +93,25 @@ public class SlaSchedulerService {
                 );
             }
 
-            log.info("SLA breach triggered for ticket: {}", ticket.getTicketNo());
+            log.info(
+                "SlaCustomerTimeoutCheck({}) SupportTicket(id:{},ticketNo:{},status:{}) Outcome(action:{})",
+                OperationalLogContext.PHASE_COMPLETE,
+                ticket.getId(),
+                ticket.getFormattedTicketNo(),
+                ticket.getStatus(),
+                "breach_notification_sent"
+            );
         }
     }
 
     @Scheduled(cron = "0 0 * * * ?")
     @Transactional
     public void checkAgentSlaBreach() {
+        log.info(
+            "SlaAgentTimeoutCheck({})",
+            OperationalLogContext.PHASE_START
+        );
+
         int slaHours = PolicyConfigKey.getIntValue(
             policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.SLA_AGENT_RESPONSE_HOURS)
                                   .map(PolicyConfig::getConfigValue)
@@ -101,7 +124,12 @@ public class SlaSchedulerService {
         long breachCount = supportTicketRepository.countSlaBreaches(slaThreshold);
 
         if (breachCount > 0) {
-            log.warn("SLA breaches detected: {} tickets", breachCount);
+            log.warn(
+                "SlaAgentTimeoutCheck({}) Outcome(slaHours:{},breachCount:{})",
+                OperationalLogContext.PHASE_DECISION,
+                slaHours,
+                breachCount
+            );
 
             List<SupportTicket> breachedTickets = supportTicketRepository.findByStatusInAndLastActivityAtBefore(
                 EnumSet.of(
@@ -124,11 +152,23 @@ public class SlaSchedulerService {
                 }
             }
         }
+
+        log.info(
+            "SlaAgentTimeoutCheck({}) Outcome(slaHours:{},breachCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            slaHours,
+            breachCount
+        );
     }
 
     @Scheduled(cron = "0 0 2 * * ?")
     @Transactional
     public void checkInactivityAutoClose() {
+        log.info(
+            "AutoCloseInactivityCheck({})",
+            OperationalLogContext.PHASE_START
+        );
+
         int warningDays = PolicyConfigKey.getIntValue(
             policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.AUTO_CLOSE_WARNING_DAYS)
                                   .map(PolicyConfig::getConfigValue)
@@ -153,6 +193,14 @@ public class SlaSchedulerService {
             warningThreshold
         );
 
+        log.info(
+            "AutoCloseInactivityCheck({}) Outcome(warningDays:{},finalDays:{},candidateCount:{})",
+            OperationalLogContext.PHASE_DECISION,
+            warningDays,
+            finalDays,
+            resolvedStale.size()
+        );
+
         for (SupportTicket ticket : resolvedStale) {
             if (ticket.getLastActivityAt().isBefore(finalThreshold)) {
                 ticket.setStatus(TicketStatus.CLOSED);
@@ -167,7 +215,14 @@ public class SlaSchedulerService {
                     null
                 );
 
-                log.info("Auto-closed ticket: {}", ticket.getTicketNo());
+                log.info(
+                    "AutoCloseInactivityCheck({}) SupportTicket(id:{},ticketNo:{},status:{}) Outcome(action:{})",
+                    OperationalLogContext.PHASE_COMPLETE,
+                    ticket.getId(),
+                    ticket.getFormattedTicketNo(),
+                    ticket.getStatus(),
+                    "auto_closed"
+                );
             } else if (!isAutoClosePending(ticket)) {
                 ticket.setStatus(TicketStatus.AUTO_CLOSED_PENDING);
                 supportTicketRepository.save(ticket);
@@ -188,7 +243,14 @@ public class SlaSchedulerService {
                     null
                 );
 
-                log.info("Auto-close pending for ticket: {}", ticket.getTicketNo());
+                log.info(
+                    "AutoCloseInactivityCheck({}) SupportTicket(id:{},ticketNo:{},status:{}) Outcome(action:{})",
+                    OperationalLogContext.PHASE_COMPLETE,
+                    ticket.getId(),
+                    ticket.getFormattedTicketNo(),
+                    ticket.getStatus(),
+                    "auto_close_pending"
+                );
             }
         }
     }

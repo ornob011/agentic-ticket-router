@@ -10,6 +10,7 @@ import com.dsi.support.agenticrouter.repository.AuditEventRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ import java.util.Objects;
 @Service
 @Transactional
 @RequiredArgsConstructor
+@Slf4j
 public class AuditService {
 
     private final AuditEventRepository auditEventRepository;
@@ -33,6 +35,13 @@ public class AuditService {
         String description,
         JsonNode payload
     ) {
+        log.debug(
+            "AuditEventRecord(start) SupportTicket(id:{}) AuditEvent(type:{}) Actor(id:{})",
+            ticketId,
+            eventType,
+            performedById
+        );
+
         Objects.requireNonNull(eventType, "eventType");
         Objects.requireNonNull(ticketId, "ticketId");
         Objects.requireNonNull(description, "description");
@@ -69,6 +78,15 @@ public class AuditService {
                                           .build();
 
         auditEventRepository.save(auditEvent);
+
+        log.info(
+            "AuditEventRecord(complete) SupportTicket(id:{}) AuditEvent(id:{},type:{},correlationId:{}) Actor(id:{})",
+            ticketId,
+            auditEvent.getId(),
+            eventType,
+            correlationId,
+            performedById
+        );
     }
 
     @Transactional(readOnly = true)

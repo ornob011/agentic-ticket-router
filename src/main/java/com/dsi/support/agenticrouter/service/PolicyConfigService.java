@@ -7,6 +7,7 @@ import com.dsi.support.agenticrouter.enums.UserRole;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.PolicyConfigRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,15 +27,29 @@ public class PolicyConfigService {
 
     @Transactional(readOnly = true)
     public List<PolicyConfig> getAllActivePolicies() {
-        return policyConfigRepository.findAllByActiveTrueOrderByConfigKey();
+        List<PolicyConfig> policies = policyConfigRepository.findAllByActiveTrueOrderByConfigKey();
+
+        log.debug(
+            "PolicyConfigList(complete) Outcome(policyCount:{})",
+            policies.size()
+        );
+
+        return policies;
     }
 
     @Transactional(readOnly = true)
     public PolicyConfig getConfigValue(
         PolicyConfigKey policyConfigKey
     ) {
-        return policyConfigRepository.findByConfigKeyAndActiveTrue(policyConfigKey)
-                                     .orElse(null);
+        PolicyConfig policyConfig = policyConfigRepository.findByConfigKeyAndActiveTrue(policyConfigKey)
+                                                          .orElse(null);
+
+        log.debug(
+            "PolicyConfigLookup(complete) PolicyConfig(key:{},activeFound:{})",
+            policyConfigKey,
+            Objects.nonNull(policyConfig)
+        );
+        return policyConfig;
     }
 
     @Transactional
@@ -42,6 +57,13 @@ public class PolicyConfigService {
         PolicyConfigKey policyConfigKey,
         BigDecimal policyConfigValue
     ) {
+        log.info(
+            "PolicyConfigUpdate({}) PolicyConfig(key:{}) Outcome(newValue:{})",
+            OperationalLogContext.PHASE_START,
+            policyConfigKey,
+            policyConfigValue
+        );
+
         Objects.requireNonNull(policyConfigKey, "configKey");
         Objects.requireNonNull(policyConfigValue, "configValue");
 
@@ -55,6 +77,13 @@ public class PolicyConfigService {
 
         policyConfig.setConfigValue(policyConfigValue);
         policyConfigRepository.save(policyConfig);
+
+        log.info(
+            "PolicyConfigUpdate({}) PolicyConfig(key:{}) Outcome(updatedValue:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            policyConfig.getConfigKey(),
+            policyConfig.getConfigValue()
+        );
     }
 
     @Transactional(readOnly = true)
@@ -70,6 +99,14 @@ public class PolicyConfigService {
         UserRole role,
         String passwordHash
     ) {
+        log.info(
+            "StaffUserCreate({}) AppUser(username:{},email:{},role:{})",
+            OperationalLogContext.PHASE_START,
+            username,
+            email,
+            role
+        );
+
         Objects.requireNonNull(username, "username");
         Objects.requireNonNull(email, "email");
         Objects.requireNonNull(role, "role");
@@ -99,7 +136,14 @@ public class PolicyConfigService {
 
         appUserRepository.save(user);
 
-        log.info("Staff user created: {} ({})", username, role);
+        log.info(
+            "StaffUserCreate({}) AppUser(id:{},username:{},role:{},active:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            user.getId(),
+            user.getUsername(),
+            user.getRole(),
+            user.isActive()
+        );
     }
 
 }

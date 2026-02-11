@@ -7,6 +7,7 @@ import com.dsi.support.agenticrouter.event.CategoryDetectionEvent;
 import com.dsi.support.agenticrouter.event.TicketCreatedEvent;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.*;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -81,6 +82,14 @@ public class TicketService {
         CreateTicketDto createTicketDto,
         Long customerId
     ) {
+        log.info(
+            "TicketCreate({}) Actor(id:{}) Outcome(subjectLength:{},contentLength:{})",
+            OperationalLogContext.PHASE_START,
+            customerId,
+            StringUtils.hasText(createTicketDto.getSubject()) ? createTicketDto.getSubject().trim().length() : 0,
+            StringUtils.hasText(createTicketDto.getContent()) ? createTicketDto.getContent().trim().length() : 0
+        );
+
         AppUser customer = appUserRepository.findById(customerId)
                                             .orElseThrow(
                                                 DataNotFoundException.supplier(
@@ -97,6 +106,17 @@ public class TicketService {
                                                    .build();
 
         supportTicket = supportTicketRepository.save(supportTicket);
+
+        log.info(
+            "TicketCreate({}) SupportTicket(id:{},ticketNo:{},status:{},queue:{},priority:{}) Actor(id:{})",
+            OperationalLogContext.PHASE_PERSIST,
+            supportTicket.getId(),
+            supportTicket.getFormattedTicketNo(),
+            supportTicket.getStatus(),
+            supportTicket.getAssignedQueue(),
+            supportTicket.getCurrentPriority(),
+            customerId
+        );
 
         TicketMessage initialTicketMessage = TicketMessage.builder()
                                                           .ticket(supportTicket)
@@ -130,6 +150,15 @@ public class TicketService {
                 supportTicket.getId()
             )
         );
+
+        log.info(
+            "TicketCreate({}) SupportTicket(id:{},ticketNo:{},status:{}) Outcome(event:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getFormattedTicketNo(),
+            supportTicket.getStatus(),
+            TicketCreatedEvent.class.getSimpleName()
+        );
     }
 
     public void addCustomerReply(
@@ -137,6 +166,14 @@ public class TicketService {
         String content,
         Long customerId
     ) {
+        log.info(
+            "CustomerReply({}) SupportTicket(id:{}) Actor(id:{}) Outcome(contentLength:{})",
+            OperationalLogContext.PHASE_START,
+            ticketId,
+            customerId,
+            StringUtils.hasText(content) ? content.trim().length() : 0
+        );
+
         AppUser customer = appUserRepository.findById(customerId)
                                             .orElseThrow(
                                                 DataNotFoundException.supplier(
@@ -157,6 +194,17 @@ public class TicketService {
             && supportTicket.getStatus().isClosedForReplies()
             && Objects.nonNull(supportTicket.getCurrentCategory())
         ) {
+            log.info(
+                "CustomerReply({}) SupportTicket(id:{},status:{},queue:{},priority:{}) Outcome(reason:{},currentCategory:{})",
+                OperationalLogContext.PHASE_DECISION,
+                supportTicket.getId(),
+                supportTicket.getStatus(),
+                supportTicket.getAssignedQueue(),
+                supportTicket.getCurrentPriority(),
+                "closed_for_reply_with_category_detection",
+                supportTicket.getCurrentCategory()
+            );
+
             TicketMessage customerMessage = TicketMessage.builder()
                                                          .ticket(supportTicket)
                                                          .content(content)
@@ -175,6 +223,15 @@ public class TicketService {
                     customerId
                 )
             );
+
+            log.info(
+                "CustomerReply({}) SupportTicket(id:{},status:{}) Outcome(event:{})",
+                OperationalLogContext.PHASE_COMPLETE,
+                supportTicket.getId(),
+                supportTicket.getStatus(),
+                CategoryDetectionEvent.class.getSimpleName()
+            );
+
             return;
         }
 
@@ -194,12 +251,15 @@ public class TicketService {
                        .accept(supportTicket, customer);
 
         supportTicketRepository.save(supportTicket);
-    }
 
-    private interface ReplyHandler {
-        void accept(
-            SupportTicket supportTicket,
-            AppUser customer
+        log.info(
+            "CustomerReply({}) SupportTicket(id:{},status:{},queue:{},priority:{}) Outcome(handlerStatus:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            supportTicket.getAssignedQueue(),
+            supportTicket.getCurrentPriority(),
+            supportTicket.getStatus()
         );
     }
 
@@ -346,6 +406,16 @@ public class TicketService {
         AppUser agent,
         String businessDriver
     ) {
+        log.info(
+            "AgentReply({}) SupportTicket(id:{}) Actor(id:{},role:{}) Outcome(contentLength:{},businessDriver:{})",
+            OperationalLogContext.PHASE_START,
+            ticketId,
+            OperationalLogContext.actorId(agent),
+            OperationalLogContext.actorRole(agent),
+            StringUtils.hasText(content) ? content.trim().length() : 0,
+            businessDriver
+        );
+
         Objects.requireNonNull(ticketId, "ticketId");
         Objects.requireNonNull(agent, "agent");
 
@@ -358,6 +428,14 @@ public class TicketService {
                                                              );
 
         if (!StringUtils.hasText(content)) {
+            log.warn(
+                "AgentReply({}) SupportTicket(id:{}) Actor(id:{}) Outcome(reason:{})",
+                OperationalLogContext.PHASE_SKIP,
+                ticketId,
+                OperationalLogContext.actorId(agent),
+                "empty_content"
+            );
+
             return;
         }
 
@@ -398,6 +476,16 @@ public class TicketService {
         );
 
         supportTicketRepository.save(supportTicket);
+
+        log.info(
+            "AgentReply({}) SupportTicket(id:{},status:{},queue:{}) Actor(id:{}) Outcome(messageKind:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            supportTicket.getAssignedQueue(),
+            agent.getId(),
+            MessageKind.AGENT_MESSAGE
+        );
     }
 
     public void changeTicketStatus(
@@ -417,6 +505,15 @@ public class TicketService {
         String businessDriver,
         String reason
     ) {
+        log.info(
+            "TicketStatusChange({}) SupportTicket(id:{}) Outcome(targetStatus:{},businessDriver:{},reasonLength:{})",
+            OperationalLogContext.PHASE_START,
+            ticketId,
+            targetStatus,
+            businessDriver,
+            StringUtils.hasText(reason) ? reason.trim().length() : 0
+        );
+
         Objects.requireNonNull(ticketId, "ticketId");
         Objects.requireNonNull(targetStatus, "targetStatus");
 
@@ -439,7 +536,17 @@ public class TicketService {
                                                              );
 
         TicketStatus previousStatus = supportTicket.getStatus();
-        if (previousStatus == targetStatus) return;
+        if (previousStatus == targetStatus) {
+            log.debug(
+                "TicketStatusChange({}) SupportTicket(id:{},status:{}) Outcome(reason:{})",
+                OperationalLogContext.PHASE_SKIP,
+                supportTicket.getId(),
+                supportTicket.getStatus(),
+                "no_status_change"
+            );
+
+            return;
+        }
 
         Instant statusChangeTimestamp = Instant.now();
 
@@ -479,6 +586,17 @@ public class TicketService {
         );
 
         supportTicketRepository.save(supportTicket);
+
+        log.info(
+            "TicketStatusChange({}) SupportTicket(id:{},fromStatus:{},toStatus:{}) Actor(id:{},role:{}) Outcome(driver:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            previousStatus,
+            supportTicket.getStatus(),
+            actor.getId(),
+            actor.getRole(),
+            normalizedBusinessDriver
+        );
     }
 
     @Transactional(readOnly = true)
@@ -522,6 +640,15 @@ public class TicketService {
         TicketPriority newPriority,
         String reason
     ) {
+        log.info(
+            "RoutingOverride({}) SupportTicket(id:{}) Outcome(newQueue:{},newPriority:{},reasonLength:{})",
+            OperationalLogContext.PHASE_START,
+            ticketId,
+            newQueue,
+            newPriority,
+            StringUtils.hasText(reason) ? reason.trim().length() : 0
+        );
+
         Objects.requireNonNull(ticketId, "ticketId");
         Objects.requireNonNull(newQueue, "newQueue");
         Objects.requireNonNull(newPriority, "newPriority");
@@ -574,12 +701,30 @@ public class TicketService {
             ),
             null
         );
+
+        log.info(
+            "RoutingOverride({}) SupportTicket(id:{},status:{},queue:{},priority:{}) Actor(id:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            ticket.getId(),
+            ticket.getStatus(),
+            ticket.getAssignedQueue(),
+            ticket.getCurrentPriority(),
+            overriddenById
+        );
     }
 
     public void resolveEscalation(
         Long escalationId,
         String resolutionNotes
     ) {
+        log.info(
+            "EscalationResolve({}) Escalation(id:{}) Actor(id:{}) Outcome(notesLength:{})",
+            OperationalLogContext.PHASE_START,
+            escalationId,
+            Utils.getLoggedInUserId(),
+            StringUtils.hasText(resolutionNotes) ? resolutionNotes.trim().length() : 0
+        );
+
         Objects.requireNonNull(escalationId, "escalationId");
         Objects.requireNonNull(resolutionNotes, "resolutionNotes");
 
@@ -592,6 +737,13 @@ public class TicketService {
                                                     );
 
         if (escalation.isResolved()) {
+            log.warn(
+                "EscalationResolve({}) Escalation(id:{}) Outcome(reason:{})",
+                OperationalLogContext.PHASE_SKIP,
+                escalationId,
+                "already_resolved"
+            );
+
             throw new IllegalStateException("Escalation already resolved: " + escalationId);
         }
 
@@ -615,6 +767,15 @@ public class TicketService {
             Utils.getLoggedInUserId(),
             String.format("Escalation resolved: %s", resolutionNotes),
             null
+        );
+
+        log.info(
+            "EscalationResolve({}) Escalation(id:{}) SupportTicket(id:{},status:{}) Actor(id:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            escalation.getId(),
+            escalation.getTicket().getId(),
+            escalation.getTicket().getStatus(),
+            resolver.getId()
         );
     }
 
@@ -659,6 +820,13 @@ public class TicketService {
         Long ticketId,
         Long agentId
     ) {
+        log.info(
+            "AgentAssign({}) SupportTicket(id:{}) Actor(targetAgentId:{})",
+            OperationalLogContext.PHASE_START,
+            ticketId,
+            agentId
+        );
+
         Objects.requireNonNull(ticketId, "ticketId");
         Objects.requireNonNull(agentId, "agentId");
 
@@ -713,9 +881,27 @@ public class TicketService {
             "You have been assigned to this ticket.",
             ticketId
         );
+
+        log.info(
+            "AgentAssign({}) SupportTicket(id:{},status:{},queue:{}) Actor(agentId:{},role:{}) Outcome(previousAgentId:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            supportTicket.getAssignedQueue(),
+            agent.getId(),
+            agent.getRole(),
+            Objects.nonNull(previousAgent) ? previousAgent.getId() : null
+        );
     }
 
     public void releaseAgent(Long ticketId) {
+        log.info(
+            "AgentRelease({}) SupportTicket(id:{}) Actor(id:{})",
+            OperationalLogContext.PHASE_START,
+            ticketId,
+            Utils.getLoggedInUserId()
+        );
+
         Objects.requireNonNull(ticketId, "ticketId");
 
         SupportTicket supportTicket = supportTicketRepository.findById(ticketId)
@@ -728,6 +914,14 @@ public class TicketService {
 
         AppUser previousAgent = supportTicket.getAssignedAgent();
         if (previousAgent == null) {
+            log.debug(
+                "AgentRelease({}) SupportTicket(id:{},status:{}) Outcome(reason:{})",
+                OperationalLogContext.PHASE_SKIP,
+                supportTicket.getId(),
+                supportTicket.getStatus(),
+                "already_unassigned"
+            );
+
             return;
         }
 
@@ -742,6 +936,22 @@ public class TicketService {
             Utils.getLoggedInUserId(),
             String.format("Agent released: %s", previousAgent.getFullName()),
             null
+        );
+
+        log.info(
+            "AgentRelease({}) SupportTicket(id:{},status:{},queue:{}) Outcome(previousAgentId:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            supportTicket.getAssignedQueue(),
+            previousAgent.getId()
+        );
+    }
+
+    private interface ReplyHandler {
+        void accept(
+            SupportTicket supportTicket,
+            AppUser customer
         );
     }
 }

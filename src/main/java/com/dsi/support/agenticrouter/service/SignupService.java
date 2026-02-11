@@ -6,13 +6,17 @@ import com.dsi.support.agenticrouter.enums.UserRole;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 
+import java.util.List;
+
 @Service
 @Transactional
 @RequiredArgsConstructor
+@Slf4j
 public class SignupService {
 
     private final AppUserRepository appUserRepository;
@@ -25,14 +29,33 @@ public class SignupService {
     public void loadDataForCustomerSignup(
         Model model
     ) {
-        model.addAttribute("countries", countryRepository.findByActiveTrueOrderByNameAsc());
-        model.addAttribute("tiers", customerTierRepository.findByActiveTrueOrderByDisplayNameAsc());
-        model.addAttribute("languages", languageRepository.findAllByOrderByNameAsc());
+        List<Country> countries = countryRepository.findByActiveTrueOrderByNameAsc();
+
+        List<CustomerTier> customerTiers = customerTierRepository.findByActiveTrueOrderByDisplayNameAsc();
+
+        List<Language> languages = languageRepository.findAllByOrderByNameAsc();
+
+        model.addAttribute("countries", countries);
+        model.addAttribute("tiers", customerTiers);
+        model.addAttribute("languages", languages);
+
+        log.debug(
+            "SignupReferenceDataLoad(complete) Outcome(countryCount:{},tierCount:{},languageCount:{})",
+            countries.size(),
+            customerTiers.size(),
+            languages.size()
+        );
     }
 
     public void signupCustomer(
         SignupDto signupDto
     ) {
+        log.info(
+            "SignupCustomer(start) AppUser(usernameLength:{},emailLength:{})",
+            signupDto.getUsername() != null ? signupDto.getUsername().trim().length() : 0,
+            signupDto.getEmail() != null ? signupDto.getEmail().trim().length() : 0
+        );
+
         String normalizedUsername = signupDto.getUsername()
                                              .trim()
                                              .toLowerCase();
@@ -117,5 +140,14 @@ public class SignupService {
 
         appUserRepository.save(newCustomerUser);
         customerProfileRepository.save(newCustomerProfile);
+
+        log.info(
+            "SignupCustomer(complete) AppUser(id:{},username:{},role:{},active:{}) CustomerProfile(id:{})",
+            newCustomerUser.getId(),
+            newCustomerUser.getUsername(),
+            newCustomerUser.getRole(),
+            newCustomerUser.isActive(),
+            newCustomerProfile.getId()
+        );
     }
 }

@@ -8,6 +8,7 @@ import com.dsi.support.agenticrouter.enums.ParseStatus;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.LlmOutputRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -83,6 +84,16 @@ public class LlmOutputService {
         String errorMessage,
         long latencyMs
     ) {
+        log.debug(
+            "LlmOutputPersist({}) SupportTicket(id:{}) LlmOutput(type:{},modelTag:{},parseStatus:{},latencyMs:{})",
+            OperationalLogContext.PHASE_START,
+            ticketId,
+            LlmOutputType.ROUTING,
+            modelTag,
+            parseStatus,
+            latencyMs
+        );
+
         Objects.requireNonNull(ticketId, "ticketId is required");
         Objects.requireNonNull(modelTag, "modelTag is required");
         Objects.requireNonNull(parseStatus, "parseStatus is required");
@@ -121,6 +132,17 @@ public class LlmOutputService {
                                            .build();
 
         llmOutputRepository.save(routingOutput);
+
+        log.info(
+            "LlmOutputPersist({}) SupportTicket(id:{}) LlmOutput(id:{},type:{},modelTag:{},parseStatus:{},latencyMs:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            ticketId,
+            routingOutput.getId(),
+            routingOutput.getOutputType(),
+            routingOutput.getModelTag(),
+            routingOutput.getParseStatus(),
+            routingOutput.getLatencyMs()
+        );
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -133,6 +155,16 @@ public class LlmOutputService {
         String errorMessage,
         long latencyMs
     ) {
+        log.debug(
+            "LlmOutputPersist({}) SupportTicket(id:{}) LlmOutput(type:{},modelTag:{},parseStatus:{},latencyMs:{})",
+            OperationalLogContext.PHASE_START,
+            Objects.nonNull(supportTicket) ? supportTicket.getId() : null,
+            outputType,
+            ANALYZER_MODEL_TAG,
+            parseStatus,
+            latencyMs
+        );
+
         Objects.requireNonNull(supportTicket, "supportTicket is required");
         Objects.requireNonNull(requestContent, "requestContent is required");
         Objects.requireNonNull(outputType, "outputType is required");
@@ -165,5 +197,16 @@ public class LlmOutputService {
                                             .build();
 
         llmOutputRepository.save(analysisOutput);
+
+        log.info(
+            "LlmOutputPersist({}) SupportTicket(id:{}) LlmOutput(id:{},type:{},modelTag:{},parseStatus:{},latencyMs:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            analysisOutput.getId(),
+            analysisOutput.getOutputType(),
+            analysisOutput.getModelTag(),
+            analysisOutput.getParseStatus(),
+            analysisOutput.getLatencyMs()
+        );
     }
 }

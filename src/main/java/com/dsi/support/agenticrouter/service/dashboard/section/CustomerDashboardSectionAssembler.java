@@ -2,11 +2,13 @@ package com.dsi.support.agenticrouter.service.dashboard.section;
 
 import com.dsi.support.agenticrouter.dto.DashboardDto;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
+@Slf4j
 public class CustomerDashboardSectionAssembler {
 
     private final SupportTicketRepository supportTicketRepository;
@@ -18,6 +20,11 @@ public class CustomerDashboardSectionAssembler {
     }
 
     public DashboardDto.CustomerData buildCustomerSectionFor(Long customerId) {
+        log.debug(
+            "DashboardSectionCustomer(start) Actor(customerId:{})",
+            customerId
+        );
+
         SupportTicketRepository.CustomerTicketCounts counts;
         counts = supportTicketRepository.countCustomerTicketCounts(
             customerId
@@ -40,12 +47,24 @@ public class CustomerDashboardSectionAssembler {
                                                            )
                                                            .toList();
 
-        return DashboardDto.CustomerData.builder()
-                                        .openTickets(counts.getOpenCount())
-                                        .waitingOnMe(counts.getWaitingCustomerCount())
-                                        .resolvedTickets(counts.getResolvedCount())
-                                        .closedTickets(counts.getClosedCount())
-                                        .recentTickets(mostRecentCustomerTickets)
-                                        .build();
+        DashboardDto.CustomerData customerData = DashboardDto.CustomerData.builder()
+                                                                          .openTickets(counts.getOpenCount())
+                                                                          .waitingOnMe(counts.getWaitingCustomerCount())
+                                                                          .resolvedTickets(counts.getResolvedCount())
+                                                                          .closedTickets(counts.getClosedCount())
+                                                                          .recentTickets(mostRecentCustomerTickets)
+                                                                          .build();
+
+        log.debug(
+            "DashboardSectionCustomer(complete) Actor(customerId:{}) Outcome(open:{},waiting:{},resolved:{},closed:{},recentCount:{})",
+            customerId,
+            counts.getOpenCount(),
+            counts.getWaitingCustomerCount(),
+            counts.getResolvedCount(),
+            counts.getClosedCount(),
+            mostRecentCustomerTickets.size()
+        );
+
+        return customerData;
     }
 }

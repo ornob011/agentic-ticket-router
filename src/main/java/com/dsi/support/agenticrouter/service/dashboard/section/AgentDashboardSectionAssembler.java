@@ -4,6 +4,7 @@ import com.dsi.support.agenticrouter.dto.DashboardDto;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 @Component
+@Slf4j
 public class AgentDashboardSectionAssembler {
 
     private final SupportTicketRepository supportTicketRepository;
@@ -24,6 +26,11 @@ public class AgentDashboardSectionAssembler {
     public DashboardDto.AgentData buildAgentSectionFor(
         Long agentId
     ) {
+        log.debug(
+            "DashboardSectionAgent(start) Actor(agentId:{})",
+            agentId
+        );
+
         Map<TicketQueue, Long> ticketsInEachQueue = new EnumMap<>(TicketQueue.class);
 
         List<SupportTicketRepository.TicketQueueCount> groupedQueueCounts;
@@ -84,11 +91,21 @@ public class AgentDashboardSectionAssembler {
             agentCounts.getWaitingCustomerCount()
         );
 
-        return DashboardDto.AgentData.builder()
-                                     .queueCounts(ticketsInEachQueue)
-                                     .myAssignedCount(ticketsAssignedToAgent)
-                                     .myTickets(mostRecentlyActiveAssignedTickets)
-                                     .myTicketStatusCounts(agentTicketCountsByStatus)
-                                     .build();
+        DashboardDto.AgentData agentData = DashboardDto.AgentData.builder()
+                                                                 .queueCounts(ticketsInEachQueue)
+                                                                 .myAssignedCount(ticketsAssignedToAgent)
+                                                                 .myTickets(mostRecentlyActiveAssignedTickets)
+                                                                 .myTicketStatusCounts(agentTicketCountsByStatus)
+                                                                 .build();
+
+        log.debug(
+            "DashboardSectionAgent(complete) Actor(agentId:{}) Outcome(queueCount:{},assignedCount:{},recentTicketCount:{})",
+            agentId,
+            ticketsInEachQueue.size(),
+            ticketsAssignedToAgent,
+            mostRecentlyActiveAssignedTickets.size()
+        );
+
+        return agentData;
     }
 }

@@ -2,8 +2,7 @@ package com.dsi.support.agenticrouter.controller.mvc;
 
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -13,8 +12,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import java.util.Objects;
 
 @Controller
+@Slf4j
 public class CustomErrorController implements ErrorController {
-    private static final Logger logger = LoggerFactory.getLogger(CustomErrorController.class);
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @GetMapping("/error")
@@ -23,9 +22,18 @@ public class CustomErrorController implements ErrorController {
         Object message = request.getAttribute(RequestDispatcher.ERROR_MESSAGE);
 
         if (Objects.nonNull(statusCode)) {
-            logger.error("Error with status code: {} and message: {}", statusCode, message);
+            log.error(
+                "ErrorRoute(fail) HttpRequest(uri:{}) Outcome(statusCode:{},message:{})",
+                request.getRequestURI(),
+                statusCode,
+                message
+            );
         } else {
-            logger.error("Unknown error occurred");
+            log.error(
+                "ErrorRoute(fail) HttpRequest(uri:{}) Outcome(reason:{})",
+                request.getRequestURI(),
+                "unknown_error"
+            );
         }
 
         return "error/500";

@@ -57,6 +57,10 @@ public enum AuditEventType {
         this.description = description;
     }
 
+    public static Set<AuditEventType> getCustomerVisible() {
+        return CUSTOMER_VISIBLE;
+    }
+
     public boolean isSystemGenerated() {
         return SYSTEM_GENERATED.contains(this);
     }
@@ -67,9 +71,5 @@ public enum AuditEventType {
 
     public boolean isCustomerVisible() {
         return CUSTOMER_VISIBLE.contains(this);
-    }
-
-    public static Set<AuditEventType> getCustomerVisible() {
-        return CUSTOMER_VISIBLE;
     }
 }

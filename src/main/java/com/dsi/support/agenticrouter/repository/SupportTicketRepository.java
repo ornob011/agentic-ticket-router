@@ -57,13 +57,6 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         @Param("threshold") BigDecimal threshold
     );
 
-    interface TicketQueueCount {
-
-        TicketQueue getQueue();
-
-        long getCount();
-    }
-
     @Query("""
         SELECT
             ticket.assignedQueue AS queue,
@@ -73,15 +66,6 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         GROUP BY ticket.assignedQueue
         """)
     List<TicketQueueCount> countTicketsGroupedByAssignedQueue();
-
-    interface AgentTicketCounts {
-
-        long getTotalCount();
-
-        long getInProgressCount();
-
-        long getWaitingCustomerCount();
-    }
 
     @Query("""
         SELECT
@@ -112,17 +96,6 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
     AgentTicketCounts countAgentTicketCounts(
         @Param("assignedAgentId") Long assignedAgentId
     );
-
-    interface CustomerTicketCounts {
-
-        long getOpenCount();
-
-        long getWaitingCustomerCount();
-
-        long getResolvedCount();
-
-        long getClosedCount();
-    }
 
     @Query("""
         SELECT
@@ -270,4 +243,31 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
     long countTriagingTickets(
         @Param("agentId") Long agentId
     );
+
+    interface TicketQueueCount {
+
+        TicketQueue getQueue();
+
+        long getCount();
+    }
+
+    interface AgentTicketCounts {
+
+        long getTotalCount();
+
+        long getInProgressCount();
+
+        long getWaitingCustomerCount();
+    }
+
+    interface CustomerTicketCounts {
+
+        long getOpenCount();
+
+        long getWaitingCustomerCount();
+
+        long getResolvedCount();
+
+        long getClosedCount();
+    }
 }

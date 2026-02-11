@@ -8,12 +8,14 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.GenericFilterBean;
 
 import java.io.IOException;
 
 @Component
+@Slf4j
 public class LoginPageFilter extends GenericFilterBean {
 
     @Override
@@ -26,6 +28,13 @@ public class LoginPageFilter extends GenericFilterBean {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         if (Utils.isLoggedIn() && isLoginRequest(httpRequest)) {
+            log.info(
+                "LoginRedirect(decision) HttpRequest(method:{},uri:{}) Outcome(action:{})",
+                httpRequest.getMethod(),
+                httpRequest.getRequestURI(),
+                "redirect_home_for_authenticated_user"
+            );
+
             httpResponse.sendRedirect(Constants.HOME_URL);
         } else {
             chain.doFilter(request, response);

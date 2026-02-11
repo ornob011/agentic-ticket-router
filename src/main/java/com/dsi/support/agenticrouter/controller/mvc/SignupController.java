@@ -2,11 +2,13 @@ package com.dsi.support.agenticrouter.controller.mvc;
 
 import com.dsi.support.agenticrouter.dto.SignupDto;
 import com.dsi.support.agenticrouter.service.SignupService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.Utils;
 import com.dsi.support.agenticrouter.validator.SignupValidator;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 
 @Controller
 @RequiredArgsConstructor
+@Slf4j
 public class SignupController {
 
     private final SignupService signupService;
@@ -32,9 +35,20 @@ public class SignupController {
 
     @GetMapping("/signup")
     public String showSignup(Model model) {
+        log.info(
+            "SignupView({})",
+            OperationalLogContext.PHASE_START
+        );
+
         model.addAttribute("signup", new SignupDto());
 
         signupService.loadDataForCustomerSignup(model);
+
+        log.info(
+            "SignupView({}) Outcome(view:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            "signup"
+        );
 
         return "signup";
     }
@@ -46,7 +60,20 @@ public class SignupController {
         Model model,
         HttpServletRequest request
     ) {
+        log.info(
+            "SignupSubmit({}) Outcome(usernameLength:{},emailLength:{})",
+            OperationalLogContext.PHASE_START,
+            signupDto.getUsername() != null ? signupDto.getUsername().trim().length() : 0,
+            signupDto.getEmail() != null ? signupDto.getEmail().trim().length() : 0
+        );
+
         if (bindingResult.hasErrors()) {
+            log.warn(
+                "SignupSubmit({}) Outcome(validationErrors:{})",
+                OperationalLogContext.PHASE_FAIL,
+                bindingResult.getErrorCount()
+            );
+
             signupService.loadDataForCustomerSignup(model);
 
             model.addAttribute("signup", signupDto);
@@ -55,6 +82,12 @@ public class SignupController {
         }
 
         signupService.signupCustomer(signupDto);
+
+        log.info(
+            "SignupSubmit({}) Outcome(username:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            signupDto.getUsername()
+        );
 
         Utils.setSuccessMessageCode(
             request,

@@ -5,6 +5,7 @@ import com.dsi.support.agenticrouter.enums.GlobalConfigKey;
 import com.dsi.support.agenticrouter.enums.VectorStoreConfigKey;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.GlobalConfigRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -25,7 +26,10 @@ public class VectorStoreInitializationService {
 
     @EventListener(ApplicationReadyEvent.class)
     public void initializeVectorStore() {
-        log.info("VectorStore initialization check triggered on application startup");
+        log.info(
+            "VectorStoreInitialization({})",
+            OperationalLogContext.PHASE_START
+        );
 
         Boolean isInitialized = transactionTemplate.execute(status -> {
             GlobalConfig globalConfig = globalConfigRepository.findByConfigKey(
@@ -45,11 +49,20 @@ public class VectorStoreInitializationService {
         });
 
         if (Boolean.TRUE.equals(isInitialized)) {
-            log.info("VectorStore already initialized, skipping");
+            log.info(
+                "VectorStoreInitialization({}) Outcome(reason:{})",
+                OperationalLogContext.PHASE_SKIP,
+                "already_initialized"
+            );
+
             return;
         }
 
-        log.info("VectorStore not initialized, starting one-time initialization");
+        log.info(
+            "VectorStoreInitialization({}) Outcome(action:{})",
+            OperationalLogContext.PHASE_DECISION,
+            "run_initialization"
+        );
 
         knowledgeBaseService.initializeVectorStore();
 
@@ -71,10 +84,21 @@ public class VectorStoreInitializationService {
 
             globalConfigRepository.save(globalConfig);
         });
+
+        log.info(
+            "VectorStoreInitialization({}) Outcome(configKey:{},initialized:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            GlobalConfigKey.VECTOR_STORE_INITIALIZED,
+            true
+        );
     }
 
     public void forceReinitialize() {
-        log.warn("Forcing vector store re-initialization");
+        log.warn(
+            "VectorStoreReinitialize({}) Outcome(action:{})",
+            OperationalLogContext.PHASE_START,
+            "force_reinitialize"
+        );
 
         transactionTemplate.executeWithoutResult(status -> {
             GlobalConfig globalConfig = globalConfigRepository.findByConfigKey(
@@ -118,6 +142,11 @@ public class VectorStoreInitializationService {
             globalConfigRepository.save(globalConfig);
         });
 
-        log.info("VectorStore force re-initialization completed");
+        log.info(
+            "VectorStoreReinitialize({}) Outcome(configKey:{},initialized:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            GlobalConfigKey.VECTOR_STORE_INITIALIZED,
+            true
+        );
     }
 }

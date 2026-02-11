@@ -11,6 +11,7 @@ import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.AuditService;
 import com.dsi.support.agenticrouter.service.NotificationService;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -44,6 +45,15 @@ public class AutoResolveAction implements TicketAction {
     ) {
         String solution = routerResponse.getDraftReply();
 
+        log.info(
+            "AutoResolveAction({}) SupportTicket(id:{},status:{}) RouterResponse(draftReplyLength:{},confidence:{})",
+            OperationalLogContext.PHASE_START,
+            supportTicket.getId(),
+            supportTicket.getStatus(),
+            StringUtils.length(solution),
+            routerResponse.getConfidence()
+        );
+
         if (StringUtils.isBlank(solution)) {
             throw new IllegalStateException("Solution content is required");
         }
@@ -61,6 +71,13 @@ public class AutoResolveAction implements TicketAction {
         supportTicket.updateLastActivity();
         supportTicketRepository.save(supportTicket);
 
+        log.info(
+            "AutoResolveAction({}) SupportTicket(id:{},status:{})",
+            OperationalLogContext.PHASE_PERSIST,
+            supportTicket.getId(),
+            supportTicket.getStatus()
+        );
+
         notificationService.createNotification(
             supportTicket.getCustomer().getId(),
             com.dsi.support.agenticrouter.enums.NotificationType.STATUS_CHANGE,
@@ -75,6 +92,13 @@ public class AutoResolveAction implements TicketAction {
             null,
             "System sent resolution and resolved ticket",
             null
+        );
+
+        log.info(
+            "AutoResolveAction({}) SupportTicket(id:{},status:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            supportTicket.getId(),
+            supportTicket.getStatus()
         );
     }
 }

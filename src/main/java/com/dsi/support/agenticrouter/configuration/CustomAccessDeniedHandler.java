@@ -2,17 +2,15 @@ package com.dsi.support.agenticrouter.configuration;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
 
 import java.io.IOException;
 
+@Slf4j
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
-
-    private static final Logger logger = LoggerFactory.getLogger(CustomAccessDeniedHandler.class);
 
     @Override
     public void handle(
@@ -31,7 +29,12 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
             StringUtils.isBlank(queryString) ? StringUtils.EMPTY : "?" + queryString
         );
 
-        logger.info("Access denied for request: {} {}", method, fullURL);
+        log.warn(
+            "AccessDeniedHandle(fail) HttpRequest(method:{},uri:{}) Outcome(action:{})",
+            method,
+            fullURL,
+            "redirect_access_denied"
+        );
 
         response.sendRedirect("/access-denied");
     }
