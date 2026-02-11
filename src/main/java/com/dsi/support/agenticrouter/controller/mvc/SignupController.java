@@ -1,7 +1,7 @@
 package com.dsi.support.agenticrouter.controller.mvc;
 
 import com.dsi.support.agenticrouter.dto.SignupDto;
-import com.dsi.support.agenticrouter.service.SignupService;
+import com.dsi.support.agenticrouter.service.onboarding.SignupService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.Utils;
 import com.dsi.support.agenticrouter.validator.SignupValidator;

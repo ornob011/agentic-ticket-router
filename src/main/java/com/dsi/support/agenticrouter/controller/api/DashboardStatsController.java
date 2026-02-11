@@ -5,7 +5,7 @@ import com.dsi.support.agenticrouter.dto.QueueStatsDto;
 import com.dsi.support.agenticrouter.entity.BaseEntity;
 import com.dsi.support.agenticrouter.repository.EscalationRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
-import com.dsi.support.agenticrouter.service.NotificationService;
+import com.dsi.support.agenticrouter.service.notification.NotificationService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;

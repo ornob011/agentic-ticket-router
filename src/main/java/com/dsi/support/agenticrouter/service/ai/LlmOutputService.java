@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.service;
+package com.dsi.support.agenticrouter.service.ai;
 
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.LlmOutput;

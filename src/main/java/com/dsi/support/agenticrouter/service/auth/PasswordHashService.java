@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.service;
+package com.dsi.support.agenticrouter.service.auth;
 
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.extern.slf4j.Slf4j;

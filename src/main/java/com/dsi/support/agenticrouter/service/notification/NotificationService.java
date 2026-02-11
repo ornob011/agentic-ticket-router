@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.service;
+package com.dsi.support.agenticrouter.service.notification;
 
 import com.dsi.support.agenticrouter.entity.AppUser;
 import com.dsi.support.agenticrouter.entity.Notification;

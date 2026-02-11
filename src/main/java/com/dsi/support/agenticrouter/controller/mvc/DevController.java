@@ -1,7 +1,7 @@
 package com.dsi.support.agenticrouter.controller.mvc;
 
-import com.dsi.support.agenticrouter.service.PasswordHashService;
-import com.dsi.support.agenticrouter.service.VectorStoreInitializationService;
+import com.dsi.support.agenticrouter.service.auth.PasswordHashService;
+import com.dsi.support.agenticrouter.service.knowledge.VectorStoreInitializationService;
 import com.dsi.support.agenticrouter.util.Constants;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.extern.slf4j.Slf4j;

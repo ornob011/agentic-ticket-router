@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.service;
+package com.dsi.support.agenticrouter.service.auth;
 
 import com.dsi.support.agenticrouter.entity.AppUser;
 import com.dsi.support.agenticrouter.enums.UserRole;

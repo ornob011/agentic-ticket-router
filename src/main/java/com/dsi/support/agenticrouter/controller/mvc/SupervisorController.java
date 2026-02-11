@@ -4,7 +4,7 @@ import com.dsi.support.agenticrouter.dto.ResolveEscalationDto;
 import com.dsi.support.agenticrouter.entity.Escalation;
 import com.dsi.support.agenticrouter.enums.EscalationFilterStatus;
 import com.dsi.support.agenticrouter.enums.NavPage;
-import com.dsi.support.agenticrouter.service.TicketService;
+import com.dsi.support.agenticrouter.service.ticket.TicketService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.Utils;
 import jakarta.servlet.http.HttpServletRequest;

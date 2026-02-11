@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.service;
+package com.dsi.support.agenticrouter.service.knowledge;
 
 import com.dsi.support.agenticrouter.configuration.VectorStoreIngestionConfiguration;
 import com.dsi.support.agenticrouter.entity.KnowledgeArticle;
