@@ -34,6 +34,11 @@ public class AdminDashboardSectionAssembler {
     }
 
     public DashboardDto.AdminData buildAdminSection() {
+        log.debug(
+            "DashboardSectionAdmin({})",
+            OperationalLogContext.PHASE_START
+        );
+
         long totalRegisteredUsers = appUserRepository.count();
         long totalTicketsInSystem = supportTicketRepository.count();
 
