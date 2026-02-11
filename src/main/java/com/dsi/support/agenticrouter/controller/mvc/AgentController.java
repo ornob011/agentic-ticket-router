@@ -19,6 +19,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,7 +27,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
@@ -99,10 +99,10 @@ public class AgentController {
             OperationalLogContext.PHASE_START,
             ticketId,
             Utils.getLoggedInUserId(),
-            StringUtils.hasText(agentReplyDto.getContent()) ? agentReplyDto.getContent().trim().length() : 0
+            StringUtils.length(StringUtils.trimToNull(agentReplyDto.getContent()))
         );
 
-        if (!StringUtils.hasText(agentReplyDto.getContent())) {
+        if (!StringUtils.isNotBlank(agentReplyDto.getContent())) {
             log.warn(
                 "AgentReply({}) SupportTicket(id:{}) Actor(id:{}) Outcome(reason:{})",
                 OperationalLogContext.PHASE_FAIL,
@@ -158,7 +158,7 @@ public class AgentController {
             ticketId,
             Utils.getLoggedInUserId(),
             changeTicketStatusDto.getNewStatus(),
-            StringUtils.hasText(changeTicketStatusDto.getReason()) ? changeTicketStatusDto.getReason().trim().length() : 0
+            StringUtils.length(StringUtils.trimToNull(changeTicketStatusDto.getReason()))
         );
 
         if (bindingResult.hasErrors()) {

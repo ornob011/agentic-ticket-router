@@ -11,12 +11,12 @@ import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.util.*;
@@ -86,8 +86,8 @@ public class TicketService {
             "TicketCreate({}) Actor(id:{}) Outcome(subjectLength:{},contentLength:{})",
             OperationalLogContext.PHASE_START,
             customerId,
-            StringUtils.hasText(createTicketDto.getSubject()) ? createTicketDto.getSubject().trim().length() : 0,
-            StringUtils.hasText(createTicketDto.getContent()) ? createTicketDto.getContent().trim().length() : 0
+            StringUtils.length(StringUtils.trimToNull(createTicketDto.getSubject())),
+            StringUtils.length(StringUtils.trimToNull(createTicketDto.getContent()))
         );
 
         AppUser customer = appUserRepository.findById(customerId)
@@ -171,7 +171,7 @@ public class TicketService {
             OperationalLogContext.PHASE_START,
             ticketId,
             customerId,
-            StringUtils.hasText(content) ? content.trim().length() : 0
+            StringUtils.length(StringUtils.trimToNull(content))
         );
 
         AppUser customer = appUserRepository.findById(customerId)
@@ -412,7 +412,7 @@ public class TicketService {
             ticketId,
             OperationalLogContext.actorId(agent),
             OperationalLogContext.actorRole(agent),
-            StringUtils.hasText(content) ? content.trim().length() : 0,
+            StringUtils.length(StringUtils.trimToNull(content)),
             businessDriver
         );
 
@@ -427,7 +427,7 @@ public class TicketService {
                                                                  )
                                                              );
 
-        if (!StringUtils.hasText(content)) {
+        if (!StringUtils.isNotBlank(content)) {
             log.warn(
                 "AgentReply({}) SupportTicket(id:{}) Actor(id:{}) Outcome(reason:{})",
                 OperationalLogContext.PHASE_SKIP,
@@ -453,7 +453,7 @@ public class TicketService {
 
         String normalizedBusinessDriver = Optional.ofNullable(businessDriver)
                                                   .map(String::trim)
-                                                  .filter(StringUtils::hasText)
+                                                  .filter(StringUtils::isNotBlank)
                                                   .orElse(BUSINESS_DRIVER_UNSPECIFIED);
 
         auditService.recordEvent(
@@ -511,7 +511,7 @@ public class TicketService {
             ticketId,
             targetStatus,
             businessDriver,
-            StringUtils.hasText(reason) ? reason.trim().length() : 0
+            StringUtils.length(StringUtils.trimToNull(reason))
         );
 
         Objects.requireNonNull(ticketId, "ticketId");
@@ -558,12 +558,12 @@ public class TicketService {
 
         String normalizedBusinessDriver = Optional.ofNullable(businessDriver)
                                                   .map(String::trim)
-                                                  .filter(StringUtils::hasText)
+                                                  .filter(StringUtils::isNotBlank)
                                                   .orElse(BUSINESS_DRIVER_UNSPECIFIED);
 
         String normalizedReason = Optional.ofNullable(reason)
                                           .map(String::trim)
-                                          .filter(StringUtils::hasText)
+                                          .filter(StringUtils::isNotBlank)
                                           .orElse("-");
 
         auditService.recordEvent(
@@ -646,7 +646,7 @@ public class TicketService {
             ticketId,
             newQueue,
             newPriority,
-            StringUtils.hasText(reason) ? reason.trim().length() : 0
+            StringUtils.length(StringUtils.trimToNull(reason))
         );
 
         Objects.requireNonNull(ticketId, "ticketId");
@@ -722,7 +722,7 @@ public class TicketService {
             OperationalLogContext.PHASE_START,
             escalationId,
             Utils.getLoggedInUserId(),
-            StringUtils.hasText(resolutionNotes) ? resolutionNotes.trim().length() : 0
+            StringUtils.length(StringUtils.trimToNull(resolutionNotes))
         );
 
         Objects.requireNonNull(escalationId, "escalationId");

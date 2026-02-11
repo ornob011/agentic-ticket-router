@@ -1,5 +1,6 @@
 package com.dsi.support.agenticrouter.configuration;
 
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,8 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
         );
 
         log.warn(
-            "AccessDeniedHandle(fail) HttpRequest(method:{},uri:{}) Outcome(action:{})",
+            "AccessDeniedHandle({}) HttpRequest(method:{},uri:{}) Outcome(action:{})",
+            OperationalLogContext.PHASE_FAIL,
             method,
             fullURL,
             "redirect_access_denied"

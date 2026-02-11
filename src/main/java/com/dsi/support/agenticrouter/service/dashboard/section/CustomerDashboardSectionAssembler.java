@@ -2,6 +2,7 @@ package com.dsi.support.agenticrouter.service.dashboard.section;
 
 import com.dsi.support.agenticrouter.dto.DashboardDto;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +22,8 @@ public class CustomerDashboardSectionAssembler {
 
     public DashboardDto.CustomerData buildCustomerSectionFor(Long customerId) {
         log.debug(
-            "DashboardSectionCustomer(start) Actor(customerId:{})",
+            "DashboardSectionCustomer({}) Actor(customerId:{})",
+            OperationalLogContext.PHASE_START,
             customerId
         );
 
@@ -56,7 +58,8 @@ public class CustomerDashboardSectionAssembler {
                                                                           .build();
 
         log.debug(
-            "DashboardSectionCustomer(complete) Actor(customerId:{}) Outcome(open:{},waiting:{},resolved:{},closed:{},recentCount:{})",
+            "DashboardSectionCustomer({}) Actor(customerId:{}) Outcome(open:{},waiting:{},resolved:{},closed:{},recentCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             customerId,
             counts.getOpenCount(),
             counts.getWaitingCustomerCount(),

@@ -8,8 +8,10 @@ import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.NotificationRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,12 +36,13 @@ public class NotificationService {
         Long ticketId
     ) {
         log.debug(
-            "NotificationCreate(start) Actor(recipientId:{}) SupportTicket(id:{}) Notification(type:{},titleLength:{},bodyLength:{})",
+            "NotificationCreate({}) Actor(recipientId:{}) SupportTicket(id:{}) Notification(type:{},titleLength:{},bodyLength:{})",
+            OperationalLogContext.PHASE_START,
             recipientId,
             ticketId,
             type,
-            title != null ? title.length() : 0,
-            body != null ? body.length() : 0
+            StringUtils.length(title),
+            StringUtils.length(body)
         );
 
         AppUser recipient = appUserRepository.findById(recipientId)
@@ -70,7 +73,8 @@ public class NotificationService {
         notificationRepository.save(notification);
 
         log.info(
-            "NotificationCreate(complete) Notification(id:{},type:{},read:{}) Actor(recipientId:{}) SupportTicket(id:{})",
+            "NotificationCreate({}) Notification(id:{},type:{},read:{}) Actor(recipientId:{}) SupportTicket(id:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             notification.getId(),
             notification.getNotificationType(),
             notification.isRead(),
@@ -88,7 +92,8 @@ public class NotificationService {
         );
 
         log.debug(
-            "NotificationUnreadList(complete) Actor(userId:{}) Outcome(resultCount:{})",
+            "NotificationUnreadList({}) Actor(userId:{}) Outcome(resultCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             userId,
             notifications.size()
         );
@@ -101,7 +106,8 @@ public class NotificationService {
         Long userId
     ) {
         log.debug(
-            "NotificationMarkRead(start) Notification(id:{}) Actor(userId:{})",
+            "NotificationMarkRead({}) Notification(id:{}) Actor(userId:{})",
+            OperationalLogContext.PHASE_START,
             notificationId,
             userId
         );
@@ -113,7 +119,8 @@ public class NotificationService {
                                           notification.setRead(true);
                                           notificationRepository.save(notification);
                                           log.info(
-                                              "NotificationMarkRead(complete) Notification(id:{},read:{}) Actor(userId:{})",
+                                              "NotificationMarkRead({}) Notification(id:{},read:{}) Actor(userId:{})",
+                                              OperationalLogContext.PHASE_COMPLETE,
                                               notification.getId(),
                                               notification.isRead(),
                                               userId
@@ -130,7 +137,8 @@ public class NotificationService {
         long unreadCount = notificationRepository.countByRecipientIdAndRead(userId, Boolean.FALSE);
 
         log.debug(
-            "NotificationUnreadCount(complete) Actor(userId:{}) Outcome(unreadCount:{})",
+            "NotificationUnreadCount({}) Actor(userId:{}) Outcome(unreadCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             userId,
             unreadCount
         );
@@ -149,7 +157,8 @@ public class NotificationService {
         notificationRepository.deleteAll(oldNotifications);
 
         log.info(
-            "NotificationDeleteRead(complete) Outcome(before:{},deletedCount:{})",
+            "NotificationDeleteRead({}) Outcome(before:{},deletedCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             before,
             oldNotifications.size()
         );
@@ -162,7 +171,8 @@ public class NotificationService {
         List<Notification> notifications = notificationRepository.findByRecipient_IdOrderByCreatedAtDesc(userId);
 
         log.debug(
-            "NotificationRecentList(complete) Actor(userId:{}) Outcome(resultCount:{})",
+            "NotificationRecentList({}) Actor(userId:{}) Outcome(resultCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             userId,
             notifications.size()
         );
@@ -185,7 +195,8 @@ public class NotificationService {
         notificationRepository.saveAll(unreadNotifications);
 
         log.info(
-            "NotificationMarkAllRead(complete) Actor(userId:{}) Outcome(updatedCount:{})",
+            "NotificationMarkAllRead({}) Actor(userId:{}) Outcome(updatedCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             userId,
             unreadNotifications.size()
         );

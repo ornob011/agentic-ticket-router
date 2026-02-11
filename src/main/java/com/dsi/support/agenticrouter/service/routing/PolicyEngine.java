@@ -5,6 +5,7 @@ import com.dsi.support.agenticrouter.entity.PolicyConfig;
 import com.dsi.support.agenticrouter.enums.*;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.PolicyConfigRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,7 +23,8 @@ public class PolicyEngine {
         RouterResponse routerResponse
     ) {
         log.info(
-            "PolicyEvaluate(start) RouterResponse(category:{},priority:{},queue:{},nextAction:{},confidence:{})",
+            "PolicyEvaluate({}) RouterResponse(category:{},priority:{},queue:{},nextAction:{},confidence:{})",
+            OperationalLogContext.PHASE_START,
             routerResponse.getCategory(),
             routerResponse.getPriority(),
             routerResponse.getQueue(),
@@ -50,7 +52,8 @@ public class PolicyEngine {
             policyTriggered = true;
 
             log.warn(
-                "PolicyEvaluate(decision) Outcome(policy:{},nextAction:{},queue:{},priority:{})",
+                "PolicyEvaluate({}) Outcome(policy:{},nextAction:{},queue:{},priority:{})",
+                OperationalLogContext.PHASE_DECISION,
                 "security_content_escalation",
                 NextAction.ESCALATE,
                 TicketQueue.SECURITY_Q,
@@ -73,7 +76,8 @@ public class PolicyEngine {
                 policyTriggered = true;
 
                 log.warn(
-                    "PolicyEvaluate(decision) Outcome(policy:{},confidence:{},threshold:{},nextAction:{})",
+                    "PolicyEvaluate({}) Outcome(policy:{},confidence:{},threshold:{},nextAction:{})",
+                    OperationalLogContext.PHASE_DECISION,
                     "critical_min_conf",
                     routerResponse.getConfidence(),
                     criticalMinConf,
@@ -95,7 +99,8 @@ public class PolicyEngine {
             builder.nextAction(NextAction.HUMAN_REVIEW);
 
             log.info(
-                "PolicyEvaluate(decision) Outcome(policy:{},confidence:{},threshold:{},nextAction:{})",
+                "PolicyEvaluate({}) Outcome(policy:{},confidence:{},threshold:{},nextAction:{})",
+                OperationalLogContext.PHASE_DECISION,
                 "auto_route_threshold",
                 routerResponse.getConfidence(),
                 autoRouteThreshold,
@@ -106,7 +111,8 @@ public class PolicyEngine {
         RouterResponse gatedResponse = builder.build();
 
         log.info(
-            "PolicyEvaluate(complete) RouterResponse(category:{},priority:{},queue:{},nextAction:{},confidence:{})",
+            "PolicyEvaluate({}) RouterResponse(category:{},priority:{},queue:{},nextAction:{},confidence:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             gatedResponse.getCategory(),
             gatedResponse.getPriority(),
             gatedResponse.getQueue(),

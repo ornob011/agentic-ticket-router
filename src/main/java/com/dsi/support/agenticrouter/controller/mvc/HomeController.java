@@ -1,5 +1,6 @@
 package com.dsi.support.agenticrouter.controller.mvc;
 
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
@@ -15,13 +16,15 @@ public class HomeController {
         UriComponentsBuilder uriComponentsBuilder
     ) {
         log.debug(
-            "HomeRoute(start) Outcome(isLoggedIn:{})",
+            "HomeRoute({}) Outcome(isLoggedIn:{})",
+            OperationalLogContext.PHASE_START,
             Utils.isLoggedIn()
         );
 
         if (!Utils.isLoggedIn()) {
             log.info(
-                "HomeRoute(decision) Outcome(action:{})",
+                "HomeRoute({}) Outcome(action:{})",
+                OperationalLogContext.PHASE_DECISION,
                 "redirect_login"
             );
 
@@ -32,7 +35,8 @@ public class HomeController {
                                                  .toUriString();
 
         log.info(
-            "HomeRoute(complete) Outcome(action:{},target:{})",
+            "HomeRoute({}) Outcome(action:{},target:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             "redirect_dashboard",
             redirectUrl
         );

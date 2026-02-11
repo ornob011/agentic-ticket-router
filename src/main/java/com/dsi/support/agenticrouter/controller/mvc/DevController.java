@@ -3,6 +3,7 @@ package com.dsi.support.agenticrouter.controller.mvc;
 import com.dsi.support.agenticrouter.service.PasswordHashService;
 import com.dsi.support.agenticrouter.service.VectorStoreInitializationService;
 import com.dsi.support.agenticrouter.util.Constants;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -33,14 +34,16 @@ public class DevController {
         @RequestParam String password
     ) {
         log.info(
-            "GeneratePasswordHash(start) HttpRequest(path:{}) Outcome(passwordLength:{})",
+            "GeneratePasswordHash({}) HttpRequest(path:{}) Outcome(passwordLength:{})",
+            OperationalLogContext.PHASE_START,
             "/dev/generate/password-hash",
             password.length()
         );
 
         if (!adminAccessCode.equals(Constants.ADMIN_URL_ACCESS_CODE)) {
             log.warn(
-                "GeneratePasswordHash(fail) Outcome(reason:{})",
+                "GeneratePasswordHash({}) Outcome(reason:{})",
+                OperationalLogContext.PHASE_FAIL,
                 "invalid_admin_access_code"
             );
 
@@ -52,7 +55,8 @@ public class DevController {
         );
 
         log.info(
-            "GeneratePasswordHash(complete) Outcome(hashLength:{})",
+            "GeneratePasswordHash({}) Outcome(hashLength:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             passwordHash.length()
         );
 
@@ -64,13 +68,15 @@ public class DevController {
         @RequestParam("code") String adminAccessCode
     ) {
         log.info(
-            "VectorStoreReinitialize(start) HttpRequest(path:{})",
+            "VectorStoreReinitialize({}) HttpRequest(path:{})",
+            OperationalLogContext.PHASE_START,
             "/dev/vector-store/reinitialize"
         );
 
         if (!adminAccessCode.equals(Constants.ADMIN_URL_ACCESS_CODE)) {
             log.warn(
-                "VectorStoreReinitialize(fail) Outcome(reason:{})",
+                "VectorStoreReinitialize({}) Outcome(reason:{})",
+                OperationalLogContext.PHASE_FAIL,
                 "invalid_admin_access_code"
             );
 
@@ -80,7 +86,8 @@ public class DevController {
         vectorStoreInitializationService.forceReinitialize();
 
         log.info(
-            "VectorStoreReinitialize(complete) Outcome(status:{})",
+            "VectorStoreReinitialize({}) Outcome(status:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             "success"
         );
 

@@ -1,5 +1,6 @@
 package com.dsi.support.agenticrouter.controller.mvc;
 
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -23,14 +24,16 @@ public class CustomErrorController implements ErrorController {
 
         if (Objects.nonNull(statusCode)) {
             log.error(
-                "ErrorRoute(fail) HttpRequest(uri:{}) Outcome(statusCode:{},message:{})",
+                "ErrorRoute({}) HttpRequest(uri:{}) Outcome(statusCode:{},message:{})",
+                OperationalLogContext.PHASE_FAIL,
                 request.getRequestURI(),
                 statusCode,
                 message
             );
         } else {
             log.error(
-                "ErrorRoute(fail) HttpRequest(uri:{}) Outcome(reason:{})",
+                "ErrorRoute({}) HttpRequest(uri:{}) Outcome(reason:{})",
+                OperationalLogContext.PHASE_FAIL,
                 request.getRequestURI(),
                 "unknown_error"
             );

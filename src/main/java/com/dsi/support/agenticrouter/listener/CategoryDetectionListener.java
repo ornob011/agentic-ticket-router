@@ -12,6 +12,7 @@ import com.dsi.support.agenticrouter.service.NotificationService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -47,7 +48,7 @@ public class CategoryDetectionListener {
             OperationalLogContext.PHASE_START,
             ticketId,
             customerId,
-            Objects.nonNull(replyContent) ? replyContent.length() : 0
+            StringUtils.length(replyContent)
         );
 
         Optional<SupportTicket> supportTicketOpt = supportTicketRepository.findById(ticketId);

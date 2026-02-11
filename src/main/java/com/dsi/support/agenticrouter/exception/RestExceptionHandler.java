@@ -1,5 +1,6 @@
 package com.dsi.support.agenticrouter.exception;
 
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -22,7 +23,8 @@ public class RestExceptionHandler {
         HttpServletRequest request
     ) {
         log.error(
-            "RestExceptionHandle(fail) HttpRequest(method:{},uri:{}) Outcome(exceptionType:{},message:{})",
+            "RestExceptionHandle({}) HttpRequest(method:{},uri:{}) Outcome(exceptionType:{},message:{})",
+            OperationalLogContext.PHASE_FAIL,
             request.getMethod(),
             request.getRequestURI(),
             exception.getClass().getSimpleName(),
@@ -47,7 +49,8 @@ public class RestExceptionHandler {
         HttpServletRequest request
     ) {
         log.warn(
-            "RestExceptionHandle(fail) HttpRequest(method:{},uri:{}) Outcome(exceptionType:{},message:{})",
+            "RestExceptionHandle({}) HttpRequest(method:{},uri:{}) Outcome(exceptionType:{},message:{})",
+            OperationalLogContext.PHASE_FAIL,
             request.getMethod(),
             request.getRequestURI(),
             exception.getClass().getSimpleName(),
@@ -71,7 +74,8 @@ public class RestExceptionHandler {
         HttpServletRequest request
     ) {
         log.warn(
-            "RestExceptionHandle(fail) HttpRequest(method:{},uri:{}) Outcome(exceptionType:{},message:{})",
+            "RestExceptionHandle({}) HttpRequest(method:{},uri:{}) Outcome(exceptionType:{},message:{})",
+            OperationalLogContext.PHASE_FAIL,
             request.getMethod(),
             request.getRequestURI(),
             exception.getClass().getSimpleName(),

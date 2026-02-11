@@ -1,6 +1,7 @@
 package com.dsi.support.agenticrouter.service.dashboard;
 
 import com.dsi.support.agenticrouter.enums.UserRole;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -19,7 +20,8 @@ public final class DashboardComposerCatalog {
         List<RoleDashboardComposer> discoveredComposers
     ) {
         log.debug(
-            "DashboardComposerCatalogBuild(start) Outcome(discoveredCount:{})",
+            "DashboardComposerCatalogBuild({}) Outcome(discoveredCount:{})",
+            OperationalLogContext.PHASE_START,
             discoveredComposers.size()
         );
 
@@ -48,7 +50,8 @@ public final class DashboardComposerCatalog {
         this.composerByRole = Map.copyOf(composerEnumMap);
 
         log.info(
-            "DashboardComposerCatalogBuild(complete) Outcome(mappedRoles:{})",
+            "DashboardComposerCatalogBuild({}) Outcome(mappedRoles:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             composerByRole.keySet()
         );
     }
@@ -57,7 +60,8 @@ public final class DashboardComposerCatalog {
         UserRole role
     ) {
         log.debug(
-            "DashboardComposerResolve(start) Outcome(role:{})",
+            "DashboardComposerResolve({}) Outcome(role:{})",
+            OperationalLogContext.PHASE_START,
             role
         );
 
@@ -70,7 +74,8 @@ public final class DashboardComposerCatalog {
         }
 
         log.debug(
-            "DashboardComposerResolve(complete) Outcome(role:{},composer:{})",
+            "DashboardComposerResolve({}) Outcome(role:{},composer:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             role,
             composer.getClass().getSimpleName()
         );

@@ -5,8 +5,10 @@ import com.dsi.support.agenticrouter.entity.*;
 import com.dsi.support.agenticrouter.enums.UserRole;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.*;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -40,7 +42,8 @@ public class SignupService {
         model.addAttribute("languages", languages);
 
         log.debug(
-            "SignupReferenceDataLoad(complete) Outcome(countryCount:{},tierCount:{},languageCount:{})",
+            "SignupReferenceDataLoad({}) Outcome(countryCount:{},tierCount:{},languageCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             countries.size(),
             customerTiers.size(),
             languages.size()
@@ -51,9 +54,10 @@ public class SignupService {
         SignupDto signupDto
     ) {
         log.info(
-            "SignupCustomer(start) AppUser(usernameLength:{},emailLength:{})",
-            signupDto.getUsername() != null ? signupDto.getUsername().trim().length() : 0,
-            signupDto.getEmail() != null ? signupDto.getEmail().trim().length() : 0
+            "SignupCustomer({}) AppUser(usernameLength:{},emailLength:{})",
+            OperationalLogContext.PHASE_START,
+            StringUtils.length(StringUtils.trimToNull(signupDto.getUsername())),
+            StringUtils.length(StringUtils.trimToNull(signupDto.getEmail()))
         );
 
         String normalizedUsername = signupDto.getUsername()
@@ -142,7 +146,8 @@ public class SignupService {
         customerProfileRepository.save(newCustomerProfile);
 
         log.info(
-            "SignupCustomer(complete) AppUser(id:{},username:{},role:{},active:{}) CustomerProfile(id:{})",
+            "SignupCustomer({}) AppUser(id:{},username:{},role:{},active:{}) CustomerProfile(id:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             newCustomerUser.getId(),
             newCustomerUser.getUsername(),
             newCustomerUser.getRole(),

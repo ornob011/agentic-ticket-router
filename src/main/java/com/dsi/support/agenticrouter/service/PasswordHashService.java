@@ -1,5 +1,6 @@
 package com.dsi.support.agenticrouter.service;
 
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,7 +21,8 @@ public class PasswordHashService {
         String rawValue
     ) {
         log.debug(
-            "PasswordHashGenerate(start) Outcome(rawLength:{})",
+            "PasswordHashGenerate({}) Outcome(rawLength:{})",
+            OperationalLogContext.PHASE_START,
             StringUtils.length(rawValue)
         );
 
@@ -33,7 +35,8 @@ public class PasswordHashService {
         );
 
         log.debug(
-            "PasswordHashGenerate(complete) Outcome(hashLength:{})",
+            "PasswordHashGenerate({}) Outcome(hashLength:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             StringUtils.length(passwordHash)
         );
 
@@ -45,7 +48,8 @@ public class PasswordHashService {
         String hashValue
     ) {
         log.debug(
-            "PasswordHashVerify(start) Outcome(rawLength:{},hashLength:{})",
+            "PasswordHashVerify({}) Outcome(rawLength:{},hashLength:{})",
+            OperationalLogContext.PHASE_START,
             StringUtils.length(rawValue),
             StringUtils.length(hashValue)
         );
@@ -60,7 +64,8 @@ public class PasswordHashService {
         );
 
         log.debug(
-            "PasswordHashVerify(complete) Outcome(matches:{})",
+            "PasswordHashVerify({}) Outcome(matches:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             matches
         );
 

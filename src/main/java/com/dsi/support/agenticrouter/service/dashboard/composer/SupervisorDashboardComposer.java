@@ -6,6 +6,7 @@ import com.dsi.support.agenticrouter.enums.UserRole;
 import com.dsi.support.agenticrouter.service.dashboard.RoleDashboardComposer;
 import com.dsi.support.agenticrouter.service.dashboard.section.AgentDashboardSectionAssembler;
 import com.dsi.support.agenticrouter.service.dashboard.section.SupervisorDashboardSectionAssembler;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -34,7 +35,8 @@ public class SupervisorDashboardComposer implements RoleDashboardComposer {
         Long dashboardOwnerId = dashboardOwner.getId();
 
         log.debug(
-            "DashboardComposeSupervisor(start) Actor(id:{},role:{})",
+            "DashboardComposeSupervisor({}) Actor(id:{},role:{})",
+            OperationalLogContext.PHASE_START,
             dashboardOwnerId,
             dashboardOwner.getRole()
         );
@@ -45,7 +47,8 @@ public class SupervisorDashboardComposer implements RoleDashboardComposer {
                                                 .supervisorData(supervisorSectionAssembler.buildSupervisorSection())
                                                 .build();
         log.debug(
-            "DashboardComposeSupervisor(complete) Actor(id:{})",
+            "DashboardComposeSupervisor({}) Actor(id:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             dashboardOwnerId
         );
         return dashboardDto;

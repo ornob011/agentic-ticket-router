@@ -1,6 +1,7 @@
 package com.dsi.support.agenticrouter.service;
 
 import com.dsi.support.agenticrouter.util.Constants;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,8 @@ public class SessionService {
         RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
         if (!(attrs instanceof ServletRequestAttributes servletAttrs)) {
             log.warn(
-                "SessionFlushMessageClear(skip) Outcome(reason:{})",
+                "SessionFlushMessageClear({}) Outcome(reason:{})",
+                OperationalLogContext.PHASE_SKIP,
                 "no_servlet_request_attributes"
             );
 
@@ -36,7 +38,8 @@ public class SessionService {
         HttpSession session = servletAttrs.getRequest().getSession(false);
         if (Objects.isNull(session)) {
             log.debug(
-                "SessionFlushMessageClear(skip) Outcome(reason:{})",
+                "SessionFlushMessageClear({}) Outcome(reason:{})",
+                OperationalLogContext.PHASE_SKIP,
                 "no_http_session"
             );
 
@@ -46,7 +49,8 @@ public class SessionService {
         FLUSH_KEYS.forEach(key -> {
             if (Objects.nonNull(session.getAttribute(key))) {
                 log.debug(
-                    "SessionFlushMessageClear(persist) HttpSession(id:{}) Outcome(attribute:{})",
+                    "SessionFlushMessageClear({}) HttpSession(id:{}) Outcome(attribute:{})",
+                    OperationalLogContext.PHASE_PERSIST,
                     session.getId(),
                     key
                 );

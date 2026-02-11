@@ -4,6 +4,7 @@ import com.dsi.support.agenticrouter.dto.DashboardDto;
 import com.dsi.support.agenticrouter.entity.AppUser;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.AppUserRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +25,8 @@ public class DashboardPageQueryService {
 
     public DashboardDto loadDashboardViewForUser(Long dashboardOwnerId) {
         log.debug(
-            "DashboardCompose(start) Actor(id:{})",
+            "DashboardCompose({}) Actor(id:{})",
+            OperationalLogContext.PHASE_START,
             dashboardOwnerId
         );
 
@@ -45,7 +47,8 @@ public class DashboardPageQueryService {
         );
 
         log.debug(
-            "DashboardCompose(complete) Actor(id:{},role:{}) Outcome(composer:{})",
+            "DashboardCompose({}) Actor(id:{},role:{}) Outcome(composer:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             dashboardOwner.getId(),
             dashboardOwner.getRole(),
             roleDashboardComposer.getClass().getSimpleName()

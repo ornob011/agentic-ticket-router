@@ -36,7 +36,8 @@ public class ModelService {
                                                        );
 
         log.debug(
-            "ModelLookup(complete) ModelRegistry(tag:{},active:{})",
+            "ModelLookup({}) ModelRegistry(tag:{},active:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             activeModelTag,
             true
         );
@@ -57,7 +58,8 @@ public class ModelService {
                                                            );
 
         log.info(
-            "ModelLookup(complete) ModelRegistry(id:{},tag:{},active:{})",
+            "ModelLookup({}) ModelRegistry(id:{},tag:{},active:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             activeModel.getId(),
             activeModel.getModelTag(),
             activeModel.isActive()
@@ -71,7 +73,8 @@ public class ModelService {
         List<ModelRegistry> models = modelRegistryRepository.findAll();
 
         log.debug(
-            "ModelList(complete) Outcome(modelCount:{})",
+            "ModelList({}) Outcome(modelCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             models.size()
         );
 

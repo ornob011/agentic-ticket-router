@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -63,8 +64,8 @@ public class SignupController {
         log.info(
             "SignupSubmit({}) Outcome(usernameLength:{},emailLength:{})",
             OperationalLogContext.PHASE_START,
-            signupDto.getUsername() != null ? signupDto.getUsername().trim().length() : 0,
-            signupDto.getEmail() != null ? signupDto.getEmail().trim().length() : 0
+            StringUtils.length(StringUtils.trimToNull(signupDto.getUsername())),
+            StringUtils.length(StringUtils.trimToNull(signupDto.getEmail()))
         );
 
         if (bindingResult.hasErrors()) {

@@ -8,6 +8,7 @@ import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.AuditEventRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +37,8 @@ public class AuditService {
         JsonNode payload
     ) {
         log.debug(
-            "AuditEventRecord(start) SupportTicket(id:{}) AuditEvent(type:{}) Actor(id:{})",
+            "AuditEventRecord({}) SupportTicket(id:{}) AuditEvent(type:{}) Actor(id:{})",
+            OperationalLogContext.PHASE_START,
             ticketId,
             eventType,
             performedById
@@ -80,7 +82,8 @@ public class AuditService {
         auditEventRepository.save(auditEvent);
 
         log.info(
-            "AuditEventRecord(complete) SupportTicket(id:{}) AuditEvent(id:{},type:{},correlationId:{}) Actor(id:{})",
+            "AuditEventRecord({}) SupportTicket(id:{}) AuditEvent(id:{},type:{},correlationId:{}) Actor(id:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             ticketId,
             auditEvent.getId(),
             eventType,

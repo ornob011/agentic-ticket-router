@@ -4,6 +4,7 @@ import com.dsi.support.agenticrouter.dto.DashboardDto;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -27,7 +28,8 @@ public class AgentDashboardSectionAssembler {
         Long agentId
     ) {
         log.debug(
-            "DashboardSectionAgent(start) Actor(agentId:{})",
+            "DashboardSectionAgent({}) Actor(agentId:{})",
+            OperationalLogContext.PHASE_START,
             agentId
         );
 
@@ -99,7 +101,8 @@ public class AgentDashboardSectionAssembler {
                                                                  .build();
 
         log.debug(
-            "DashboardSectionAgent(complete) Actor(agentId:{}) Outcome(queueCount:{},assignedCount:{},recentTicketCount:{})",
+            "DashboardSectionAgent({}) Actor(agentId:{}) Outcome(queueCount:{},assignedCount:{},recentTicketCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             agentId,
             ticketsInEachQueue.size(),
             ticketsAssignedToAgent,

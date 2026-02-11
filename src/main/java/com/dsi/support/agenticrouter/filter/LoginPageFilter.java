@@ -1,6 +1,7 @@
 package com.dsi.support.agenticrouter.filter;
 
 import com.dsi.support.agenticrouter.util.Constants;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.Utils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -29,7 +30,8 @@ public class LoginPageFilter extends GenericFilterBean {
 
         if (Utils.isLoggedIn() && isLoginRequest(httpRequest)) {
             log.info(
-                "LoginRedirect(decision) HttpRequest(method:{},uri:{}) Outcome(action:{})",
+                "LoginRedirect({}) HttpRequest(method:{},uri:{}) Outcome(action:{})",
+                OperationalLogContext.PHASE_DECISION,
                 httpRequest.getMethod(),
                 httpRequest.getRequestURI(),
                 "redirect_home_for_authenticated_user"

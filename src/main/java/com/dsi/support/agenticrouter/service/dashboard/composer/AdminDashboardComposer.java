@@ -7,6 +7,7 @@ import com.dsi.support.agenticrouter.service.dashboard.RoleDashboardComposer;
 import com.dsi.support.agenticrouter.service.dashboard.section.AdminDashboardSectionAssembler;
 import com.dsi.support.agenticrouter.service.dashboard.section.AgentDashboardSectionAssembler;
 import com.dsi.support.agenticrouter.service.dashboard.section.SupervisorDashboardSectionAssembler;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -40,7 +41,8 @@ public class AdminDashboardComposer implements RoleDashboardComposer {
         Long dashboardOwnerId = dashboardOwner.getId();
 
         log.debug(
-            "DashboardComposeAdmin(start) Actor(id:{},role:{})",
+            "DashboardComposeAdmin({}) Actor(id:{},role:{})",
+            OperationalLogContext.PHASE_START,
             dashboardOwnerId,
             dashboardOwner.getRole()
         );
@@ -53,7 +55,8 @@ public class AdminDashboardComposer implements RoleDashboardComposer {
                                                 .build();
 
         log.debug(
-            "DashboardComposeAdmin(complete) Actor(id:{})",
+            "DashboardComposeAdmin({}) Actor(id:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             dashboardOwnerId
         );
 

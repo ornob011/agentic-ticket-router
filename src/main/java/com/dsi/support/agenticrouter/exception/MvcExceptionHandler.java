@@ -1,5 +1,6 @@
 package com.dsi.support.agenticrouter.exception;
 
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -19,7 +20,8 @@ public class MvcExceptionHandler {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ModelAndView handleAccessDenied(Exception exception) {
         log.warn(
-            "MvcExceptionHandle(fail) Outcome(exceptionType:{},message:{},view:{})",
+            "MvcExceptionHandle({}) Outcome(exceptionType:{},message:{},view:{})",
+            OperationalLogContext.PHASE_FAIL,
             exception.getClass().getSimpleName(),
             exception.getMessage(),
             "error/403",
@@ -33,7 +35,8 @@ public class MvcExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ModelAndView handleMvcException(Exception exception) {
         log.error(
-            "MvcExceptionHandle(fail) Outcome(exceptionType:{},message:{},view:{})",
+            "MvcExceptionHandle({}) Outcome(exceptionType:{},message:{},view:{})",
+            OperationalLogContext.PHASE_FAIL,
             exception.getClass().getSimpleName(),
             exception.getMessage(),
             "error/500",

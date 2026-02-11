@@ -3,6 +3,7 @@ package com.dsi.support.agenticrouter.service.dashboard.section;
 import com.dsi.support.agenticrouter.dto.DashboardDto;
 import com.dsi.support.agenticrouter.repository.EscalationRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -27,7 +28,8 @@ public class SupervisorDashboardSectionAssembler {
 
     public DashboardDto.SupervisorData buildSupervisorSection() {
         log.debug(
-            "DashboardSectionSupervisor(start)"
+            "DashboardSectionSupervisor({})",
+            OperationalLogContext.PHASE_START
         );
 
         long pendingEscalations = escalationRepository.countByResolvedFalse();
@@ -63,7 +65,8 @@ public class SupervisorDashboardSectionAssembler {
                                                                                 .build();
 
         log.debug(
-            "DashboardSectionSupervisor(complete) Outcome(pendingEscalations:{},slaBreaches:{},recentEscalationCount:{})",
+            "DashboardSectionSupervisor({}) Outcome(pendingEscalations:{},slaBreaches:{},recentEscalationCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             pendingEscalations,
             slaBreaches,
             mostRecentOpenEscalations.size()

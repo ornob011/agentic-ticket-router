@@ -30,7 +30,8 @@ public class PolicyConfigService {
         List<PolicyConfig> policies = policyConfigRepository.findAllByActiveTrueOrderByConfigKey();
 
         log.debug(
-            "PolicyConfigList(complete) Outcome(policyCount:{})",
+            "PolicyConfigList({}) Outcome(policyCount:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             policies.size()
         );
 
@@ -45,7 +46,8 @@ public class PolicyConfigService {
                                                           .orElse(null);
 
         log.debug(
-            "PolicyConfigLookup(complete) PolicyConfig(key:{},activeFound:{})",
+            "PolicyConfigLookup({}) PolicyConfig(key:{},activeFound:{})",
+            OperationalLogContext.PHASE_COMPLETE,
             policyConfigKey,
             Objects.nonNull(policyConfig)
         );

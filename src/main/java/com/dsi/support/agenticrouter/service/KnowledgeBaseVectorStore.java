@@ -10,6 +10,7 @@ import me.tongfei.progressbar.DelegatingProgressBarConsumer;
 import me.tongfei.progressbar.ProgressBar;
 import me.tongfei.progressbar.ProgressBarBuilder;
 import me.tongfei.progressbar.ProgressBarStyle;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -53,7 +54,7 @@ public class KnowledgeBaseVectorStore {
         log.debug(
             "VectorSearch({}) Outcome(queryLength:{},topK:{},similarityThreshold:{},hasFilter:{})",
             OperationalLogContext.PHASE_START,
-            Objects.nonNull(queryText) ? queryText.length() : 0,
+            StringUtils.length(queryText),
             topK,
             similarityThreshold,
             Objects.nonNull(filterExpression)

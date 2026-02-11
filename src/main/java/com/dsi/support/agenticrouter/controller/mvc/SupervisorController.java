@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -100,7 +101,7 @@ public class SupervisorController {
             OperationalLogContext.PHASE_START,
             escalationId,
             Utils.getLoggedInUserId(),
-            resolveEscalationDto.getResolutionNotes() != null ? resolveEscalationDto.getResolutionNotes().trim().length() : 0
+            StringUtils.length(StringUtils.trimToNull(resolveEscalationDto.getResolutionNotes()))
         );
 
         if (bindingResult.hasErrors()) {
