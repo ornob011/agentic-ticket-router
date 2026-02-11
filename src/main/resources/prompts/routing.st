@@ -1,19 +1,31 @@
 INPUTS:
 - History: {conversation_history}
 - Knowledge: {relevant_articles}
+- Latest Customer Message: {latest_customer_message}
+
+MANDATORY PRE-STEP:
+- Use `Latest Customer Message` as the primary source of intent.
+- Use `History` only as supporting context.
+- Do not let older messages override `Latest Customer Message`.
 
 **PRIORITY CHECKLIST (Execute in Order):**
 
 1. **CHECK FOR COMMANDS (Highest Priority):**
-   - Does the LAST message say "Change/Update [Field] to [Value]"?
+   - Does `Latest Customer Message` contain a profile update command?
+   - Profile update verbs: change, update, set, modify, replace, correct.
+   - Profile fields: company name/company/organization/org, phone/phone number/mobile/contact number, address/street, city/town, postal code/zip/postcode, preferred language/language.
+   - If verb + profile field + explicit target value are present, this is a profile update command.
    - **YES:**
      - Action: `UPDATE_CUSTOMER_PROFILE`
      - Extraction: You **MUST** extract the value into `action_parameters`.
      - Draft Reply: `null`.
+     - `action_parameters.article_id`: `null`.
+     - `clarifying_question`: `null`.
+     - **NEVER choose `USE_KNOWLEDGE_ARTICLE` for this case.**
      - **STOP HERE.** (Do not check knowledge).
 
 2. **CHECK FOR QUESTIONS (If not a command):**
-   - Does the LAST message ask "How to...", "Can I...", or describe an issue?
+   - Does `Latest Customer Message` ask "How to...", "Can I...", or describe an issue?
    - **YES:**
      - **Check Knowledge**: Read `{relevant_articles}`.
      - If Knowledge Found -> Action: `USE_KNOWLEDGE_ARTICLE`. **You MUST set `action_parameters.article_id` to the chosen article's id.** Write a `draft_reply` using the article.
@@ -57,6 +69,7 @@ INPUTS:
 
 **CRITICAL OVERRIDES (You MUST apply these):**
 1. If Action=`UPDATE_CUSTOMER_PROFILE`, replace `null` in `action_parameters` with the EXTRACTED VALUE.
+   - For UPDATE_CUSTOMER_PROFILE, do not use knowledge article action.
 2. If Action=`USE_KNOWLEDGE_ARTICLE`, **set `action_parameters.article_id` to the selected article id** and replace the draft reply with a summary of `{relevant_articles}`.
 3. If Action=`ASK_CLARIFYING`, replace "WRITE_QUESTION_HERE_IF_ACTION_IS_ASK_CLARIFYING" with your specific question.
 4. If Action=`ASSIGN_QUEUE`, set `clarifying_question` to null and `draft_reply` to null.

@@ -207,13 +207,6 @@
             <version>2.2.0</version>
         </dependency>
 
-        <!-- JSON SCHEMA VALIDATION -->
-        <dependency>
-            <groupId>com.networknt</groupId>
-            <artifactId>json-schema-validator</artifactId>
-            <version>1.5.3</version>
-        </dependency>
-
         <!-- ICU / USER AGENT -->
         <dependency>
             <groupId>com.ibm.icu</groupId>
