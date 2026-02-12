@@ -19,7 +19,7 @@ import java.util.Objects;
 public class KnowledgeBaseService {
 
     private final KnowledgeArticleRepository knowledgeArticleRepository;
-    private final KnowledgeBaseVectorStore knowledgeBaseVectorStore;
+    private final KnowledgeChunkIngestionService knowledgeChunkIngestionService;
 
     @Transactional
     public void recordUsage(
@@ -70,15 +70,17 @@ public class KnowledgeBaseService {
             OperationalLogContext.PHASE_START
         );
 
-        List<KnowledgeArticle> articles = knowledgeArticleRepository.findAllByActiveTrueOrderByPriorityDesc();
+        List<KnowledgeArticle> knowledgeArticles = knowledgeArticleRepository.findAllByActiveTrueOrderByPriorityDesc();
 
-        knowledgeBaseVectorStore.removeAll();
-        knowledgeBaseVectorStore.syncArticles(articles);
+        knowledgeChunkIngestionService.build(
+            knowledgeArticles
+        );
 
         log.info(
-            "VectorStoreInitialization({}) Outcome(articleCount:{})",
+            "VectorStoreInitialization({}) Outcome(knowledgeArticleCount:{})",
             OperationalLogContext.PHASE_COMPLETE,
-            articles.size()
+            knowledgeArticles.size()
         );
     }
+
 }

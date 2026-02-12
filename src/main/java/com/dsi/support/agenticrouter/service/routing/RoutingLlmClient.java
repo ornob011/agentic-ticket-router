@@ -31,11 +31,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class RoutingLlmClient implements RoutingModelClient {
 
+    private static final ResponseTextCleaner RESPONSE_TEXT_CLEANER = new MarkdownCodeBlockCleaner();
     private final ChatModel chatModel;
     private final PromptService promptService;
     private final ObjectMapper objectMapper;
-
-    private static final ResponseTextCleaner RESPONSE_TEXT_CLEANER = new MarkdownCodeBlockCleaner();
 
     @Override
     public JsonNode requestRoutingDecision(
@@ -93,28 +92,28 @@ public class RoutingLlmClient implements RoutingModelClient {
                                                 )
                                                 .param("relevant_articles", relevantArticles)
                                                 .param("remaining_actions",
-                                                    Objects.requireNonNullElse(
+                                                    formatLimitValue(
                                                         routerRequest.getRemainingActions(),
-                                                        5
-                                                    ).toString()
+                                                        "unbounded"
+                                                    )
                                                 )
                                                 .param("questions_asked",
-                                                    Objects.requireNonNullElse(
+                                                    formatLimitValue(
                                                         routerRequest.getQuestionsAsked(),
-                                                        0
-                                                    ).toString()
+                                                        "0"
+                                                    )
                                                 )
                                                 .param("max_questions",
-                                                    Objects.requireNonNullElse(
+                                                    formatLimitValue(
                                                         routerRequest.getMaxQuestions(),
-                                                        3
-                                                    ).toString()
+                                                        "unbounded"
+                                                    )
                                                 )
                                                 .param("max_actions",
-                                                    Objects.requireNonNullElse(
+                                                    formatLimitValue(
                                                         routerRequest.getMaxActions(),
-                                                        5
-                                                    ).toString()
+                                                        "unbounded"
+                                                    )
                                                 )
                                         )
                                         .call()
@@ -186,5 +185,12 @@ public class RoutingLlmClient implements RoutingModelClient {
                            article.getPriority()
                        ))
                        .collect(Collectors.joining("\n"));
+    }
+
+    private String formatLimitValue(
+        Integer value,
+        String fallback
+    ) {
+        return Objects.nonNull(value) ? value.toString() : fallback;
     }
 }
