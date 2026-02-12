@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -69,6 +70,9 @@ public class MessageCategoryService {
                                                                  )
                                                              );
 
+        TicketCategory currentCategory = Optional.ofNullable(supportTicket.getCurrentCategory())
+                                                 .orElse(TicketCategory.OTHER);
+
         String categoryValues = Arrays.stream(TicketCategory.values())
                                       .map(Enum::name)
                                       .collect(Collectors.joining(" | "));
@@ -87,7 +91,7 @@ public class MessageCategoryService {
                                             .text(promptService.getCategoryDetectionPrompt())
                                             .param("content", content)
                                             .param("category", categoryValues)
-                                            .param("current_category", supportTicket.getCurrentCategory().name())
+                                            .param("current_category", currentCategory.name())
                                             .param("conversation_history", conversationHistory))
                                         .call()
                                         .content();
@@ -107,7 +111,7 @@ public class MessageCategoryService {
             OperationalLogContext.PHASE_DECISION,
             supportTicket.getId(),
             supportTicket.getStatus(),
-            supportTicket.getCurrentCategory(),
+            currentCategory,
             detectedCategory,
             latencyMs
         );

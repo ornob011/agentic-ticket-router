@@ -41,24 +41,24 @@ public class RagConfiguration {
 
     @DecimalMin("0.0")
     @DecimalMax("1.0")
-    private double similarityThreshold = 0.82D;
+    private double similarityThreshold = 0.62D;
 
     @Min(1)
     private int lexicalTopM = 50;
 
     @DecimalMin("0.0")
     @DecimalMax("1.0")
-    private double denseWeight = 0.55D;
+    private double denseWeight = 0.65D;
 
     @DecimalMin("0.0")
     @DecimalMax("1.0")
-    private double lexicalWeight = 0.30D;
+    private double lexicalWeight = 0.35D;
 
     @DecimalMin("0.0")
     @DecimalMax("1.0")
-    private double priorityWeight = 0.10D;
+    private double priorityWeight = 0.00D;
 
     @DecimalMin("0.0")
     @DecimalMax("1.0")
-    private double successRateWeight = 0.05D;
+    private double successRateWeight = 0.00D;
 }

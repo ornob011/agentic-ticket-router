@@ -177,12 +177,14 @@ public class RoutingLlmClient implements RoutingModelClient {
 
         return articles.stream()
                        .map(article -> String.format(
-                           "- Article ID: %d | Title: %s | Similarity: %.2f | Category: %s | Priority: %d",
+                           "- Article ID: %d | Title: %s | Similarity: %.2f | Category: %s | Priority: %d | Type: %s | Preview: %s",
                            article.getArticleId(),
                            article.getTitle(),
                            article.getSimilarityScore(),
                            article.getCategory(),
-                           article.getPriority()
+                           article.getPriority(),
+                           article.getArticleType(),
+                           StringUtils.defaultString(article.getContentPreview(), "N/A")
                        ))
                        .collect(Collectors.joining("\n"));
     }

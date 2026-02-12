@@ -1,5 +1,6 @@
 package com.dsi.support.agenticrouter.service.routing;
 
+import com.dsi.support.agenticrouter.dto.ArticleSearchResult;
 import com.dsi.support.agenticrouter.dto.RouterRequest;
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.ModelRegistry;
@@ -23,7 +24,12 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -80,6 +86,12 @@ public class TicketRouterService {
             ticketId
         );
 
+        routerResponse = alignKnowledgeArticleSelection(
+            routerRequest,
+            routerResponse,
+            ticketId
+        );
+
         routerResponseContractValidator.validate(
             routerResponse
         );
@@ -105,6 +117,51 @@ public class TicketRouterService {
             routerResponse.getNextAction(),
             routerResponse.getConfidence()
         );
+
+        return routerResponse;
+    }
+
+    private RouterResponse alignKnowledgeArticleSelection(
+        RouterRequest routerRequest,
+        RouterResponse routerResponse,
+        Long ticketId
+    ) {
+        if (!NextAction.USE_KNOWLEDGE_ARTICLE.equals(routerResponse.getNextAction())) {
+            return routerResponse;
+        }
+
+        List<ArticleSearchResult> relevantArticles = routerRequest.getRelevantArticles();
+        if (CollectionUtils.isEmpty(relevantArticles)) {
+            return routerResponse;
+        }
+
+        Long topArticleId = relevantArticles.getFirst().getArticleId();
+        if (Objects.isNull(topArticleId) || topArticleId <= 0L) {
+            return routerResponse;
+        }
+
+        Map<String, Object> actionParameters = new HashMap<>();
+        if (Objects.nonNull(routerResponse.getActionParameters())) {
+            actionParameters.putAll(routerResponse.getActionParameters());
+        }
+        actionParameters.put(RoutingActionParameterKey.ARTICLE_ID.getKey(), topArticleId);
+
+        List<String> rationaleTags = new ArrayList<>();
+        if (Objects.nonNull(routerResponse.getRationaleTags())) {
+            rationaleTags.addAll(routerResponse.getRationaleTags());
+        }
+        rationaleTags.add("ARTICLE_TOP_RANKED_FORCED");
+
+        log.info(
+            "RoutingDecision({}) SupportTicket(id:{}) Outcome(reason:{},forcedArticleId:{})",
+            OperationalLogContext.PHASE_DECISION,
+            ticketId,
+            "use_knowledge_article_enforce_top_ranked",
+            topArticleId
+        );
+
+        routerResponse.setActionParameters(actionParameters);
+        routerResponse.setRationaleTags(rationaleTags);
 
         return routerResponse;
     }

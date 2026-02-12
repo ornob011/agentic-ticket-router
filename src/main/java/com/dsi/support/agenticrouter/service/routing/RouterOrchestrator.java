@@ -12,6 +12,7 @@ import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.analysis.TicketAnalysisService;
 import com.dsi.support.agenticrouter.service.knowledge.KnowledgeRetrievalService;
+import com.dsi.support.agenticrouter.service.ticket.MessageCategoryService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -41,6 +43,7 @@ public class RouterOrchestrator {
     private final TicketMessageRepository ticketMessageRepository;
     private final TicketAnalysisService ticketAnalysisService;
     private final KnowledgeRetrievalService knowledgeRetrievalService;
+    private final MessageCategoryService messageCategoryService;
     private final RagConfiguration ragConfiguration;
 
     @Async("ticketRoutingExecutor")
@@ -190,10 +193,17 @@ public class RouterOrchestrator {
                                                 .filter(StringUtils::isNotBlank)
                                                 .orElse(NO_PREVIOUS_QUESTION);
 
-        List<ArticleSearchResult> relevantArticles = searchRelevantArticles(
+        TicketCategory retrievalCategoryHint = resolveRetrievalCategoryHint(
+            supportTicket,
             supportTicket.getSubject(),
             initialMessage,
             ticketAnalysisResult.getCategory()
+        );
+
+        List<ArticleSearchResult> relevantArticles = searchRelevantArticles(
+            supportTicket.getSubject(),
+            initialMessage,
+            retrievalCategoryHint
         );
 
         int questionsAsked = Optional.ofNullable(autonomousMetadata)
@@ -209,11 +219,49 @@ public class RouterOrchestrator {
                             .initialMessage(initialMessage)
                             .conversationHistory(conversationHistory)
                             .analysis(StringUtils.defaultString(ticketAnalysisResult.getAnalysis()))
-                            .suggestedCategory(ticketAnalysisResult.getCategory())
+                            .suggestedCategory(retrievalCategoryHint)
                             .previousClarifyingQuestion(lastClarifyingQuestion)
                             .relevantArticles(relevantArticles)
                             .questionsAsked(questionsAsked)
                             .build();
+    }
+
+    private TicketCategory resolveRetrievalCategoryHint(
+        SupportTicket supportTicket,
+        String subject,
+        String initialMessage,
+        TicketCategory analysisCategory
+    ) {
+        if (Objects.nonNull(analysisCategory) && !TicketCategory.OTHER.equals(analysisCategory)) {
+            return analysisCategory;
+        }
+
+        String vectorQuery = buildVectorQuery(
+            subject,
+            initialMessage
+        );
+
+        if (vectorQuery.length() < MIN_QUERY_LENGTH) {
+            return TicketCategory.OTHER;
+        }
+
+        MessageCategoryService.CategoryDetectionResult detectionResult = messageCategoryService.detectCategory(
+            vectorQuery,
+            supportTicket.getId()
+        );
+
+        TicketCategory detectedCategory = Optional.ofNullable(detectionResult)
+                                                  .map(MessageCategoryService.CategoryDetectionResult::getDetectedCategory)
+                                                  .orElse(TicketCategory.OTHER);
+
+        log.debug(
+            "RelevantArticleCategoryHint({}) Outcome(analysisCategory:{},detectedCategory:{})",
+            OperationalLogContext.PHASE_DECISION,
+            analysisCategory,
+            detectedCategory
+        );
+
+        return detectedCategory;
     }
 
     private List<ArticleSearchResult> searchRelevantArticles(
@@ -244,12 +292,21 @@ public class RouterOrchestrator {
             ragConfiguration.getReturnTopK()
         );
 
+        String topArticleInfo = relevantArticles.isEmpty()
+            ? "none"
+            : String.format(
+                "%d:%s",
+                relevantArticles.getFirst().getArticleId(),
+                relevantArticles.getFirst().getTitle()
+            );
+
         log.debug(
-            "RelevantArticleSearch({}) Outcome(queryLength:{},topK:{},resultCount:{})",
+            "RelevantArticleSearch({}) Outcome(queryLength:{},topK:{},resultCount:{},topArticle:{})",
             OperationalLogContext.PHASE_COMPLETE,
             vectorQuery.length(),
             ragConfiguration.getReturnTopK(),
-            relevantArticles.size()
+            relevantArticles.size(),
+            topArticleInfo
         );
 
         return relevantArticles;

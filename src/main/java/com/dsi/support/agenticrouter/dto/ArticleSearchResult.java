@@ -22,4 +22,6 @@ public class ArticleSearchResult {
     private Integer priority;
 
     private String articleType;
+
+    private String contentPreview;
 }

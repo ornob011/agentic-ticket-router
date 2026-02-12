@@ -30,6 +30,7 @@ public class KnowledgeRetrievalService {
     private final KnowledgeBaseVectorStore knowledgeBaseVectorStore;
     private final KnowledgeArticleRepository knowledgeArticleRepository;
     private final ArticleRankingPolicy articleRankingPolicy;
+    private final LibraryLexicalScorer libraryLexicalScorer;
     private final RagConfiguration ragConfiguration;
 
     public List<ArticleSearchResult> retrieveRelevantArticles(
@@ -91,9 +92,16 @@ public class KnowledgeRetrievalService {
                 candidates.keySet()
         );
 
-        List<ArticleSearchResult> results = rankAndLimitResults(
+        Map<Long, ArticleCandidate> scopedCandidates = scopeCandidatesByCategory(
                 candidates,
                 articleById,
+                categoryHintText
+        );
+
+        List<ArticleSearchResult> results = rankAndLimitResults(
+                scopedCandidates,
+                articleById,
+                normalizedQuery,
                 categoryHintText,
                 topK
         );
@@ -101,7 +109,7 @@ public class KnowledgeRetrievalService {
         log.debug(
                 "KnowledgeRetrieve({}) Outcome(candidateCount:{},resultCount:{})",
                 OperationalLogContext.PHASE_COMPLETE,
-                candidates.size(),
+                scopedCandidates.size(),
                 results.size()
         );
 
@@ -207,6 +215,7 @@ public class KnowledgeRetrievalService {
     private List<ArticleSearchResult> rankAndLimitResults(
             Map<Long, ArticleCandidate> candidates,
             Map<Long, KnowledgeArticle> articleById,
+            String query,
             String categoryHintText,
             int topK
     ) {
@@ -216,6 +225,7 @@ public class KnowledgeRetrievalService {
                         candidate -> toSearchResult(
                                 candidate,
                                 articleById.get(candidate.getArticleId()),
+                                query,
                                 categoryHintText
                         )
                 )
@@ -223,6 +233,55 @@ public class KnowledgeRetrievalService {
                 .sorted(Comparator.comparing(ArticleSearchResult::getSimilarityScore).reversed())
                 .limit(topK)
                 .toList();
+    }
+
+    private Map<Long, ArticleCandidate> scopeCandidatesByCategory(
+            Map<Long, ArticleCandidate> candidates,
+            Map<Long, KnowledgeArticle> articleById,
+            String categoryHintText
+    ) {
+        if (StringUtils.isBlank(categoryHintText) || TicketCategory.OTHER.name().equalsIgnoreCase(categoryHintText)) {
+            return candidates;
+        }
+
+        Map<Long, ArticleCandidate> scopedCandidates = candidates.entrySet()
+                                                                 .stream()
+                                                                 .filter(
+                                                                     entry -> StringUtils.equalsIgnoreCase(
+                                                                         resolveCategory(
+                                                                             entry.getValue(),
+                                                                             articleById.get(entry.getKey())
+                                                                         ),
+                                                                         categoryHintText
+                                                                     )
+                                                                 )
+                                                                 .collect(Collectors.toMap(
+                                                                     Map.Entry::getKey,
+                                                                     Map.Entry::getValue
+                                                                 ));
+
+        if (scopedCandidates.isEmpty()) {
+            log.debug(
+                "KnowledgeRetrieve({}) Outcome(categoryHint:{},candidateCount:{},scopedCount:{},mode:{})",
+                OperationalLogContext.PHASE_DECISION,
+                categoryHintText,
+                candidates.size(),
+                0,
+                "fallback_all"
+            );
+            return candidates;
+        }
+
+        log.debug(
+            "KnowledgeRetrieve({}) Outcome(categoryHint:{},candidateCount:{},scopedCount:{},mode:{})",
+            OperationalLogContext.PHASE_DECISION,
+            categoryHintText,
+            candidates.size(),
+            scopedCandidates.size(),
+            "scoped"
+        );
+
+        return scopedCandidates;
     }
 
     private Map<Long, KnowledgeArticle> loadArticles(
@@ -241,6 +300,7 @@ public class KnowledgeRetrievalService {
     private ArticleSearchResult toSearchResult(
             ArticleCandidate candidate,
             KnowledgeArticle article,
+            String query,
             String categoryHint
     ) {
         if (Objects.isNull(candidate) || Objects.isNull(candidate.getArticleId())) {
@@ -268,9 +328,15 @@ public class KnowledgeRetrievalService {
         );
 
         double successRate = Objects.isNull(article) ? 0D : article.getSuccessRate();
+        double lexicalScore = libraryLexicalScorer.score(
+            query,
+            title,
+            Objects.nonNull(article) ? article.getKeywords() : null
+        );
 
         double rankedScore = articleRankingPolicy.rank(
                 candidate.getScore(),
+                lexicalScore,
                 Objects.isNull(priority) ? 0 : priority,
                 successRate,
                 category,
@@ -287,7 +353,23 @@ public class KnowledgeRetrievalService {
                 .category(category)
                 .priority(Objects.isNull(priority) ? 0 : priority)
                 .articleType(articleType)
+                .contentPreview(buildContentPreview(article))
                 .build();
+    }
+
+    private String buildContentPreview(
+            KnowledgeArticle article
+    ) {
+        if (Objects.isNull(article)) {
+            return null;
+        }
+
+        return StringUtils.abbreviate(
+                StringUtils.normalizeSpace(
+                        StringUtils.defaultString(article.getContent())
+                ),
+                280
+        );
     }
 
     private String resolveCategory(

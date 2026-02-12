@@ -20,15 +20,17 @@ public class ArticleRankingPolicy {
 
     public double rank(
         double vectorScore,
+        double lexicalScore,
         Integer priority,
         Double successRate,
         String category,
         String categoryHint
     ) {
         log.debug(
-            "ArticleRank({}) Outcome(vectorScore:{},priority:{},successRate:{},category:{},categoryHint:{})",
+            "ArticleRank({}) Outcome(vectorScore:{},lexicalScore:{},priority:{},successRate:{},category:{},categoryHint:{})",
             OperationalLogContext.PHASE_START,
             vectorScore,
+            lexicalScore,
             priority,
             successRate,
             category,
@@ -47,6 +49,10 @@ public class ArticleRankingPolicy {
             )
         );
 
+        double lexicalNormalizedScore = clamp01(
+            lexicalScore
+        );
+
         double successRateScore = clamp01(
             mapOrDefault(
                 successRate,
@@ -60,6 +66,7 @@ public class ArticleRankingPolicy {
         );
 
         double weightedScore = (denseSimilarityScore * ragConfiguration.getDenseWeight())
+                               + (lexicalNormalizedScore * ragConfiguration.getLexicalWeight())
                                + (priorityNormalizedScore * ragConfiguration.getPriorityWeight())
                                + (successRateScore * ragConfiguration.getSuccessRateWeight())
                                + categoryMatchBonus;
@@ -69,9 +76,10 @@ public class ArticleRankingPolicy {
         );
 
         log.debug(
-            "ArticleRank({}) Outcome(dense:{},priorityNorm:{},successNorm:{},categoryBonus:{},finalScore:{})",
+            "ArticleRank({}) Outcome(dense:{},lexicalNorm:{},priorityNorm:{},successNorm:{},categoryBonus:{},finalScore:{})",
             OperationalLogContext.PHASE_COMPLETE,
             denseSimilarityScore,
+            lexicalNormalizedScore,
             priorityNormalizedScore,
             successRateScore,
             categoryMatchBonus,
