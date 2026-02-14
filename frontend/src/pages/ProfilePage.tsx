@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Building2, Globe, Save, UserCircle2 } from "lucide-react";
 import type { ProfileResponse, UserRole } from "@/lib/api";
+import { getRoleBadgeVariant, isCustomerRole } from "@/lib/role-policy";
 
 type ProfileForm = {
   email: string;
@@ -64,12 +65,8 @@ function ProfileSkeleton() {
   );
 }
 
-function isCustomer(role: UserRole | undefined): boolean {
-  return role === "CUSTOMER";
-}
-
 function toProfilePayload(form: ProfileForm, role: UserRole | undefined) {
-  if (!isCustomer(role)) {
+  if (!isCustomerRole(role)) {
     return {
       email: form.email,
       fullName: form.fullName,
@@ -145,7 +142,7 @@ export default function ProfilePage() {
   }
 
   const user = profile.user;
-  const customerRole = profile.profileContext === "CUSTOMER" && isCustomer(user.role);
+  const customerRole = profile.profileContext === "CUSTOMER" && isCustomerRole(user.role);
   const onSubmit = async (form: ProfileForm) => {
     setFormError("");
     setSaveSuccess(false);
@@ -191,7 +188,7 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{user.roleLabel || user.role}</Badge>
+            <Badge variant={getRoleBadgeVariant(user.role)}>{user.roleLabel || user.role}</Badge>
             <Badge variant="outline">{user.username}</Badge>
           </div>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">

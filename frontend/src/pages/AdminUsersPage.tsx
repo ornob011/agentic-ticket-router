@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api, type UserInfo } from "@/lib/api";
 import { formatLabel } from "@/lib/utils";
+import { getRoleBadgeVariant } from "@/lib/role-policy";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,19 +26,6 @@ function UsersSkeleton() {
       </Card>
     </div>
   );
-}
-
-function getRoleBadgeVariant(role: string): "default" | "destructive" | "warning" | "secondary" {
-  switch (role) {
-    case "ADMIN":
-      return "destructive";
-    case "SUPERVISOR":
-      return "warning";
-    case "AGENT":
-      return "default";
-    default:
-      return "secondary";
-  }
 }
 
 export default function AdminUsersPage() {

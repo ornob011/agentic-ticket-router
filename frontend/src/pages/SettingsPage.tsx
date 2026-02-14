@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatLabel } from "@/lib/utils";
+import { getRoleBadgeVariant } from "@/lib/role-policy";
 import {
   defaultUserSettings,
   loadUserSettings,
@@ -146,7 +147,7 @@ export default function SettingsPage() {
           <CardTitle className="text-base">Current Account Context</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">{roleLabel}</Badge>
+          <Badge variant={getRoleBadgeVariant(me?.role)}>{roleLabel}</Badge>
           <Badge variant="outline">{me?.username}</Badge>
         </CardContent>
       </Card>

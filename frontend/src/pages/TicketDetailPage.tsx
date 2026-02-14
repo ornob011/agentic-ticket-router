@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type TicketDetail, type TicketMessage } from "@/lib/api";
 import { formatLabel, getStatusTone, formatDateTime, getPriorityTone, cn } from "@/lib/utils";
+import { getTicketStatusIconClass } from "@/lib/ticket-visuals";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -243,23 +244,23 @@ type StatusBadgeProps = Readonly<{
 }>;
 
 function StatusBadge({ status, statusLabel }: StatusBadgeProps) {
-  const config: Record<string, { icon: typeof CheckCircle; color: string }> = {
-    RECEIVED: { icon: Clock, color: "text-slate-500" },
-    TRIAGING: { icon: Clock, color: "text-blue-500" },
-    WAITING_CUSTOMER: { icon: Clock, color: "text-amber-500" },
-    ASSIGNED: { icon: User, color: "text-indigo-500" },
-    IN_PROGRESS: { icon: Clock, color: "text-sky-500" },
-    RESOLVED: { icon: CheckCircle, color: "text-green-500" },
-    ESCALATED: { icon: AlertCircle, color: "text-red-500" },
-    CLOSED: { icon: CheckCircle, color: "text-slate-500" },
-    AUTO_CLOSED_PENDING: { icon: Clock, color: "text-slate-500" },
+  const config: Record<string, { icon: typeof CheckCircle }> = {
+    RECEIVED: { icon: Clock },
+    TRIAGING: { icon: Clock },
+    WAITING_CUSTOMER: { icon: Clock },
+    ASSIGNED: { icon: User },
+    IN_PROGRESS: { icon: Clock },
+    RESOLVED: { icon: CheckCircle },
+    ESCALATED: { icon: AlertCircle },
+    CLOSED: { icon: CheckCircle },
+    AUTO_CLOSED_PENDING: { icon: Clock },
   };
 
-  const { icon: Icon, color } = config[status] || { icon: Clock, color: "text-slate-500" };
+  const { icon: Icon } = config[status] || { icon: Clock };
 
   return (
     <div className="flex items-center gap-2">
-      <Icon className={cn("h-4 w-4", color)} />
+      <Icon className={cn("h-4 w-4", getTicketStatusIconClass(status))} />
       <Badge variant={getStatusTone(status)}>{statusLabel}</Badge>
     </div>
   );

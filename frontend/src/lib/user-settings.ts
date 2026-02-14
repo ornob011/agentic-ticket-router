@@ -1,4 +1,5 @@
 import type { UserRole } from "@/lib/api";
+import { canAccessAgentWorkspace } from "@/lib/role-policy";
 
 export type UserSettings = {
   defaultLanding: "dashboard" | "tickets" | "queue";
@@ -44,7 +45,7 @@ export function resolveLandingPath(
   }
 
   if (settings.defaultLanding === "queue") {
-    if (role === "AGENT" || role === "SUPERVISOR" || role === "ADMIN") {
+    if (canAccessAgentWorkspace(role)) {
       return "/app/agent/queues/GENERAL_Q";
     }
 

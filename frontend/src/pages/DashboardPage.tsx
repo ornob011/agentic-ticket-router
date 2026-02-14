@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { api, type DashboardResponse, type TicketSummary } from "@/lib/api";
 import { formatLabel, getStatusTone, formatRelativeTime, getPriorityTone, cn } from "@/lib/utils";
+import { getTicketStatusDotClass } from "@/lib/ticket-visuals";
+import { canAccessAgentWorkspace, canAccessSupervisorWorkspace } from "@/lib/role-policy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,7 +69,7 @@ function buildSupervisorStats(data: DashboardResponse): DashboardStat[] {
 }
 
 function resolveStats(role: DashboardResponse["user"]["role"], data: DashboardResponse): DashboardStat[] {
-  if (role === "SUPERVISOR" || role === "ADMIN") {
+  if (canAccessSupervisorWorkspace(role)) {
     return buildSupervisorStats(data);
   }
 
@@ -100,24 +102,12 @@ function RecentTicketItem({ ticket }: Readonly<{ ticket: TicketSummary }>) {
   const statusLabel = ticket.statusLabel || formatLabel(ticket.status);
   const priorityLabel = ticket.priorityLabel || formatLabel(ticket.priority);
 
-  const statusColors: Record<string, string> = {
-    RECEIVED: "bg-slate-400",
-    TRIAGING: "bg-blue-400",
-    WAITING_CUSTOMER: "bg-amber-400",
-    ASSIGNED: "bg-indigo-400",
-    IN_PROGRESS: "bg-sky-400",
-    RESOLVED: "bg-green-400",
-    ESCALATED: "bg-red-400",
-    CLOSED: "bg-slate-400",
-    AUTO_CLOSED_PENDING: "bg-slate-400",
-  };
-
   return (
     <button
       onClick={() => navigate(`/app/tickets/${ticket.id}`)}
       className="group flex w-full items-center gap-4 rounded-lg border bg-card p-4 text-left transition-all hover:border-primary/30 hover:bg-accent/50 hover:shadow-sm"
     >
-      <div className={cn("h-2 w-2 shrink-0 rounded-full", statusColors[ticket.status] || "bg-slate-400")} />
+      <div className={cn("h-2 w-2 shrink-0 rounded-full", getTicketStatusDotClass(ticket.status))} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-xs text-muted-foreground">{ticket.formattedTicketNo}</span>
@@ -155,8 +145,8 @@ export default function DashboardPage() {
   }
 
   const role = data.user.role;
-  const isAgent = role === "AGENT" || role === "SUPERVISOR" || role === "ADMIN";
-  const isSupervisor = role === "SUPERVISOR" || role === "ADMIN";
+  const isAgent = canAccessAgentWorkspace(role);
+  const isSupervisor = canAccessSupervisorWorkspace(role);
   const stats = resolveStats(role, data);
   const hasRecentTickets = data.recentTickets.length > 0;
   const renderRecentTickets = () => {

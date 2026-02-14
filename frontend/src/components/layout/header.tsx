@@ -17,6 +17,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Menu, LogOut, User, Settings, HelpCircle, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { formatLabel } from "@/lib/utils";
+import { getRoleBadgeVariant } from "@/lib/role-policy";
 
 export function Header() {
   const navigate = useNavigate();
@@ -48,19 +49,6 @@ export function Header() {
       .join("")
       .toUpperCase()
       .slice(0, 2);
-  };
-
-  const getRoleBadgeVariant = (role?: string) => {
-    switch (role) {
-      case "ADMIN":
-        return "destructive";
-      case "SUPERVISOR":
-        return "warning";
-      case "AGENT":
-        return "default";
-      default:
-        return "secondary";
-    }
   };
 
   return (

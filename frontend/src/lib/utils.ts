@@ -2,6 +2,7 @@ import { type ClassValue, clsx } from "clsx";
 import { format, formatDistanceToNow, isToday, isYesterday, parseISO } from "date-fns";
 import { startCase } from "lodash-es";
 import { twMerge } from "tailwind-merge";
+import { getTicketPriorityTone, getTicketStatusTone, type StatusTone } from "@/lib/ticket-visuals";
 
 type DateInput = string | Date | null | undefined;
 
@@ -37,24 +38,12 @@ export function formatRelativeTime(date: DateInput): string {
   return formatDistanceToNow(d, { addSuffix: true });
 }
 
-type StatusTone = "default" | "success" | "warning" | "destructive" | "secondary";
-
 export function getStatusTone(status: string): StatusTone {
-  const s = status.toUpperCase();
-  if (["RESOLVED", "CLOSED"].includes(s)) return "success";
-  if (["ESCALATED", "AUTO_CLOSED_PENDING"].includes(s)) return "destructive";
-  if (["TRIAGING", "WAITING_CUSTOMER"].includes(s)) return "warning";
-  if (["RECEIVED"].includes(s)) return "secondary";
-  return "default";
+  return getTicketStatusTone(status);
 }
 
 export function getPriorityTone(priority: string | null | undefined): StatusTone {
-  if (!priority) return "secondary";
-  const p = priority.toUpperCase();
-  if (p === "CRITICAL") return "destructive";
-  if (p === "HIGH") return "warning";
-  if (p === "MEDIUM") return "default";
-  return "secondary";
+  return getTicketPriorityTone(priority);
 }
 
 export function formatLabel(raw: string | null | undefined): string {

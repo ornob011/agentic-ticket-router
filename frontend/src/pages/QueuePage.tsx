@@ -2,6 +2,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api, type PagedResponse, type TicketSummary } from "@/lib/api";
 import { formatLabel, getStatusTone, formatRelativeTime, getPriorityTone, cn } from "@/lib/utils";
+import { getTicketPriorityBorderClass, getTicketStatusDotClass } from "@/lib/ticket-visuals";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,42 +10,23 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Inbox, Clock, User } from "lucide-react";
 
-const statusColors: Record<string, string> = {
-  RECEIVED: "bg-slate-400",
-  TRIAGING: "bg-blue-400",
-  WAITING_CUSTOMER: "bg-amber-400",
-  ASSIGNED: "bg-indigo-400",
-  IN_PROGRESS: "bg-sky-400",
-  RESOLVED: "bg-green-400",
-  ESCALATED: "bg-red-400",
-  CLOSED: "bg-slate-400",
-  AUTO_CLOSED_PENDING: "bg-slate-400",
-};
-
-const priorityColors: Record<string, string> = {
-  CRITICAL: "border-l-red-500",
-  HIGH: "border-l-orange-500",
-  MEDIUM: "border-l-amber-500",
-  LOW: "border-l-slate-400",
-};
-
 function QueueTicketCard({ ticket, navigatePath }: Readonly<{ ticket: TicketSummary; navigatePath: string }>) {
   const navigate = useNavigate();
   const statusLabel = ticket.statusLabel || formatLabel(ticket.status);
   const priorityLabel = ticket.priorityLabel || formatLabel(ticket.priority);
   const queueLabel = ticket.queueLabel || formatLabel(ticket.queue);
-  const priorityBorderClass = ticket.priority ? priorityColors[ticket.priority] : undefined;
+  const priorityBorderClass = getTicketPriorityBorderClass(ticket.priority);
 
   return (
     <button
       onClick={() => navigate(navigatePath)}
       className={cn(
         "group flex w-full items-stretch gap-4 rounded-lg border border-l-4 bg-card p-4 text-left transition-all hover:border-t-primary/30 hover:bg-accent/50 hover:shadow-sm",
-        priorityBorderClass || "border-l-slate-400"
+        priorityBorderClass
       )}
     >
       <div className="flex items-center gap-3">
-        <div className={cn("h-2.5 w-2.5 shrink-0 rounded-full", statusColors[ticket.status] || "bg-slate-400")} />
+        <div className={cn("h-2.5 w-2.5 shrink-0 rounded-full", getTicketStatusDotClass(ticket.status))} />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
