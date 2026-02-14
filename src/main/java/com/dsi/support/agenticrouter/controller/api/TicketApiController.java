@@ -96,7 +96,7 @@ public class TicketApiController {
     public ApiDtos.TicketDetail getTicket(
         @PathVariable Long ticketId
     ) {
-        SupportTicket supportTicket = ticketService.getTicket(ticketId);
+        SupportTicket supportTicket = ticketService.getTicketDetail(ticketId);
 
         List<TicketMessage> ticketMessages = ticketService.getTicketMessages(ticketId);
         List<TicketRouting> routingHistory = ticketService.getTicketRoutingHistory(ticketId);

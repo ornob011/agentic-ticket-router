@@ -5,6 +5,7 @@ import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,8 +14,14 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 
 public interface SupportTicketRepository extends JpaRepository<SupportTicket, Long> {
+
+    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
+    Optional<SupportTicket> findTicketDetailById(
+        Long id
+    );
 
     List<SupportTicket> findTop5ByCustomerIdOrderByLastActivityAtDesc(
         Long customerId
