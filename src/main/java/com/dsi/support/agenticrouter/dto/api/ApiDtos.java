@@ -23,7 +23,8 @@ public final class ApiDtos {
         Long id,
         String username,
         String fullName,
-        UserRole role
+        UserRole role,
+        String roleLabel
     ) {
     }
 
@@ -97,9 +98,13 @@ public final class ApiDtos {
         String formattedTicketNo,
         String subject,
         TicketStatus status,
+        String statusLabel,
         TicketCategory category,
+        String categoryLabel,
         TicketPriority priority,
+        String priorityLabel,
         TicketQueue queue,
+        String queueLabel,
         Instant lastActivityAt,
         String customerName,
         String assignedAgentName
@@ -122,6 +127,7 @@ public final class ApiDtos {
     public record AuditEventItem(
         Long id,
         AuditEventType eventType,
+        String eventTypeLabel,
         String description,
         String performedBy,
         Instant createdAt
@@ -133,9 +139,13 @@ public final class ApiDtos {
         Long id,
         Integer version,
         TicketCategory category,
+        String categoryLabel,
         TicketPriority priority,
+        String priorityLabel,
         TicketQueue queue,
+        String queueLabel,
         String nextAction,
+        String nextActionLabel,
         BigDecimal confidence,
         boolean overridden,
         String overrideReason,
@@ -149,9 +159,13 @@ public final class ApiDtos {
         String formattedTicketNo,
         String subject,
         TicketStatus status,
+        String statusLabel,
         TicketCategory category,
+        String categoryLabel,
         TicketPriority priority,
+        String priorityLabel,
         TicketQueue queue,
+        String queueLabel,
         Instant createdAt,
         Instant updatedAt,
         Instant lastActivityAt,
@@ -196,9 +210,9 @@ public final class ApiDtos {
 
     @Builder
     public record TicketMetadataResponse(
-        TicketQueue[] queues,
-        TicketStatus[] statuses,
-        TicketPriority[] priorities
+        List<LookupOption> queues,
+        List<LookupOption> statuses,
+        List<LookupOption> priorities
     ) {
     }
 
@@ -322,6 +336,7 @@ public final class ApiDtos {
         String email,
         String fullName,
         UserRole role,
+        String roleLabel,
         boolean active
     ) {
     }

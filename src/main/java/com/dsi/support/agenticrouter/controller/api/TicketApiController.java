@@ -2,7 +2,10 @@ package com.dsi.support.agenticrouter.controller.api;
 
 import com.dsi.support.agenticrouter.dto.CreateTicketDto;
 import com.dsi.support.agenticrouter.dto.api.ApiDtos;
-import com.dsi.support.agenticrouter.entity.*;
+import com.dsi.support.agenticrouter.entity.AppUser;
+import com.dsi.support.agenticrouter.entity.SupportTicket;
+import com.dsi.support.agenticrouter.entity.TicketMessage;
+import com.dsi.support.agenticrouter.entity.TicketRouting;
 import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.enums.TicketQueryScope;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
@@ -11,6 +14,7 @@ import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.ticket.TicketService;
+import com.dsi.support.agenticrouter.util.EnumDisplayNameResolver;
 import com.dsi.support.agenticrouter.util.Utils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -112,22 +116,19 @@ public class TicketApiController {
                                                                            .map(this::toMessageItem)
                                                                            .toList();
 
-        List<ApiDtos.AuditEventItem> auditEventItems = new ArrayList<>();
-
-        for (AuditEvent auditEvent : auditService.getTicketAuditTrail(ticketId)) {
-            ApiDtos.AuditEventItem build = ApiDtos.AuditEventItem.builder()
-                                                                 .id(auditEvent.getId())
-                                                                 .eventType(auditEvent.getEventType())
-                                                                 .description(auditEvent.getDescription())
-                                                                 .performedBy(
-                                                                     Objects.isNull(auditEvent.getPerformedBy())
-                                                                         ? "SYSTEM"
-                                                                         : auditEvent.getPerformedBy().getFullName()
-                                                                 )
-                                                                 .createdAt(auditEvent.getCreatedAt())
-                                                                 .build();
-            auditEventItems.add(build);
-        }
+        List<ApiDtos.AuditEventItem> auditEventItems = auditService.getTicketAuditTrailView(ticketId)
+                                                                   .stream()
+                                                                   .map(auditEventView -> ApiDtos.AuditEventItem.builder()
+                                                                                                                .id(auditEventView.getId())
+                                                                                                                .eventType(auditEventView.getEventType())
+                                                                                                                .eventTypeLabel(EnumDisplayNameResolver.resolve(
+                                                                                                                    auditEventView.getEventType()
+                                                                                                                ))
+                                                                                                                .description(auditEventView.getDescription())
+                                                                                                                .performedBy(auditEventView.getPerformedByName())
+                                                                                                                .createdAt(auditEventView.getCreatedAt())
+                                                                                                                .build())
+                                                                   .toList();
 
         List<ApiDtos.TicketRoutingItem> ticketRoutingItems = new ArrayList<>();
         for (TicketRouting ticketRouting : routingHistory) {
@@ -135,9 +136,21 @@ public class TicketApiController {
                                                                                    .id(ticketRouting.getId())
                                                                                    .version(ticketRouting.getVersion())
                                                                                    .category(ticketRouting.getCategory())
+                                                                                   .categoryLabel(EnumDisplayNameResolver.resolve(
+                                                                                       ticketRouting.getCategory()
+                                                                                   ))
                                                                                    .priority(ticketRouting.getPriority())
+                                                                                   .priorityLabel(EnumDisplayNameResolver.resolve(
+                                                                                       ticketRouting.getPriority()
+                                                                                   ))
                                                                                    .queue(ticketRouting.getQueue())
+                                                                                   .queueLabel(EnumDisplayNameResolver.resolve(
+                                                                                       ticketRouting.getQueue()
+                                                                                   ))
                                                                                    .nextAction(ticketRouting.getNextAction().name())
+                                                                                   .nextActionLabel(EnumDisplayNameResolver.resolve(
+                                                                                       ticketRouting.getNextAction()
+                                                                                   ))
                                                                                    .confidence(ticketRouting.getConfidence())
                                                                                    .overridden(ticketRouting.isOverridden())
                                                                                    .overrideReason(ticketRouting.getOverrideReason())
@@ -156,9 +169,21 @@ public class TicketApiController {
                                    .formattedTicketNo(supportTicket.getFormattedTicketNo())
                                    .subject(supportTicket.getSubject())
                                    .status(supportTicket.getStatus())
+                                   .statusLabel(EnumDisplayNameResolver.resolve(
+                                       supportTicket.getStatus()
+                                   ))
                                    .category(supportTicket.getCurrentCategory())
+                                   .categoryLabel(EnumDisplayNameResolver.resolve(
+                                       supportTicket.getCurrentCategory()
+                                   ))
                                    .priority(supportTicket.getCurrentPriority())
+                                   .priorityLabel(EnumDisplayNameResolver.resolve(
+                                       supportTicket.getCurrentPriority()
+                                   ))
                                    .queue(supportTicket.getAssignedQueue())
+                                   .queueLabel(EnumDisplayNameResolver.resolve(
+                                       supportTicket.getAssignedQueue()
+                                   ))
                                    .createdAt(supportTicket.getCreatedAt())
                                    .updatedAt(supportTicket.getUpdatedAt())
                                    .lastActivityAt(supportTicket.getLastActivityAt())
@@ -244,10 +269,31 @@ public class TicketApiController {
 
     @GetMapping("/meta")
     public ApiDtos.TicketMetadataResponse metadata() {
+        List<ApiDtos.LookupOption> queueOptions = java.util.Arrays.stream(TicketQueue.values())
+                                                                  .map(ticketQueue -> ApiDtos.LookupOption.builder()
+                                                                                                          .code(ticketQueue.name())
+                                                                                                          .name(EnumDisplayNameResolver.resolve(ticketQueue))
+                                                                                                          .build())
+                                                                  .toList();
+
+        List<ApiDtos.LookupOption> statusOptions = java.util.Arrays.stream(TicketStatus.values())
+                                                                   .map(ticketStatus -> ApiDtos.LookupOption.builder()
+                                                                                                            .code(ticketStatus.name())
+                                                                                                            .name(EnumDisplayNameResolver.resolve(ticketStatus))
+                                                                                                            .build())
+                                                                   .toList();
+
+        List<ApiDtos.LookupOption> priorityOptions = java.util.Arrays.stream(TicketPriority.values())
+                                                                     .map(ticketPriority -> ApiDtos.LookupOption.builder()
+                                                                                                                .code(ticketPriority.name())
+                                                                                                                .name(EnumDisplayNameResolver.resolve(ticketPriority))
+                                                                                                                .build())
+                                                                     .toList();
+
         return ApiDtos.TicketMetadataResponse.builder()
-                                             .queues(TicketQueue.values())
-                                             .statuses(TicketStatus.values())
-                                             .priorities(TicketPriority.values())
+                                             .queues(queueOptions)
+                                             .statuses(statusOptions)
+                                             .priorities(priorityOptions)
                                              .build();
     }
 
@@ -305,9 +351,21 @@ public class TicketApiController {
                                     .formattedTicketNo(supportTicket.getFormattedTicketNo())
                                     .subject(supportTicket.getSubject())
                                     .status(supportTicket.getStatus())
+                                    .statusLabel(EnumDisplayNameResolver.resolve(
+                                        supportTicket.getStatus()
+                                    ))
                                     .category(supportTicket.getCurrentCategory())
+                                    .categoryLabel(EnumDisplayNameResolver.resolve(
+                                        supportTicket.getCurrentCategory()
+                                    ))
                                     .priority(supportTicket.getCurrentPriority())
+                                    .priorityLabel(EnumDisplayNameResolver.resolve(
+                                        supportTicket.getCurrentPriority()
+                                    ))
                                     .queue(supportTicket.getAssignedQueue())
+                                    .queueLabel(EnumDisplayNameResolver.resolve(
+                                        supportTicket.getAssignedQueue()
+                                    ))
                                     .lastActivityAt(supportTicket.getLastActivityAt())
                                     .customerName(null)
                                     .assignedAgentName(null)
@@ -320,6 +378,9 @@ public class TicketApiController {
                              .username(appUser.getUsername())
                              .fullName(appUser.getFullName())
                              .role(appUser.getRole())
+                             .roleLabel(EnumDisplayNameResolver.resolve(
+                                 appUser.getRole()
+                             ))
                              .build();
     }
 

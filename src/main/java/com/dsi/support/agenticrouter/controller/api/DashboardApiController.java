@@ -4,6 +4,7 @@ import com.dsi.support.agenticrouter.dto.DashboardDto;
 import com.dsi.support.agenticrouter.dto.api.ApiDtos;
 import com.dsi.support.agenticrouter.entity.AppUser;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
+import com.dsi.support.agenticrouter.util.EnumDisplayNameResolver;
 import com.dsi.support.agenticrouter.service.dashboard.DashboardPageQueryService;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
@@ -101,9 +102,15 @@ public class DashboardApiController {
                                                                                    .formattedTicketNo(ticketSummary.formattedTicketNo())
                                                                                    .subject(ticketSummary.subject())
                                                                                    .status(ticketSummary.status())
+                                                                                   .statusLabel(EnumDisplayNameResolver.resolve(
+                                                                                       ticketSummary.status()
+                                                                                   ))
                                                                                    .category(null)
+                                                                                   .categoryLabel(null)
                                                                                    .priority(null)
+                                                                                   .priorityLabel(null)
                                                                                    .queue(null)
+                                                                                   .queueLabel(null)
                                                                                    .lastActivityAt(ticketSummary.lastActivityAt())
                                                                                    .customerName(null)
                                                                                    .assignedAgentName(null)
@@ -116,6 +123,9 @@ public class DashboardApiController {
                                               .username(user.getUsername())
                                               .fullName(user.getFullName())
                                               .role(user.getRole())
+                                              .roleLabel(EnumDisplayNameResolver.resolve(
+                                                  user.getRole()
+                                              ))
                                               .build();
 
         return ApiDtos.DashboardResponse.builder()

@@ -7,6 +7,7 @@ import com.dsi.support.agenticrouter.repository.CountryRepository;
 import com.dsi.support.agenticrouter.repository.CustomerTierRepository;
 import com.dsi.support.agenticrouter.repository.LanguageRepository;
 import com.dsi.support.agenticrouter.service.onboarding.SignupService;
+import com.dsi.support.agenticrouter.util.EnumDisplayNameResolver;
 import com.dsi.support.agenticrouter.util.Utils;
 import com.dsi.support.agenticrouter.validator.SignupValidator;
 import jakarta.servlet.http.HttpServletRequest;
@@ -194,6 +195,9 @@ public class AuthApiController {
                              .username(appUser.getUsername())
                              .fullName(appUser.getFullName())
                              .role(appUser.getRole())
+                             .roleLabel(EnumDisplayNameResolver.resolve(
+                                 appUser.getRole()
+                             ))
                              .build();
     }
 }

@@ -1,13 +1,13 @@
 package com.dsi.support.agenticrouter.controller.api;
 
 import com.dsi.support.agenticrouter.dto.api.ApiDtos;
-import com.dsi.support.agenticrouter.entity.AuditEvent;
 import com.dsi.support.agenticrouter.enums.AuditEventType;
 import com.dsi.support.agenticrouter.enums.PolicyConfigKey;
 import com.dsi.support.agenticrouter.repository.AuditEventRepository;
 import com.dsi.support.agenticrouter.service.ai.ModelService;
 import com.dsi.support.agenticrouter.service.auth.PasswordHashService;
 import com.dsi.support.agenticrouter.service.policy.PolicyConfigService;
+import com.dsi.support.agenticrouter.util.EnumDisplayNameResolver;
 import com.dsi.support.agenticrouter.util.Utils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -94,6 +94,9 @@ public class AdminApiController {
                                                                .email(user.getEmail())
                                                                .fullName(user.getFullName())
                                                                .role(user.getRole())
+                                                               .roleLabel(EnumDisplayNameResolver.resolve(
+                                                                   user.getRole()
+                                                               ))
                                                                .active(user.isActive())
                                                                .build())
                                   .toList();
@@ -141,6 +144,9 @@ public class AdminApiController {
                                                           .map(auditEvent -> ApiDtos.AuditEventItem.builder()
                                                                                                    .id(auditEvent.getId())
                                                                                                    .eventType(auditEvent.getEventType())
+                                                                                                   .eventTypeLabel(EnumDisplayNameResolver.resolve(
+                                                                                                       auditEvent.getEventType()
+                                                                                                   ))
                                                                                                    .description(auditEvent.getDescription())
                                                                                                    .performedBy(auditEvent.getPerformedByName())
                                                                                                    .createdAt(auditEvent.getCreatedAt())
