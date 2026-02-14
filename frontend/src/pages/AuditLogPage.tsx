@@ -1,27 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
-import { api, type PagedResponse, type AuditEventItem } from "@/lib/api";
+import { useLoaderData } from "react-router-dom";
+import type { AuditLogLoaderData } from "@/router";
 import { formatDateTime, formatLabel } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FileText } from "lucide-react";
-
-function AuditLogSkeleton() {
-  return (
-    <div className="space-y-6">
-      <Skeleton className="h-8 w-48" />
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-64" />
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
 function getEventTone(eventType: string): "default" | "success" | "warning" | "destructive" | "secondary" {
   if (eventType.includes("CREATE") || eventType.includes("RESOLVE")) return "success";
@@ -31,14 +14,7 @@ function getEventTone(eventType: string): "default" | "success" | "warning" | "d
 }
 
 export default function AuditLogPage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin-audit"],
-    queryFn: async () => (await api.get<PagedResponse<AuditEventItem>>("/admin/audit-log?page=0&size=50")).data,
-  });
-
-  if (isLoading) {
-    return <AuditLogSkeleton />;
-  }
+  const data = useLoaderData<AuditLogLoaderData>();
 
   return (
     <div className="space-y-6">

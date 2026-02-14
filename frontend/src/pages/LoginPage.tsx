@@ -42,13 +42,13 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const me = await login(payload.username, payload.password);
+      let landingPath = "/app/dashboard";
       try {
         const settings = await getSettings();
-        const landingPath = resolveLandingPath(settings.defaultLanding, me.role);
-        navigate(landingPath, { replace: true });
+        landingPath = resolveLandingPath(settings.defaultLanding, me.role);
       } catch {
-        navigate("/app/dashboard", { replace: true });
       }
+      navigate(landingPath, { replace: true });
     } catch {
       setError("Invalid username or password. Please try again.");
     } finally {
@@ -124,7 +124,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative text-sm text-white/60">
-          © 2024 SupportHub. All rights reserved.
+          © 2026 SupportHub. All rights reserved.
         </div>
       </div>
 
@@ -156,7 +156,9 @@ export default function LoginPage() {
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="username">Username</Label>
+                  </div>
                   <Input
                     id="username"
                     placeholder="Enter your username"
@@ -172,9 +174,6 @@ export default function LoginPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">Password</Label>
-                    <Button variant="link" className="px-0 h-auto text-sm" type="button">
-                      Forgot password?
-                    </Button>
                   </div>
                   <Input
                     id="password"

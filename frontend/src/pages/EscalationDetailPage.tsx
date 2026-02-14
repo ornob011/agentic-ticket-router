@@ -1,44 +1,19 @@
-import { useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { api, type EscalationDetail } from "@/lib/api";
+import { useLoaderData, useNavigate } from "react-router-dom";
+import type { EscalationDetailLoaderData } from "@/router";
 import { formatDateTime, cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, AlertTriangle, CheckCircle, Clock, User, Calendar, MessageSquare } from "lucide-react";
 
-function EscalationDetailSkeleton() {
-  return (
-    <div className="space-y-6">
-      <Skeleton className="h-8 w-64" />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-48" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Skeleton className="h-16" />
-              <Skeleton className="h-24" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-48" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-32" />
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
+type DetailSectionProps = Readonly<{
+  icon?: typeof AlertTriangle;
+  title: string;
+  children: React.ReactNode;
+}>;
 
-function DetailSection({ icon: Icon, title, children }: Readonly<{ icon?: typeof AlertTriangle; title: string; children: React.ReactNode }>) {
+function DetailSection({ icon: Icon, title, children }: DetailSectionProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
@@ -77,22 +52,13 @@ function getEscalationStatusMeta(resolved: boolean) {
 }
 
 export default function EscalationDetailPage() {
-  const { escalationId } = useParams();
+  const data = useLoaderData<EscalationDetailLoaderData>();
   const navigate = useNavigate();
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["escalation", escalationId],
-    queryFn: async () => (await api.get<EscalationDetail>(`/supervisor/escalations/${escalationId}`)).data,
-    enabled: Boolean(escalationId),
-  });
-
-  if (isLoading || !data) {
-    return <EscalationDetailSkeleton />;
-  }
 
   const statusMeta = getEscalationStatusMeta(data.resolved);
   const BadgeIcon = statusMeta.badgeIcon;
   const ResolutionIcon = statusMeta.resolutionIcon;
+
   const renderResolutionContent = () => {
     if (!data.resolutionNotes) {
       return (

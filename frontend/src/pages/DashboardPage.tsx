@@ -1,15 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { api, type DashboardResponse, type TicketSummary } from "@/lib/api";
+import { useLoaderData, useNavigate, useRevalidator } from "react-router-dom";
+import { useEffect } from "react";
+import type { DashboardLoaderData } from "@/router";
 import { formatLabel, getStatusTone, formatRelativeTime, getPriorityTone, cn } from "@/lib/utils";
 import { getTicketStatusDotClass } from "@/lib/ticket-visuals";
 import { canAccessAgentWorkspace, canAccessSupervisorWorkspace } from "@/lib/role-policy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { StatCard } from "@/components/ui/stat-card";
 import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
 import { StatusDot } from "@/components/ui/status-dot";
 import {
   Ticket,
@@ -30,7 +29,7 @@ type DashboardStat = {
   icon: typeof Ticket;
 };
 
-function buildCustomerStats(data: DashboardResponse): DashboardStat[] {
+function buildCustomerStats(data: DashboardLoaderData): DashboardStat[] {
   if (!data.customer) {
     return [];
   }
@@ -43,7 +42,7 @@ function buildCustomerStats(data: DashboardResponse): DashboardStat[] {
   ];
 }
 
-function buildAgentStats(data: DashboardResponse): DashboardStat[] {
+function buildAgentStats(data: DashboardLoaderData): DashboardStat[] {
   if (!data.agent) {
     return [];
   }
@@ -56,7 +55,7 @@ function buildAgentStats(data: DashboardResponse): DashboardStat[] {
   ];
 }
 
-function buildSupervisorStats(data: DashboardResponse): DashboardStat[] {
+function buildSupervisorStats(data: DashboardLoaderData): DashboardStat[] {
   if (!data.supervisor) {
     return [];
   }
@@ -68,7 +67,7 @@ function buildSupervisorStats(data: DashboardResponse): DashboardStat[] {
   ];
 }
 
-function resolveStats(role: DashboardResponse["user"]["role"], data: DashboardResponse): DashboardStat[] {
+function resolveStats(role: DashboardLoaderData["user"]["role"], data: DashboardLoaderData): DashboardStat[] {
   if (canAccessSupervisorWorkspace(role)) {
     return buildSupervisorStats(data);
   }
@@ -80,24 +79,7 @@ function resolveStats(role: DashboardResponse["user"]["role"], data: DashboardRe
   return buildCustomerStats(data);
 }
 
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="gradient-header -mx-6 -mt-6 mb-6 px-6 py-6">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="mt-2 h-4 w-64" />
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-32" />
-        ))}
-      </div>
-      <Skeleton className="h-96" />
-    </div>
-  );
-}
-
-function RecentTicketItem({ ticket }: Readonly<{ ticket: TicketSummary }>) {
+function RecentTicketItem({ ticket }: Readonly<{ ticket: DashboardLoaderData["recentTickets"][0] }>) {
   const navigate = useNavigate();
   const statusLabel = ticket.statusLabel || formatLabel(ticket.status);
   const priorityLabel = ticket.priorityLabel || formatLabel(ticket.priority);
@@ -132,23 +114,23 @@ function RecentTicketItem({ ticket }: Readonly<{ ticket: TicketSummary }>) {
 }
 
 export default function DashboardPage() {
+  const data = useLoaderData<DashboardLoaderData>();
   const navigate = useNavigate();
+  const revalidator = useRevalidator();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["dashboard"],
-    queryFn: async () => (await api.get<DashboardResponse>("/dashboard")).data,
-    refetchInterval: 30000,
-  });
-
-  if (isLoading || !data) {
-    return <DashboardSkeleton />;
-  }
+  useEffect(() => {
+    const interval = setInterval(() => {
+      revalidator.revalidate();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [revalidator]);
 
   const role = data.user.role;
   const isAgent = canAccessAgentWorkspace(role);
   const isSupervisor = canAccessSupervisorWorkspace(role);
   const stats = resolveStats(role, data);
   const hasRecentTickets = data.recentTickets.length > 0;
+
   const renderRecentTickets = () => {
     if (!hasRecentTickets) {
       return (
@@ -238,7 +220,7 @@ export default function DashboardPage() {
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() => navigate("/app/agent/queue")}
+                onClick={() => navigate("/app/agent/queues/GENERAL_Q")}
               >
                 <MessageSquare className="mr-2 h-4 w-4" />
                 My Queue

@@ -1,17 +1,17 @@
-import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { api, type PagedResponse, type TicketSummary } from "@/lib/api";
+import { useLoaderData, useRevalidator } from "react-router-dom";
+import { useEffect } from "react";
+import type { ReviewQueueLoaderData } from "@/router";
 import { formatLabel, getStatusTone, formatRelativeTime, getPriorityTone, cn } from "@/lib/utils";
 import { getTicketPriorityBorderClass, getTicketStatusDotClass } from "@/lib/ticket-visuals";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ClipboardCheck, Clock, AlertTriangle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ClipboardCheck, Clock } from "lucide-react";
 
 type ReviewTicketCardProps = Readonly<{
-  ticket: TicketSummary;
+  ticket: ReviewQueueLoaderData["content"][0];
 }>;
 
 function ReviewTicketCard({ ticket }: ReviewTicketCardProps) {
@@ -69,36 +69,21 @@ function ReviewTicketCard({ ticket }: ReviewTicketCardProps) {
   );
 }
 
-function ReviewSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="gradient-header -mx-6 -mt-6 mb-6 px-6 py-6">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="mt-2 h-4 w-64" />
-      </div>
-      <div className="space-y-3">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-24" />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function ReviewQueuePage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["tickets", "review"],
-    queryFn: async () => (await api.get<PagedResponse<TicketSummary>>("/tickets?scope=review&page=0&size=50")).data,
-    refetchInterval: 30000,
-  });
+  const data = useLoaderData<ReviewQueueLoaderData>();
+  const revalidator = useRevalidator();
 
-  if (isLoading) {
-    return <ReviewSkeleton />;
-  }
+  useEffect(() => {
+    const interval = setInterval(() => {
+      revalidator.revalidate();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [revalidator]);
 
   const tickets = data?.content ?? [];
   const hasContent = tickets.length > 0;
   const showEmptyState = data !== undefined && tickets.length === 0;
+
   const renderReviewList = () => {
     if (showEmptyState) {
       return (
@@ -126,7 +111,7 @@ export default function ReviewQueuePage() {
 
       {data && hasContent && (
         <div className="flex items-center gap-4 rounded-lg bg-amber-50 px-4 py-2 text-sm">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <ClipboardCheck className="h-4 w-4 text-amber-600" />
           <div className="flex items-center gap-2">
             <span className="font-medium text-amber-700">{data.totalElements}</span>
             <span className="text-amber-600">tickets awaiting review</span>

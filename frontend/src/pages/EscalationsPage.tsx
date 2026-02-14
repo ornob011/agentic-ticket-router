@@ -1,12 +1,12 @@
-import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { api, type PagedResponse, type EscalationSummary } from "@/lib/api";
+import { useLoaderData, useRevalidator } from "react-router-dom";
+import { useEffect } from "react";
+import type { EscalationsLoaderData } from "@/router";
 import { formatDateTime, cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useNavigate } from "react-router-dom";
 import { AlertTriangle, CheckCircle, Clock, User } from "lucide-react";
 
 function resolveEscalationCardMeta(resolved: boolean) {
@@ -41,7 +41,7 @@ function resolveEscalationCardMeta(resolved: boolean) {
   };
 }
 
-function EscalationCard({ escalation }: Readonly<{ escalation: EscalationSummary }>) {
+function EscalationCard({ escalation }: Readonly<{ escalation: EscalationsLoaderData["content"][0] }>) {
   const navigate = useNavigate();
   const meta = resolveEscalationCardMeta(escalation.resolved);
 
@@ -86,38 +86,23 @@ function EscalationCard({ escalation }: Readonly<{ escalation: EscalationSummary
   );
 }
 
-function EscalationsSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="gradient-header -mx-6 -mt-6 mb-6 px-6 py-6">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="mt-2 h-4 w-64" />
-      </div>
-      <div className="space-y-3">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-24" />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function EscalationsPage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["escalations"],
-    queryFn: async () => (await api.get<PagedResponse<EscalationSummary>>("/supervisor/escalations?page=0&size=50")).data,
-    refetchInterval: 30000,
-  });
+  const data = useLoaderData<EscalationsLoaderData>();
+  const revalidator = useRevalidator();
 
-  if (isLoading) {
-    return <EscalationsSkeleton />;
-  }
+  useEffect(() => {
+    const interval = setInterval(() => {
+      revalidator.revalidate();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [revalidator]);
 
   const escalations = data?.content ?? [];
   const pendingCount = escalations.filter((e) => !e.resolved).length;
   const resolvedCount = escalations.filter((e) => e.resolved).length;
   const hasContent = escalations.length > 0;
   const showEmptyState = data !== undefined && escalations.length === 0;
+
   const renderEscalationList = () => {
     if (showEmptyState) {
       return (

@@ -1,43 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
-import { api, type UserInfo } from "@/lib/api";
+import { useLoaderData } from "react-router-dom";
+import type { AdminUsersLoaderData } from "@/router";
 import { formatLabel } from "@/lib/utils";
 import { getRoleBadgeVariant } from "@/lib/role-policy";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Users, Check, X } from "lucide-react";
 
-function UsersSkeleton() {
-  return (
-    <div className="space-y-6">
-      <Skeleton className="h-8 w-48" />
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-16" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 export default function AdminUsersPage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin-users"],
-    queryFn: async () => (await api.get<UserInfo[]>("/admin/users")).data,
-  });
-
-  if (isLoading) {
-    return <UsersSkeleton />;
-  }
-
+  const data = useLoaderData<AdminUsersLoaderData>();
   const users = data ?? [];
 
   return (

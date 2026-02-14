@@ -1,14 +1,13 @@
 import { FormEvent, useRef, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type TicketDetail, type TicketMessage } from "@/lib/api";
+import { useLoaderData, useNavigate, useRevalidator } from "react-router-dom";
+import type { TicketDetailLoaderData } from "@/router";
+import { api, type TicketMessage } from "@/lib/api";
 import { formatLabel, getStatusTone, formatDateTime, getPriorityTone, cn } from "@/lib/utils";
 import { getTicketStatusIconClass } from "@/lib/ticket-visuals";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DateSeparator } from "@/components/ui/date-separator";
@@ -22,23 +21,7 @@ import {
   CheckCircle,
   MessageSquare,
 } from "lucide-react";
-
-function TicketDetailSkeleton() {
-  return (
-    <div className="space-y-6">
-      <Skeleton className="h-8 w-64" />
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
-          <Skeleton className="h-96" />
-        </div>
-        <div className="space-y-4">
-          <Skeleton className="h-48" />
-          <Skeleton className="h-32" />
-        </div>
-      </div>
-    </div>
-  );
-}
+import { toast } from "sonner";
 
 function formatDateGroup(dateStr: string): string {
   const date = new Date(dateStr);
@@ -267,38 +250,35 @@ function StatusBadge({ status, statusLabel }: StatusBadgeProps) {
 }
 
 export default function TicketDetailPage() {
-  const { ticketId } = useParams();
+  const data = useLoaderData<TicketDetailLoaderData>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const revalidator = useRevalidator();
   const [reply, setReply] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["ticket", ticketId],
-    queryFn: async () => (await api.get<TicketDetail>(`/tickets/${ticketId}`)).data,
-    enabled: Boolean(ticketId),
-    refetchInterval: 30000,
-  });
+  useEffect(() => {
+    const interval = setInterval(() => {
+      revalidator.revalidate();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [revalidator]);
 
   const onReply = async (event: FormEvent) => {
     event.preventDefault();
-    if (!ticketId || !reply.trim() || submitting) return;
+    if (!reply.trim() || submitting) return;
 
     setSubmitting(true);
     try {
-      await api.post(`/tickets/${ticketId}/replies`, { content: reply });
+      await api.post(`/tickets/${data.id}/replies`, { content: reply });
       setReply("");
-      await queryClient.invalidateQueries({ queryKey: ["ticket", ticketId] });
+      await revalidator.revalidate();
     } catch (error) {
+      toast.error("Failed to send reply");
       console.error("Failed to send reply:", error);
     } finally {
       setSubmitting(false);
     }
   };
-
-  if (isLoading || !data) {
-    return <TicketDetailSkeleton />;
-  }
 
   const getReplyButtonLabel = () => {
     if (submitting) {
@@ -307,6 +287,7 @@ export default function TicketDetailPage() {
 
     return "Send Reply";
   };
+
   const categoryLabel = data.category ? formatLabel(data.category) : "-";
   const resolvedCategoryLabel = data.categoryLabel || categoryLabel;
   const queueLabel = data.queue ? formatLabel(data.queue) : "-";
@@ -347,32 +328,20 @@ export default function TicketDetailPage() {
                 </span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <ConversationPanel messages={data.messages} />
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Reply</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={onReply} className="space-y-4">
+              <form onSubmit={onReply} className="space-y-3">
                 <Textarea
                   placeholder="Type your reply..."
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
-                  rows={4}
+                  rows={3}
                   className="resize-none"
                 />
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">
-                    Press <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">Enter</kbd> to
-                    send, <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">Shift+Enter</kbd>{" "}
-                    for new line
-                  </p>
+                <div className="flex justify-end">
                   <Button type="submit" disabled={!reply.trim() || submitting}>
-                    <Send className="mr-2 h-4 w-4" />
+                    <Send className="h-4 w-4 mr-2" />
                     {getReplyButtonLabel()}
                   </Button>
                 </div>
@@ -387,59 +356,40 @@ export default function TicketDetailPage() {
               <CardTitle className="text-base">Ticket Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <DetailSection title="Priority">
-                <Badge variant={getPriorityTone(data.priority)} className="text-sm">
-                  {priorityLabel}
-                </Badge>
-              </DetailSection>
-
               <DetailSection title="Category">
-                <span className="text-sm">{resolvedCategoryLabel}</span>
+                <p className="text-sm">{resolvedCategoryLabel}</p>
               </DetailSection>
-
+              <DetailSection title="Priority">
+                <Badge variant={getPriorityTone(data.priority)}>{priorityLabel}</Badge>
+              </DetailSection>
               <DetailSection title="Queue">
-                <span className="text-sm">{resolvedQueueLabel}</span>
+                <p className="text-sm">{resolvedQueueLabel}</p>
               </DetailSection>
-
               <Separator />
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-xs text-muted-foreground">Created</p>
-                  <p className="mt-0.5 font-medium">{formatDateTime(data.createdAt)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Updated</p>
-                  <p className="mt-0.5 font-medium">{formatDateTime(data.updatedAt)}</p>
-                </div>
-              </div>
-
-              {data.reopenCount > 0 && (
-                <div className="rounded-lg bg-amber-50 p-2 text-xs text-amber-700">
-                  This ticket has been reopened {data.reopenCount} time(s)
-                </div>
-              )}
+              <DetailSection title="Created">
+                <p className="text-sm">{formatDateTime(data.createdAt)}</p>
+              </DetailSection>
+              <DetailSection title="Last Activity">
+                <p className="text-sm">{formatDateTime(data.lastActivityAt)}</p>
+              </DetailSection>
             </CardContent>
           </Card>
 
           {data.customer && (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <User className="h-4 w-4" />
-                  Customer
-                </CardTitle>
+                <CardTitle className="text-base">Customer</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-sky-100 text-sky-700">
+                    <AvatarFallback className="bg-primary/10 text-primary">
                       {getInitials(data.customer.fullName || data.customer.username)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="font-medium">{data.customer.fullName || data.customer.username}</p>
-                    <p className="text-xs text-muted-foreground">@{data.customer.username}</p>
+                    <p className="text-sm text-muted-foreground">{data.customer.email}</p>
                   </div>
                 </div>
               </CardContent>
@@ -449,21 +399,18 @@ export default function TicketDetailPage() {
           {data.assignedAgent && (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <User className="h-4 w-4" />
-                  Assigned Agent
-                </CardTitle>
+                <CardTitle className="text-base">Assigned Agent</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
+                    <AvatarFallback className="bg-green-100 text-green-700">
                       {getInitials(data.assignedAgent.fullName || data.assignedAgent.username)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="font-medium">{data.assignedAgent.fullName || data.assignedAgent.username}</p>
-                    <p className="text-xs text-muted-foreground">Support Agent</p>
+                    <p className="text-sm text-muted-foreground">{data.assignedAgent.email}</p>
                   </div>
                 </div>
               </CardContent>

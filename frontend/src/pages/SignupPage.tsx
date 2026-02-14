@@ -186,7 +186,7 @@ export default function SignupPage() {
         </div>
 
         <div className="relative text-sm text-white/60">
-          © 2024 SupportHub. All rights reserved.
+          © 2026 SupportHub. All rights reserved.
         </div>
       </div>
 

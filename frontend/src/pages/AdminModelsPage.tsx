@@ -1,60 +1,35 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type ModelInfo } from "@/lib/api";
+import { useLoaderData, useRevalidator } from "react-router-dom";
+import { useState } from "react";
 import { formatDateTime } from "@/lib/utils";
+import { api } from "@/lib/api";
+import type { AdminModelsLoaderData } from "@/router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Brain, Check, Zap } from "lucide-react";
-import { useState } from "react";
-
-function ModelsSkeleton() {
-  return (
-    <div className="space-y-6">
-      <Skeleton className="h-8 w-48" />
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-16" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+import { toast } from "sonner";
 
 export default function AdminModelsPage() {
-  const queryClient = useQueryClient();
+  const data = useLoaderData<AdminModelsLoaderData>();
+  const revalidator = useRevalidator();
   const [activating, setActivating] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin-models"],
-    queryFn: async () => (await api.get<ModelInfo[]>("/admin/model-registry")).data,
-  });
+  const models = data ?? [];
 
   const activateModel = async (modelTag: string) => {
     setActivating(modelTag);
     try {
       await api.post("/admin/model-registry/activate", { modelTag });
-      await queryClient.invalidateQueries({ queryKey: ["admin-models"] });
+      await revalidator.revalidate();
+      toast.success(`Model ${modelTag} activated successfully`);
     } catch (error) {
+      toast.error("Failed to activate model");
       console.error("Failed to activate model:", error);
     } finally {
       setActivating(null);
     }
   };
-
-  if (isLoading) {
-    return <ModelsSkeleton />;
-  }
-
-  const models = data ?? [];
 
   return (
     <div className="space-y-6">

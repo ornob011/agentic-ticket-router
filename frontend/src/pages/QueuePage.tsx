@@ -1,16 +1,14 @@
-import { useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { api, type PagedResponse, type TicketSummary } from "@/lib/api";
-import { formatLabel, getStatusTone, formatRelativeTime, getPriorityTone, cn } from "@/lib/utils";
+import { useLoaderData, useRevalidator, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import type { QueueLoaderData } from "@/router";
+import { formatLabel, formatRelativeTime, cn } from "@/lib/utils";
 import { getTicketPriorityBorderClass, getTicketStatusDotClass } from "@/lib/ticket-visuals";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Inbox, Clock, User } from "lucide-react";
 
-function QueueTicketCard({ ticket, navigatePath }: Readonly<{ ticket: TicketSummary; navigatePath: string }>) {
+function QueueTicketCard({ ticket, navigatePath }: Readonly<{ ticket: QueueLoaderData["content"][0]; navigatePath: string }>) {
   const navigate = useNavigate();
   const statusLabel = ticket.statusLabel || formatLabel(ticket.status);
   const priorityLabel = ticket.priorityLabel || formatLabel(ticket.priority);
@@ -31,12 +29,8 @@ function QueueTicketCard({ ticket, navigatePath }: Readonly<{ ticket: TicketSumm
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-xs text-muted-foreground">{ticket.formattedTicketNo}</span>
-          <Badge variant={getStatusTone(ticket.status)} className="text-xs">
-            {statusLabel}
-          </Badge>
-          <Badge variant={getPriorityTone(ticket.priority)} className="text-xs">
-            {priorityLabel}
-          </Badge>
+          <span className="text-xs">{statusLabel}</span>
+          <span className="text-xs">{priorityLabel}</span>
         </div>
         <p className="mt-1.5 truncate font-medium text-foreground">{ticket.subject}</p>
         <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
@@ -69,41 +63,23 @@ function QueueTicketCard({ ticket, navigatePath }: Readonly<{ ticket: TicketSumm
   );
 }
 
-function QueueSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="gradient-header -mx-6 -mt-6 mb-6 px-6 py-6">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="mt-2 h-4 w-64" />
-      </div>
-      <div className="space-y-3">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-24" />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function QueuePage() {
-  const { queue } = useParams();
+  const data = useLoaderData() as QueueLoaderData;
+  const revalidator = useRevalidator();
+  const queue = window.location.pathname.split("/").pop() || "GENERAL_Q";
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["tickets", "queue", queue],
-    queryFn: async () =>
-      (await api.get<PagedResponse<TicketSummary>>(`/tickets?scope=queue&queue=${queue}&page=0&size=50`)).data,
-    enabled: Boolean(queue),
-    refetchInterval: 30000,
-  });
+  useEffect(() => {
+    const interval = setInterval(() => {
+      revalidator.revalidate();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [revalidator]);
 
-  if (isLoading) {
-    return <QueueSkeleton />;
-  }
-
-  const queueTitle = queue ? formatLabel(queue) : "Queue Inbox";
+  const queueTitle = formatLabel(queue);
   const tickets = data?.content ?? [];
   const hasContent = tickets.length > 0;
   const showEmptyState = data !== undefined && tickets.length === 0;
+
   const renderTicketList = () => {
     if (showEmptyState) {
       return (

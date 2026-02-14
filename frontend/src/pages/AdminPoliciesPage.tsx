@@ -1,37 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
-import { api, type PolicyInfo } from "@/lib/api";
+import { useLoaderData } from "react-router-dom";
+import type { AdminPoliciesLoaderData } from "@/router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Settings, Check, X } from "lucide-react";
 
-function PoliciesSkeleton() {
-  return (
-    <div className="space-y-6">
-      <Skeleton className="h-8 w-48" />
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-32" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-48" />
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 export default function AdminPoliciesPage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin-policies"],
-    queryFn: async () => (await api.get<PolicyInfo[]>("/admin/policy-config")).data,
-  });
-
-  if (isLoading) {
-    return <PoliciesSkeleton />;
-  }
-
+  const data = useLoaderData<AdminPoliciesLoaderData>();
   const policies = data ?? [];
 
   return (
