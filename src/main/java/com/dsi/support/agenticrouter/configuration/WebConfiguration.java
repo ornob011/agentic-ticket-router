@@ -18,7 +18,21 @@ public class WebConfiguration implements WebMvcConfigurer {
     public void addViewControllers(
         ViewControllerRegistry viewControllerRegistry
     ) {
+        String appIndexForward = AppRoutePolicy.appIndexForwardViewName();
+
         viewControllerRegistry.addViewController(AppRoutePolicy.WebRoute.ROOT.path())
                               .setViewName("redirect:" + AppRoutePolicy.WebRoute.DASHBOARD.path());
+
+        AppRoutePolicy.spaEntryRoutes().forEach(
+            route -> viewControllerRegistry.addViewController(
+                route.path()
+            ).setViewName(appIndexForward)
+        );
+
+        AppRoutePolicy.spaScopeRoutes().forEach(
+            route -> viewControllerRegistry.addViewController(
+                route.path()
+            ).setViewName(appIndexForward)
+        );
     }
 }

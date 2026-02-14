@@ -49,7 +49,7 @@ public class SecurityConfiguration {
         AccessDeniedHandler apiAccessDeniedHandler
     ) throws Exception {
         http
-            .securityMatcher(AppRoutePolicy.PATTERN_API_SCOPE)
+            .securityMatcher(AppRoutePolicy.ScopeRoute.API.path())
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers(AppRoutePolicy.publicApiEndpoints()).permitAll()
                 .anyRequest().authenticated()
@@ -117,7 +117,7 @@ public class SecurityConfiguration {
             request,
             response,
             authException
-        ) -> response.sendRedirect(AppRoutePolicy.PATH_LOGIN);
+        ) -> response.sendRedirect(AppRoutePolicy.WebRoute.LOGIN.path());
     }
 
     @Bean
