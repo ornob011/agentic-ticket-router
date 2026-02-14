@@ -58,6 +58,42 @@ export type ProfileResponse = {
     lastLoginAt: string | null;
     lastLoginIp: string | null;
   } | null;
+  accountCreatedAt: string | null;
+  accountActive: boolean;
+};
+
+export type UserSettingsResponse = {
+  defaultLanding: LandingPage;
+  defaultLandingLabel: string;
+  sidebarCollapsed: boolean;
+  theme: ThemePreference;
+  themeLabel: string;
+  compactMode: boolean;
+  emailNotificationsEnabled: boolean;
+  notifyTicketReply: boolean;
+  notifyStatusChange: boolean;
+  notifyEscalation: boolean;
+};
+
+export type LandingPage = "DASHBOARD" | "TICKETS" | "QUEUE";
+
+export type ThemePreference = "LIGHT" | "DARK" | "SYSTEM";
+
+export type UserSettingsUpdateRequest = {
+  defaultLanding?: LandingPage;
+  sidebarCollapsed?: boolean;
+  theme?: ThemePreference;
+  compactMode?: boolean;
+  emailNotificationsEnabled?: boolean;
+  notifyTicketReply?: boolean;
+  notifyStatusChange?: boolean;
+  notifyEscalation?: boolean;
+};
+
+export type ChangePasswordRequest = {
+  currentPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
 };
 
 export type ProfileUpdateRequest = {

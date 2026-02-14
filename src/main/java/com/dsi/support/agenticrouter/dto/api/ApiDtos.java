@@ -10,7 +10,6 @@ import lombok.Builder;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
 public final class ApiDtos {
 
@@ -70,7 +69,43 @@ public final class ApiDtos {
         UserMe user,
         String profileContext,
         CustomerProfileData customerProfile,
-        StaffProfileData staffProfile
+        StaffProfileData staffProfile,
+        Instant accountCreatedAt,
+        boolean accountActive
+    ) {
+    }
+
+    @Builder
+    public record UserSettingsResponse(
+        String defaultLanding,
+        String defaultLandingLabel,
+        boolean sidebarCollapsed,
+        String theme,
+        String themeLabel,
+        boolean compactMode,
+        boolean emailNotificationsEnabled,
+        boolean notifyTicketReply,
+        boolean notifyStatusChange,
+        boolean notifyEscalation
+    ) {
+    }
+
+    public record UserSettingsUpdateRequest(
+        LandingPage defaultLanding,
+        Boolean sidebarCollapsed,
+        ThemePreference theme,
+        Boolean compactMode,
+        Boolean emailNotificationsEnabled,
+        Boolean notifyTicketReply,
+        Boolean notifyStatusChange,
+        Boolean notifyEscalation
+    ) {
+    }
+
+    public record ChangePasswordRequest(
+        @NotBlank String currentPassword,
+        @NotBlank @Size(min = 8, max = 72) String newPassword,
+        @NotBlank String confirmNewPassword
     ) {
     }
 

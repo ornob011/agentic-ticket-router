@@ -1,23 +1,36 @@
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
-import { getMe } from "@/app/auth";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { loadUserSettings, saveUserSettings } from "@/lib/user-settings";
+import { getMe, getSettings, updateSettings } from "@/app/auth";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 
 export function AppLayout() {
-  const [collapsed, setCollapsed] = useState(() => loadUserSettings().defaultSidebarCollapsed);
+  const queryClient = useQueryClient();
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: getMe });
-  const handleToggleSidebar = () => {
+  const { data: settings } = useQuery({ queryKey: ["settings"], queryFn: getSettings });
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (settings?.sidebarCollapsed !== undefined) {
+      setCollapsed(settings.sidebarCollapsed);
+    }
+  }, [settings?.sidebarCollapsed]);
+
+  const handleToggleSidebar = async () => {
     const nextValue = !collapsed;
     setCollapsed(nextValue);
-
-    const currentSettings = loadUserSettings();
-    saveUserSettings({
-      ...currentSettings,
-      defaultSidebarCollapsed: nextValue,
-    });
+    try {
+      await updateSettings({ sidebarCollapsed: nextValue });
+      queryClient.setQueryData(["settings"], (old: unknown) => {
+        if (typeof old === "object" && old !== null) {
+          return { ...old, sidebarCollapsed: nextValue };
+        }
+        return old;
+      });
+    } catch {
+      setCollapsed(!nextValue);
+    }
   };
 
   return (

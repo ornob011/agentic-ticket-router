@@ -21,7 +21,6 @@ public final class AppRoutePolicy {
         LOGIN("/app/login"),
         SIGNUP("/app/signup"),
         DASHBOARD("/app/dashboard"),
-        PROFILE("/app/profile"),
         SETTINGS("/app/settings"),
         FAVICON("/favicon.ico"),
         ASSETS("/assets/**"),
@@ -90,7 +89,6 @@ public final class AppRoutePolicy {
         WebRoute.LOGIN,
         WebRoute.SIGNUP,
         WebRoute.DASHBOARD,
-        WebRoute.PROFILE,
         WebRoute.SETTINGS
     );
 

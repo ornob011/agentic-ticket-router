@@ -9,12 +9,14 @@ import com.dsi.support.agenticrouter.util.EnumDisplayNameResolver;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindException;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +27,8 @@ public class ProfileService {
     private final CountryRepository countryRepository;
     private final CustomerTierRepository customerTierRepository;
     private final LanguageRepository languageRepository;
+    private final UserSettingsRepository userSettingsRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public ApiDtos.ProfileResponse getMyProfile() {
@@ -273,6 +277,8 @@ public class ProfileService {
                                           .user(userMe)
                                           .profileContext("STAFF")
                                           .staffProfile(staffProfileData)
+                                          .accountCreatedAt(appUser.getCreatedAt())
+                                          .accountActive(appUser.isActive())
                                           .build();
         }
 
@@ -315,6 +321,139 @@ public class ProfileService {
                                       .user(userMe)
                                       .profileContext("CUSTOMER")
                                       .customerProfile(customerProfileData)
+                                      .accountCreatedAt(appUser.getCreatedAt())
+                                      .accountActive(appUser.isActive())
                                       .build();
+    }
+
+    @Transactional(readOnly = true)
+    public ApiDtos.UserSettingsResponse getMySettings() {
+        AppUser appUser = getCurrentUser();
+        UserSettings settings = loadOrCreateUserSettings(appUser);
+        return toSettingsResponse(settings);
+    }
+
+    @Transactional
+    public ApiDtos.UserSettingsResponse updateMySettings(ApiDtos.UserSettingsUpdateRequest request) {
+        AppUser appUser = getCurrentUser();
+        UserSettings settings = loadOrCreateUserSettings(appUser);
+
+        applyIfPresent(
+            request.defaultLanding(),
+            settings::setDefaultLanding
+        );
+
+        applyIfPresent(
+            request.sidebarCollapsed(),
+            settings::setSidebarCollapsed
+        );
+
+        applyIfPresent(
+            request.theme(),
+            settings::setTheme
+        );
+
+        applyIfPresent(
+            request.compactMode(),
+            settings::setCompactMode
+        );
+
+        applyIfPresent(
+            request.emailNotificationsEnabled(),
+            settings::setEmailNotificationsEnabled
+        );
+
+        applyIfPresent(
+            request.notifyTicketReply(),
+            settings::setNotifyTicketReply
+        );
+
+        applyIfPresent(
+            request.notifyStatusChange(),
+            settings::setNotifyStatusChange
+        );
+
+        applyIfPresent(
+            request.notifyEscalation(),
+            settings::setNotifyEscalation
+        );
+
+        userSettingsRepository.save(settings);
+
+        return toSettingsResponse(settings);
+    }
+
+    @Transactional
+    public void changePassword(
+        ApiDtos.ChangePasswordRequest request
+    ) throws BindException {
+        AppUser appUser = getCurrentUser();
+
+        if (!passwordEncoder.matches(request.currentPassword(), appUser.getPasswordHash())) {
+            BeanPropertyBindingResult errors = new BeanPropertyBindingResult(
+                request,
+                "changePasswordRequest"
+            );
+
+            errors.rejectValue(
+                "currentPassword",
+                "Invalid",
+                "Current password is incorrect."
+            );
+
+            throw new BindException(errors);
+        }
+
+        if (!Objects.equals(request.newPassword(), request.confirmNewPassword())) {
+            BeanPropertyBindingResult errors = new BeanPropertyBindingResult(
+                request,
+                "changePasswordRequest"
+            );
+
+            errors.rejectValue(
+                "confirmNewPassword",
+                "Mismatch",
+                "New passwords do not match."
+            );
+
+            throw new BindException(errors);
+        }
+
+        appUser.setPasswordHash(
+            passwordEncoder.encode(request.newPassword())
+        );
+
+        appUserRepository.save(appUser);
+    }
+
+    private UserSettings loadOrCreateUserSettings(AppUser appUser) {
+        return userSettingsRepository.findByUserId(appUser.getId())
+                                     .orElseGet(() -> UserSettings.builder()
+                                                                  .user(appUser)
+                                                                  .build());
+    }
+
+    private <T> void applyIfPresent(
+        T value,
+        Consumer<T> consumer
+    ) {
+        if (Objects.nonNull(value)) {
+            consumer.accept(value);
+        }
+    }
+
+    private ApiDtos.UserSettingsResponse toSettingsResponse(UserSettings settings) {
+        return ApiDtos.UserSettingsResponse.builder()
+                                           .defaultLanding(settings.getDefaultLanding().name())
+                                           .defaultLandingLabel(settings.getDefaultLanding().getDisplayName())
+                                           .sidebarCollapsed(settings.isSidebarCollapsed())
+                                           .theme(settings.getTheme().name())
+                                           .themeLabel(settings.getTheme().getDisplayName())
+                                           .compactMode(settings.isCompactMode())
+                                           .emailNotificationsEnabled(settings.isEmailNotificationsEnabled())
+                                           .notifyTicketReply(settings.isNotifyTicketReply())
+                                           .notifyStatusChange(settings.isNotifyStatusChange())
+                                           .notifyEscalation(settings.isNotifyEscalation())
+                                           .build();
     }
 }

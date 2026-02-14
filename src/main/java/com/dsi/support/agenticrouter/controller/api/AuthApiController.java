@@ -96,6 +96,26 @@ public class AuthApiController {
         return profileService.updateMyProfile(request);
     }
 
+    @GetMapping("/settings")
+    public ApiDtos.UserSettingsResponse settings() {
+        return profileService.getMySettings();
+    }
+
+    @PutMapping("/settings")
+    public ApiDtos.UserSettingsResponse updateSettings(
+        @Valid @RequestBody ApiDtos.UserSettingsUpdateRequest request
+    ) {
+        return profileService.updateMySettings(request);
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+        @Valid @RequestBody ApiDtos.ChangePasswordRequest request
+    ) throws BindException {
+        profileService.changePassword(request);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/signup-options")
     public ApiDtos.SignupOptionsResponse signupOptions() {
         List<ApiDtos.LookupOption> countries = new ArrayList<>();

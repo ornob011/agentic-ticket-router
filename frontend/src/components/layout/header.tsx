@@ -14,7 +14,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "./sidebar";
 import { getMe, logout } from "@/app/auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Menu, LogOut, User, Settings, HelpCircle, ChevronDown } from "lucide-react";
+import { Menu, LogOut, Settings, HelpCircle, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { formatLabel } from "@/lib/utils";
 import { getRoleBadgeVariant } from "@/lib/role-policy";
@@ -25,9 +25,6 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: getMe });
   const roleLabel = me?.roleLabel || formatLabel(me?.role);
-  const handleGoProfile = () => {
-    Promise.resolve(navigate("/app/profile")).catch(() => undefined);
-  };
   const handleGoSettings = () => {
     Promise.resolve(navigate("/app/settings")).catch(() => undefined);
   };
@@ -112,13 +109,9 @@ export function Header() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleGoProfile}>
-              <User className="mr-2 h-4 w-4" />
-              Profile
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleGoSettings}>
               <Settings className="mr-2 h-4 w-4" />
-              Settings
+              Account Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">

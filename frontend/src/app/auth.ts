@@ -1,4 +1,4 @@
-import { api, type ProfileResponse, type ProfileUpdateRequest, type SignupOptionsResponse, type UserMe } from "../lib/api";
+import { api, type ProfileResponse, type ProfileUpdateRequest, type SignupOptionsResponse, type UserMe, type UserSettingsResponse, type UserSettingsUpdateRequest, type ChangePasswordRequest } from "@/lib/api";
 
 export const getMe = async (): Promise<UserMe> => {
   const response = await api.get<UserMe>("/auth/me");
@@ -24,6 +24,22 @@ export const updateProfile = async (
 ): Promise<ProfileResponse> => {
   const response = await api.put<ProfileResponse>("/auth/profile", payload);
   return response.data;
+};
+
+export const getSettings = async (): Promise<UserSettingsResponse> => {
+  const response = await api.get<UserSettingsResponse>("/auth/settings");
+  return response.data;
+};
+
+export const updateSettings = async (
+  payload: UserSettingsUpdateRequest
+): Promise<UserSettingsResponse> => {
+  const response = await api.put<UserSettingsResponse>("/auth/settings", payload);
+  return response.data;
+};
+
+export const changePassword = async (payload: ChangePasswordRequest): Promise<void> => {
+  await api.post("/auth/change-password", payload);
 };
 
 export const getSignupOptions = async (): Promise<SignupOptionsResponse> => {

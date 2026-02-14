@@ -1,18 +1,29 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { login } from "@/app/auth";
-import { loadUserSettings, resolveLandingPath } from "@/lib/user-settings";
+import { login, getSettings } from "@/app/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, ArrowRight, Shield, Zap, Clock } from "lucide-react";
+import { canAccessAgentWorkspace } from "@/lib/role-policy";
+import type { UserRole } from "@/lib/api";
 
 type LoginForm = {
   username: string;
   password: string;
 };
+
+function resolveLandingPath(defaultLanding: string, role: UserRole): string {
+  if (defaultLanding === "TICKETS") {
+    return "/app/tickets";
+  }
+  if (defaultLanding === "QUEUE" && canAccessAgentWorkspace(role)) {
+    return "/app/agent/queues/GENERAL_Q";
+  }
+  return "/app/dashboard";
+}
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -31,9 +42,13 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const me = await login(payload.username, payload.password);
-      const settings = loadUserSettings();
-      const landingPath = resolveLandingPath(settings, me.role);
-      navigate(landingPath, { replace: true });
+      try {
+        const settings = await getSettings();
+        const landingPath = resolveLandingPath(settings.defaultLanding, me.role);
+        navigate(landingPath, { replace: true });
+      } catch {
+        navigate("/app/dashboard", { replace: true });
+      }
     } catch {
       setError("Invalid username or password. Please try again.");
     } finally {
