@@ -376,6 +376,7 @@ public class TicketApiController {
         return ApiDtos.UserMe.builder()
                              .id(appUser.getId())
                              .username(appUser.getUsername())
+                             .email(appUser.getEmail())
                              .fullName(appUser.getFullName())
                              .role(appUser.getRole())
                              .roleLabel(EnumDisplayNameResolver.resolve(

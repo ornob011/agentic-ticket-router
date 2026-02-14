@@ -11,6 +11,7 @@ import {
   Settings,
   Users,
   FileText,
+  User,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -37,6 +38,8 @@ const navItems: NavItem[] = [
   { to: "/app/agent/queues/GENERAL_Q", label: "Queue Inbox", icon: Inbox, roles: ["AGENT", "SUPERVISOR", "ADMIN"], activeMode: "section" },
   { to: "/app/agent/review-queue", label: "Review Queue", icon: ClipboardCheck, roles: ["SUPERVISOR", "ADMIN"], activeMode: "exact" },
   { to: "/app/supervisor/escalations", label: "Escalations", icon: AlertTriangle, roles: ["SUPERVISOR", "ADMIN"], activeMode: "exact" },
+  { to: "/app/profile", label: "Profile", icon: User, roles: ["CUSTOMER", "AGENT", "SUPERVISOR", "ADMIN"], activeMode: "exact" },
+  { to: "/app/settings", label: "Settings", icon: Settings, roles: ["CUSTOMER", "AGENT", "SUPERVISOR", "ADMIN"], activeMode: "exact" },
 ];
 
 const adminItems: NavItem[] = [

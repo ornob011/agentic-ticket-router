@@ -121,6 +121,7 @@ public class DashboardApiController {
         ApiDtos.UserMe userMe = ApiDtos.UserMe.builder()
                                               .id(user.getId())
                                               .username(user.getUsername())
+                                              .email(user.getEmail())
                                               .fullName(user.getFullName())
                                               .role(user.getRole())
                                               .roleLabel(EnumDisplayNameResolver.resolve(

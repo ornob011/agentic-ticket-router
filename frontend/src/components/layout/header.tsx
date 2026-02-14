@@ -24,6 +24,15 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: getMe });
   const roleLabel = me?.roleLabel || formatLabel(me?.role);
+  const handleGoProfile = () => {
+    Promise.resolve(navigate("/app/profile")).catch(() => undefined);
+  };
+  const handleGoSettings = () => {
+    Promise.resolve(navigate("/app/settings")).catch(() => undefined);
+  };
+  const handleGoDashboard = () => {
+    Promise.resolve(navigate("/app/dashboard")).catch(() => undefined);
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -69,8 +78,8 @@ export function Header() {
           </SheetContent>
         </Sheet>
 
-        <button 
-          onClick={() => navigate("/app/dashboard")}
+        <button
+          onClick={handleGoDashboard}
           className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
         >
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
@@ -115,11 +124,11 @@ export function Header() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/app/profile")}>
+            <DropdownMenuItem onClick={handleGoProfile}>
               <User className="mr-2 h-4 w-4" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleGoSettings}>
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>

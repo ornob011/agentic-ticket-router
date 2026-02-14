@@ -19,6 +19,8 @@ const AdminModelsPage = lazy(() => import("./pages/AdminModelsPage"));
 const AdminPoliciesPage = lazy(() => import("./pages/AdminPoliciesPage"));
 const AdminUsersPage = lazy(() => import("./pages/AdminUsersPage"));
 const AuditLogPage = lazy(() => import("./pages/AuditLogPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 
 type LazyRoute = {
   path: string;
@@ -39,6 +41,8 @@ const protectedRoutes: LazyRoute[] = [
   { path: "/app/admin/policy-config", component: AdminPoliciesPage },
   { path: "/app/admin/users", component: AdminUsersPage },
   { path: "/app/admin/audit-log", component: AuditLogPage },
+  { path: "/app/profile", component: ProfilePage },
+  { path: "/app/settings", component: SettingsPage },
 ];
 
 function PageSkeleton() {

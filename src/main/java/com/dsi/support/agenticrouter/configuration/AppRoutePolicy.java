@@ -21,6 +21,8 @@ public final class AppRoutePolicy {
         LOGIN("/app/login"),
         SIGNUP("/app/signup"),
         DASHBOARD("/app/dashboard"),
+        PROFILE("/app/profile"),
+        SETTINGS("/app/settings"),
         FAVICON("/favicon.ico"),
         ASSETS("/assets/**"),
         APP_ASSETS("/app/assets/**");
@@ -87,7 +89,9 @@ public final class AppRoutePolicy {
         WebRoute.APP_SLASH,
         WebRoute.LOGIN,
         WebRoute.SIGNUP,
-        WebRoute.DASHBOARD
+        WebRoute.DASHBOARD,
+        WebRoute.PROFILE,
+        WebRoute.SETTINGS
     );
 
     private static final EnumSet<ScopeRoute> SPA_SCOPE_ROUTES = EnumSet.of(

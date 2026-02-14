@@ -19,9 +19,57 @@ export type PagedResponse<T> = {
 export type UserMe = {
   id: number;
   username: string;
+  email: string;
   fullName: string;
   role: UserRole;
   roleLabel: string | null;
+};
+
+export type LookupOption = {
+  code: string;
+  name: string;
+};
+
+export type SignupOptionsResponse = {
+  countries: LookupOption[];
+  tiers: LookupOption[];
+  languages: LookupOption[];
+};
+
+export type ProfileResponse = {
+  user: UserMe;
+  profileContext: "CUSTOMER" | "STAFF";
+  customerProfile: {
+    companyName: string | null;
+    phoneNumber: string | null;
+    address: string | null;
+    city: string | null;
+    countryIso2: string | null;
+    countryName: string | null;
+    customerTierCode: string | null;
+    customerTierName: string | null;
+    preferredLanguageCode: string | null;
+    preferredLanguageName: string | null;
+    notificationsEnabled: boolean;
+  } | null;
+  staffProfile: {
+    active: boolean;
+    emailVerified: boolean;
+    lastLoginAt: string | null;
+    lastLoginIp: string | null;
+  } | null;
+};
+
+export type ProfileUpdateRequest = {
+  email: string;
+  fullName: string;
+  companyName?: string;
+  phoneNumber?: string;
+  address?: string;
+  city?: string;
+  countryIso2?: string;
+  customerTierCode?: string;
+  preferredLanguageCode?: string;
 };
 
 export type TicketSummary = {

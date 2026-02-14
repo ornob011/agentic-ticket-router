@@ -6,6 +6,7 @@ import com.dsi.support.agenticrouter.entity.AppUser;
 import com.dsi.support.agenticrouter.repository.CountryRepository;
 import com.dsi.support.agenticrouter.repository.CustomerTierRepository;
 import com.dsi.support.agenticrouter.repository.LanguageRepository;
+import com.dsi.support.agenticrouter.service.auth.ProfileService;
 import com.dsi.support.agenticrouter.service.onboarding.SignupService;
 import com.dsi.support.agenticrouter.util.EnumDisplayNameResolver;
 import com.dsi.support.agenticrouter.util.Utils;
@@ -23,6 +24,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -40,6 +42,7 @@ public class AuthApiController {
     private final CustomerTierRepository customerTierRepository;
     private final LanguageRepository languageRepository;
     private final MessageSource messageSource;
+    private final ProfileService profileService;
 
     @PostMapping("/login")
     public ApiDtos.UserMe login(
@@ -79,6 +82,18 @@ public class AuthApiController {
         return toUserMe(
             Utils.getLoggedInUserDetails()
         );
+    }
+
+    @GetMapping("/profile")
+    public ApiDtos.ProfileResponse profile() {
+        return profileService.getMyProfile();
+    }
+
+    @PutMapping("/profile")
+    public ApiDtos.ProfileResponse updateProfile(
+        @Valid @RequestBody ApiDtos.ProfileUpdateRequest request
+    ) throws BindException {
+        return profileService.updateMyProfile(request);
     }
 
     @GetMapping("/signup-options")
@@ -193,6 +208,7 @@ public class AuthApiController {
         return ApiDtos.UserMe.builder()
                              .id(appUser.getId())
                              .username(appUser.getUsername())
+                             .email(appUser.getEmail())
                              .fullName(appUser.getFullName())
                              .role(appUser.getRole())
                              .roleLabel(EnumDisplayNameResolver.resolve(

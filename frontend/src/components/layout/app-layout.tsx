@@ -4,15 +4,26 @@ import { Header } from "./header";
 import { getMe } from "@/app/auth";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { loadUserSettings, saveUserSettings } from "@/lib/user-settings";
 
 export function AppLayout() {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => loadUserSettings().defaultSidebarCollapsed);
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: getMe });
+  const handleToggleSidebar = () => {
+    const nextValue = !collapsed;
+    setCollapsed(nextValue);
+
+    const currentSettings = loadUserSettings();
+    saveUserSettings({
+      ...currentSettings,
+      defaultSidebarCollapsed: nextValue,
+    });
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/30">
       <div className="hidden lg:flex">
-        <Sidebar role={me?.role} collapsed={collapsed} onToggle={() => setCollapsed((current) => !current)} />
+        <Sidebar role={me?.role} collapsed={collapsed} onToggle={handleToggleSidebar} />
       </div>
 
       <div className="flex flex-1 flex-col overflow-hidden">

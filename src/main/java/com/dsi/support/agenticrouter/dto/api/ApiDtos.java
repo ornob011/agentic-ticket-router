@@ -22,6 +22,7 @@ public final class ApiDtos {
     public record UserMe(
         Long id,
         String username,
+        String email,
         String fullName,
         UserRole role,
         String roleLabel
@@ -48,6 +49,53 @@ public final class ApiDtos {
         @NotBlank String countryIso2,
         @NotBlank String customerTierCode,
         @NotBlank String preferredLanguageCode
+    ) {
+    }
+
+    public record ProfileUpdateRequest(
+        @NotBlank @Email @Size(max = 100) String email,
+        @NotBlank @Size(max = 100) String fullName,
+        @Size(max = 100) String companyName,
+        @Size(max = 20) String phoneNumber,
+        @Size(max = 255) String address,
+        @Size(max = 100) String city,
+        String countryIso2,
+        String customerTierCode,
+        String preferredLanguageCode
+    ) {
+    }
+
+    @Builder
+    public record ProfileResponse(
+        UserMe user,
+        String profileContext,
+        CustomerProfileData customerProfile,
+        StaffProfileData staffProfile
+    ) {
+    }
+
+    @Builder
+    public record CustomerProfileData(
+        String companyName,
+        String phoneNumber,
+        String address,
+        String city,
+        String countryIso2,
+        String countryName,
+        String customerTierCode,
+        String customerTierName,
+        String preferredLanguageCode,
+        String preferredLanguageName,
+        boolean notificationsEnabled
+    ) {
+    }
+
+    @Builder
+    public record StaffProfileData(
+        boolean active,
+        boolean emailVerified,
+        Instant lastLoginAt,
+        String lastLoginIp
     ) {
     }
 

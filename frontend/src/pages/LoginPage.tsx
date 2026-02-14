@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { login } from "@/app/auth";
+import { loadUserSettings, resolveLandingPath } from "@/lib/user-settings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,8 +30,10 @@ export default function LoginPage() {
     setError("");
     setIsLoading(true);
     try {
-      await login(payload.username, payload.password);
-      navigate("/app/dashboard", { replace: true });
+      const me = await login(payload.username, payload.password);
+      const settings = loadUserSettings();
+      const landingPath = resolveLandingPath(settings, me.role);
+      navigate(landingPath, { replace: true });
     } catch {
       setError("Invalid username or password. Please try again.");
     } finally {
