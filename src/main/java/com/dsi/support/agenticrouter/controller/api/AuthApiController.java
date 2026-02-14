@@ -1,0 +1,239 @@
+package com.dsi.support.agenticrouter.controller.api;
+
+import com.dsi.support.agenticrouter.dto.SignupDto;
+import com.dsi.support.agenticrouter.dto.api.ApiDtos;
+import com.dsi.support.agenticrouter.entity.AppUser;
+import com.dsi.support.agenticrouter.repository.CountryRepository;
+import com.dsi.support.agenticrouter.repository.CustomerTierRepository;
+import com.dsi.support.agenticrouter.repository.LanguageRepository;
+import com.dsi.support.agenticrouter.service.auth.ProfileService;
+import com.dsi.support.agenticrouter.service.onboarding.SignupService;
+import com.dsi.support.agenticrouter.util.EnumDisplayNameResolver;
+import com.dsi.support.agenticrouter.util.Utils;
+import com.dsi.support.agenticrouter.validator.SignupValidator;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.BindException;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/auth")
+@RequiredArgsConstructor
+public class AuthApiController {
+
+    private final AuthenticationManager authenticationManager;
+    private final SignupService signupService;
+    private final SignupValidator signupValidator;
+    private final CountryRepository countryRepository;
+    private final CustomerTierRepository customerTierRepository;
+    private final LanguageRepository languageRepository;
+    private final MessageSource messageSource;
+    private final ProfileService profileService;
+
+    @PostMapping("/login")
+    public ApiDtos.UserMe login(
+        @Valid @RequestBody ApiDtos.LoginRequest loginRequest,
+        HttpServletRequest request
+    ) {
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                loginRequest.username(),
+                loginRequest.password()
+            )
+        );
+
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+        request.getSession(true).setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            context
+        );
+
+        return toUserMe(Utils.getLoggedInUserDetails());
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+        HttpServletRequest request
+    ) {
+        request.getSession().invalidate();
+        SecurityContextHolder.clearContext();
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/me")
+    public ApiDtos.UserMe me() {
+        return toUserMe(
+            Utils.getLoggedInUserDetails()
+        );
+    }
+
+    @GetMapping("/profile")
+    public ApiDtos.ProfileResponse profile() {
+        return profileService.getMyProfile();
+    }
+
+    @PutMapping("/profile")
+    public ApiDtos.ProfileResponse updateProfile(
+        @Valid @RequestBody ApiDtos.ProfileUpdateRequest request
+    ) throws BindException {
+        return profileService.updateMyProfile(request);
+    }
+
+    @GetMapping("/settings")
+    public ApiDtos.UserSettingsResponse settings() {
+        return profileService.getMySettings();
+    }
+
+    @PutMapping("/settings")
+    public ApiDtos.UserSettingsResponse updateSettings(
+        @Valid @RequestBody ApiDtos.UserSettingsUpdateRequest request
+    ) {
+        return profileService.updateMySettings(request);
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+        @Valid @RequestBody ApiDtos.ChangePasswordRequest request
+    ) throws BindException {
+        profileService.changePassword(request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/signup-options")
+    public ApiDtos.SignupOptionsResponse signupOptions() {
+        List<ApiDtos.LookupOption> countries = new ArrayList<>();
+        countryRepository.findByActiveTrueOrderByNameAsc()
+                         .forEach(country -> {
+                             ApiDtos.LookupOption lookupOption = ApiDtos.LookupOption.builder()
+                                                                                     .code(country.getIso2())
+                                                                                     .name(country.getName())
+                                                                                     .build();
+                             countries.add(lookupOption);
+                         });
+
+        List<ApiDtos.LookupOption> tiers = new ArrayList<>();
+        customerTierRepository.findByActiveTrueOrderByDisplayNameAsc()
+                              .forEach(tier -> {
+                                  ApiDtos.LookupOption lookupOption = ApiDtos.LookupOption.builder()
+                                                                                          .code(tier.getCode())
+                                                                                          .name(tier.getDisplayName())
+                                                                                          .build();
+                                  tiers.add(lookupOption);
+                              });
+
+        List<ApiDtos.LookupOption> languages = new ArrayList<>();
+        languageRepository.findAllByOrderByNameAsc()
+                          .forEach(language -> {
+                              ApiDtos.LookupOption lookupOption = ApiDtos.LookupOption.builder()
+                                                                                      .code(language.getCode())
+                                                                                      .name(language.getName())
+                                                                                      .build();
+                              languages.add(lookupOption);
+                          });
+
+        return ApiDtos.SignupOptionsResponse.builder()
+                                            .countries(countries)
+                                            .tiers(tiers)
+                                            .languages(languages)
+                                            .build();
+    }
+
+    @PostMapping("/signup")
+    public ResponseEntity<?> signup(
+        @Valid @RequestBody ApiDtos.SignupRequest signupRequest
+    ) {
+        SignupDto signupDto = new SignupDto();
+
+        signupDto.setUsername(signupRequest.username());
+        signupDto.setEmail(signupRequest.email());
+        signupDto.setPassword(signupRequest.password());
+        signupDto.setConfirmPassword(signupRequest.confirmPassword());
+        signupDto.setFullName(signupRequest.fullName());
+        signupDto.setCompanyName(signupRequest.companyName());
+        signupDto.setPhoneNumber(signupRequest.phoneNumber());
+        signupDto.setAddress(signupRequest.address());
+        signupDto.setCity(signupRequest.city());
+        signupDto.setCountryIso2(signupRequest.countryIso2());
+        signupDto.setCustomerTierCode(signupRequest.customerTierCode());
+        signupDto.setPreferredLanguageCode(signupRequest.preferredLanguageCode());
+
+        BeanPropertyBindingResult errors = new BeanPropertyBindingResult(
+            signupDto,
+            "signup"
+        );
+
+        signupValidator.validate(signupDto, errors);
+
+        if (errors.hasErrors()) {
+            List<ApiDtos.ValidationFieldError> fieldErrors = new ArrayList<>();
+            errors.getFieldErrors()
+                  .forEach(fieldError -> {
+                      ApiDtos.ValidationFieldError validationFieldError = ApiDtos.ValidationFieldError.builder()
+                                                                                                      .field(fieldError.getField())
+                                                                                                      .message(
+                                                                                                          Utils.getMessageFromMessageSource(
+                                                                                                              messageSource,
+                                                                                                              fieldError
+                                                                                                          )
+                                                                                                      )
+                                                                                                      .build();
+                      fieldErrors.add(validationFieldError);
+                  });
+
+            List<String> globalErrors = new ArrayList<>();
+            errors.getGlobalErrors()
+                  .forEach(error -> globalErrors.add(
+                          Utils.getMessageFromMessageSource(messageSource, error)
+                      )
+                  );
+
+            List<String> allErrors = new ArrayList<>();
+            errors.getAllErrors()
+                  .forEach(error -> allErrors.add(
+                          Utils.getMessageFromMessageSource(messageSource, error)
+                      )
+                  );
+
+            ApiDtos.ValidationErrorResponse validationErrorResponse = ApiDtos.ValidationErrorResponse.builder()
+                                                                                                     .fieldErrors(fieldErrors)
+                                                                                                     .globalErrors(globalErrors)
+                                                                                                     .errors(allErrors)
+                                                                                                     .build();
+            return ResponseEntity.badRequest().body(validationErrorResponse);
+        }
+
+        signupService.signupCustomer(signupDto);
+
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    private ApiDtos.UserMe toUserMe(AppUser appUser) {
+        return ApiDtos.UserMe.builder()
+                             .id(appUser.getId())
+                             .username(appUser.getUsername())
+                             .email(appUser.getEmail())
+                             .fullName(appUser.getFullName())
+                             .role(appUser.getRole())
+                             .roleLabel(EnumDisplayNameResolver.resolve(
+                                 appUser.getRole()
+                             ))
+                             .build();
+    }
+}

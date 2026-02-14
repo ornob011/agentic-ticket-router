@@ -7,10 +7,10 @@ import java.util.Set;
 
 @Getter
 public enum UserRole {
-    CUSTOMER("Customer user with ticket submission rights"),
-    AGENT("Support agent with queue access"),
-    SUPERVISOR("Supervisor with escalation handling rights"),
-    ADMIN("System administrator with full access");
+    CUSTOMER("Customer", "Customer user with ticket submission rights"),
+    AGENT("Agent", "Support agent with queue access"),
+    SUPERVISOR("Supervisor", "Supervisor with escalation handling rights"),
+    ADMIN("Admin", "System administrator with full access");
 
     private static final Set<UserRole> AGENT_PORTAL_ACCESS =
         EnumSet.of(
@@ -30,9 +30,14 @@ public enum UserRole {
             ADMIN
         );
 
+    private final String displayName;
     private final String description;
 
-    UserRole(String description) {
+    UserRole(
+        String displayName,
+        String description
+    ) {
+        this.displayName = displayName;
         this.description = description;
     }
 

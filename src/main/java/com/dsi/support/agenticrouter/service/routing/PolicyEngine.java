@@ -64,7 +64,12 @@ public class PolicyEngine {
         if (TicketPriority.CRITICAL.equals(routerResponse.getPriority())) {
             BigDecimal configValue = policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.CRITICAL_MIN_CONF)
                                                            .map(PolicyConfig::getConfigValue)
-                                                           .orElseThrow(DataNotFoundException::new);
+                                                           .orElseThrow(
+                                                               DataNotFoundException.supplier(
+                                                                   PolicyConfig.class,
+                                                                   PolicyConfigKey.CRITICAL_MIN_CONF
+                                                               )
+                                                           );
 
             BigDecimal criticalMinConf = PolicyConfigKey.getBigDecimalValue(
                 configValue,
@@ -88,7 +93,12 @@ public class PolicyEngine {
 
         BigDecimal configValue = policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.AUTO_ROUTE_THRESHOLD)
                                                        .map(PolicyConfig::getConfigValue)
-                                                       .orElseThrow(DataNotFoundException::new);
+                                                       .orElseThrow(
+                                                           DataNotFoundException.supplier(
+                                                               PolicyConfig.class,
+                                                               PolicyConfigKey.AUTO_ROUTE_THRESHOLD
+                                                           )
+                                                       );
 
         BigDecimal autoRouteThreshold = PolicyConfigKey.getBigDecimalValue(
             configValue,

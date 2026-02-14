@@ -615,6 +615,19 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
+    public SupportTicket getTicketDetail(
+        Long ticketId
+    ) {
+        return supportTicketRepository.findTicketDetailById(ticketId)
+                                      .orElseThrow(
+                                          DataNotFoundException.supplier(
+                                              SupportTicket.class,
+                                              ticketId
+                                          )
+                                      );
+    }
+
+    @Transactional(readOnly = true)
     public Page<SupportTicket> listQueueTickets(
         TicketQueue ticketQueue,
         TicketStatus ticketStatus,

@@ -1,23 +1,27 @@
 package com.dsi.support.agenticrouter.exception;
 
-import lombok.NoArgsConstructor;
-
 import java.util.function.Supplier;
 
-@NoArgsConstructor
-public class DataNotFoundException extends RuntimeException {
+public class DataNotFoundException extends ApplicationException {
 
     public DataNotFoundException(
         String message
     ) {
-        super(message);
+        super(
+            ErrorCode.DATA_NOT_FOUND,
+            message
+        );
     }
 
     public DataNotFoundException(
         String message,
         Throwable cause
     ) {
-        super(message, cause);
+        super(
+            ErrorCode.DATA_NOT_FOUND,
+            message,
+            cause
+        );
     }
 
     public <T> DataNotFoundException(
@@ -25,15 +29,15 @@ public class DataNotFoundException extends RuntimeException {
         Object id
     ) {
         super(
-            String.format(
-                "Could not find %s with id: %s",
-                tClass.getSimpleName(),
-                id
-            )
+            ErrorCode.DATA_NOT_FOUND,
+            String.format("Could not find %s with id: %s", tClass.getSimpleName(), id)
         );
     }
 
-    public static <T> Supplier<DataNotFoundException> supplier(Class<T> tClass, Object id) {
+    public static <T> Supplier<DataNotFoundException> supplier(
+        Class<T> tClass,
+        Object id
+    ) {
         return () -> new DataNotFoundException(
             tClass,
             id

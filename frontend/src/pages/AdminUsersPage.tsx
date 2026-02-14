@@ -1,0 +1,89 @@
+import { useLoaderData } from "react-router-dom";
+import type { AdminUsersLoaderData } from "@/router";
+import { formatLabel } from "@/lib/utils";
+import { getRoleBadgeVariant } from "@/lib/role-policy";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Users, Check, X } from "lucide-react";
+
+export default function AdminUsersPage() {
+  const data = useLoaderData<AdminUsersLoaderData>();
+  const users = data ?? [];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Users</h1>
+        <p className="text-muted-foreground">Manage staff and customer accounts</p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            All Users
+          </CardTitle>
+          <CardDescription>System users and their access levels</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {users.length > 0 && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead className="hidden md:table-cell">Email</TableHead>
+                  <TableHead className="hidden lg:table-cell">Role</TableHead>
+                  <TableHead className="text-right">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => {
+                  const displayName = user.fullName || user.username;
+                  const roleLabel = user.roleLabel || formatLabel(user.role);
+                  const showUsername = Boolean(user.fullName);
+                  let activityVariant: "success" | "secondary" = "secondary";
+                  let activityLabel = "Disabled";
+                  let ActivityIcon = X;
+
+                  if (user.active) {
+                    activityVariant = "success";
+                    activityLabel = "Active";
+                    ActivityIcon = Check;
+                  }
+
+                  return (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{displayName}</p>
+                          {showUsername && (
+                            <p className="text-sm text-muted-foreground">{user.username}</p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-muted-foreground">
+                        {user.email}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <Badge variant={getRoleBadgeVariant(user.role)}>
+                          {roleLabel}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant={activityVariant}>
+                          <ActivityIcon className="mr-1 h-3 w-3" />
+                          {activityLabel}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

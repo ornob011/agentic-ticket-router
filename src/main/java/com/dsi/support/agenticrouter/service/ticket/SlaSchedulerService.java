@@ -44,8 +44,13 @@ public class SlaSchedulerService {
         int slaHours = PolicyConfigKey.getIntValue(
             policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.SLA_CUSTOMER_RESPONSE_HOURS)
                                   .map(PolicyConfig::getConfigValue)
-                                  .orElseThrow(DataNotFoundException::new),
-            48
+                                  .orElseThrow(
+                                      DataNotFoundException.supplier(
+                                          PolicyConfig.class,
+                                          PolicyConfigKey.SLA_CUSTOMER_RESPONSE_HOURS.name()
+                                      )
+                                  ),
+        48
         );
 
         Instant slaThreshold = Instant.now().minusSeconds(slaHours * 3600L);
@@ -117,7 +122,12 @@ public class SlaSchedulerService {
         int slaHours = PolicyConfigKey.getIntValue(
             policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.SLA_AGENT_RESPONSE_HOURS)
                                   .map(PolicyConfig::getConfigValue)
-                                  .orElseThrow(DataNotFoundException::new),
+                                  .orElseThrow(
+                                      DataNotFoundException.supplier(
+                                          PolicyConfig.class,
+                                          PolicyConfigKey.SLA_AGENT_RESPONSE_HOURS.name()
+                                      )
+                                  ),
             24
         );
 
@@ -174,14 +184,24 @@ public class SlaSchedulerService {
         int warningDays = PolicyConfigKey.getIntValue(
             policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.AUTO_CLOSE_WARNING_DAYS)
                                   .map(PolicyConfig::getConfigValue)
-                                  .orElseThrow(DataNotFoundException::new),
+                                  .orElseThrow(
+                                      DataNotFoundException.supplier(
+                                          PolicyConfig.class,
+                                          PolicyConfigKey.AUTO_CLOSE_WARNING_DAYS.name()
+                                      )
+                                  ),
             3
         );
 
         int finalDays = PolicyConfigKey.getIntValue(
             policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.AUTO_CLOSE_FINAL_DAYS)
                                   .map(PolicyConfig::getConfigValue)
-                                  .orElseThrow(DataNotFoundException::new),
+                                  .orElseThrow(
+                                      DataNotFoundException.supplier(
+                                          PolicyConfig.class,
+                                          PolicyConfigKey.AUTO_CLOSE_FINAL_DAYS.name()
+                                      )
+                                  ),
             7
         );
 

@@ -7,16 +7,16 @@ import java.util.Set;
 
 @Getter
 public enum TicketStatus {
-    RECEIVED("Ticket received, pending initial processing"),
-    TRIAGING("AI router analyzing ticket"),
-    WAITING_CUSTOMER("Awaiting customer response"),
-    ASSIGNED("Assigned to queue, awaiting agent pickup"),
-    IN_PROGRESS("Agent actively working on ticket"),
-    RESOLVED("Issue resolved, awaiting customer confirmation"),
-    ESCALATED("Escalated to higher tier support"),
-    AUTO_ESCALATED("Autonomous processing exhausted - requires human review"),
-    AUTO_CLOSED_PENDING("Pending auto-closure due to inactivity"),
-    CLOSED("Ticket closed"),
+    RECEIVED("Received", "Ticket received, pending initial processing"),
+    TRIAGING("Triaging", "AI router analyzing ticket"),
+    WAITING_CUSTOMER("Waiting for Customer", "Awaiting customer response"),
+    ASSIGNED("Assigned", "Assigned to queue, awaiting agent pickup"),
+    IN_PROGRESS("In Progress", "Agent actively working on ticket"),
+    RESOLVED("Resolved", "Issue resolved, awaiting customer confirmation"),
+    ESCALATED("Escalated", "Escalated to higher tier support"),
+    AUTO_ESCALATED("Auto Escalated", "Autonomous processing exhausted - requires human review"),
+    AUTO_CLOSED_PENDING("Auto Close Pending", "Pending auto-closure due to inactivity"),
+    CLOSED("Closed", "Ticket closed"),
 
 
     ;
@@ -55,9 +55,14 @@ public enum TicketStatus {
             AUTO_ESCALATED
         );
 
+    private final String displayName;
     private final String description;
 
-    TicketStatus(String description) {
+    TicketStatus(
+        String displayName,
+        String description
+    ) {
+        this.displayName = displayName;
         this.description = description;
     }
 
