@@ -111,8 +111,7 @@ public class RestExceptionHandler {
             request.getRequestURI(),
             exception.getClass().getSimpleName(),
             fieldErrors.size(),
-            globalErrors.size(),
-            exception
+            globalErrors.size()
         );
 
         ProblemDetail problemDetail = buildProblem(
@@ -163,8 +162,7 @@ public class RestExceptionHandler {
             request.getRequestURI(),
             exception.getClass().getSimpleName(),
             fieldErrors.size(),
-            globalErrors.size(),
-            exception
+            globalErrors.size()
         );
 
         ProblemDetail problemDetail = buildProblem(
