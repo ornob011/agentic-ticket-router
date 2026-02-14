@@ -193,8 +193,8 @@ export default function SignupPage() {
       </div>
 
       <div className="flex-1 min-h-dvh lg:h-full overflow-y-auto">
-        <div className="min-h-dvh lg:min-h-full flex items-start justify-center p-4 sm:p-6 lg:p-8">
-          <div className="w-full max-w-2xl py-4 lg:py-8">
+        <div className="min-h-dvh lg:min-h-full flex items-start lg:items-center justify-center p-4 sm:p-6 lg:p-6">
+          <div className="w-full max-w-4xl py-2 lg:py-3">
             <div className="lg:hidden mb-5 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-100 to-slate-100 p-4">
               <div className="flex items-center gap-2">
                 <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center">
@@ -218,7 +218,7 @@ export default function SignupPage() {
             </div>
 
             <Card className="border-0 shadow-xl">
-              <CardHeader className="space-y-1">
+              <CardHeader className="space-y-1 pb-4">
                 <CardTitle className="text-2xl">Create your account</CardTitle>
                 <CardDescription>
                   Fill in your details to set up your customer workspace
@@ -232,230 +232,245 @@ export default function SignupPage() {
                   </div>
                 )}
 
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="username">
-                      Username <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="username"
-                      placeholder="johndoe"
-                      autoComplete="username"
-                      {...register("username", { required: "Username is required" })}
-                    />
-                    {fieldError("username", errors.username?.message) && (
-                      <p className="text-sm text-destructive">{fieldError("username", errors.username?.message)}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">
-                      Email <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="john@company.com"
-                      autoComplete="email"
-                      {...register("email", { required: "Email is required" })}
-                    />
-                    {fieldError("email", errors.email?.message) && (
-                      <p className="text-sm text-destructive">{fieldError("email", errors.email?.message)}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="password">
-                      Password <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Create a password"
-                      autoComplete="new-password"
-                      {...register("password", { required: "Password is required" })}
-                    />
-                    {fieldError("password", errors.password?.message) && (
-                      <p className="text-sm text-destructive">{fieldError("password", errors.password?.message)}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">
-                      Confirm Password <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      placeholder="Confirm password"
-                      autoComplete="new-password"
-                      {...register("confirmPassword", {
-                        required: "Confirm password",
-                        validate: (value) => value === passwordValue || "Passwords do not match",
-                      })}
-                    />
-                    {fieldError("confirmPassword", errors.confirmPassword?.message) && (
-                      <p className="text-sm text-destructive">{fieldError("confirmPassword", errors.confirmPassword?.message)}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">
-                      Full Name <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="fullName"
-                      placeholder="John Doe"
-                      {...register("fullName", { required: "Full name is required" })}
-                    />
-                    {fieldError("fullName", errors.fullName?.message) && (
-                      <p className="text-sm text-destructive">{fieldError("fullName", errors.fullName?.message)}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="companyName">
-                      Company <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="companyName"
-                      placeholder="Acme Inc."
-                      {...register("companyName", { required: "Company is required" })}
-                    />
-                    {fieldError("companyName", errors.companyName?.message) && (
-                      <p className="text-sm text-destructive">{fieldError("companyName", errors.companyName?.message)}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phoneNumber">
-                      Phone <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="phoneNumber"
-                      placeholder="+1 555 000 1234"
-                      {...register("phoneNumber", { required: "Phone is required" })}
-                    />
-                    {fieldError("phoneNumber", errors.phoneNumber?.message) && (
-                      <p className="text-sm text-destructive">{fieldError("phoneNumber", errors.phoneNumber?.message)}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="city">
-                      City <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="city"
-                      placeholder="San Francisco"
-                      {...register("city", { required: "City is required" })}
-                    />
-                    {fieldError("city", errors.city?.message) && (
-                      <p className="text-sm text-destructive">{fieldError("city", errors.city?.message)}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="address">
-                      Address <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="address"
-                      placeholder="123 Main Street"
-                      {...register("address", { required: "Address is required" })}
-                    />
-                    {fieldError("address", errors.address?.message) && (
-                      <p className="text-sm text-destructive">{fieldError("address", errors.address?.message)}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>
-                      Country <span className="text-destructive">*</span>
-                    </Label>
-                    <Controller
-                      name="countryIso2"
-                      control={control}
-                      rules={{ required: "Country is required" }}
-                      render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select country" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {countries.map((country) => (
-                              <SelectItem key={country.code} value={country.code}>
-                                {country.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50/70 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">Account Details</p>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="username">
+                        Username <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="username"
+                        placeholder="johndoe"
+                        autoComplete="username"
+                        {...register("username", { required: "Username is required" })}
+                      />
+                      {fieldError("username", errors.username?.message) && (
+                        <p className="text-sm text-destructive">{fieldError("username", errors.username?.message)}</p>
                       )}
-                    />
-                    {fieldError("countryIso2", errors.countryIso2?.message) && (
-                      <p className="text-sm text-destructive">{fieldError("countryIso2", errors.countryIso2?.message)}</p>
-                    )}
-                  </div>
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label>
-                      Customer Tier <span className="text-destructive">*</span>
-                    </Label>
-                    <Controller
-                      name="customerTierCode"
-                      control={control}
-                      rules={{ required: "Customer tier is required" }}
-                      render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select tier" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {tiers.map((tier) => (
-                              <SelectItem key={tier.code} value={tier.code}>
-                                {tier.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">
+                        Email <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="john@company.com"
+                        autoComplete="email"
+                        {...register("email", { required: "Email is required" })}
+                      />
+                      {fieldError("email", errors.email?.message) && (
+                        <p className="text-sm text-destructive">{fieldError("email", errors.email?.message)}</p>
                       )}
-                    />
-                    {fieldError("customerTierCode", errors.customerTierCode?.message) && (
-                      <p className="text-sm text-destructive">{fieldError("customerTierCode", errors.customerTierCode?.message)}</p>
-                    )}
-                  </div>
+                    </div>
 
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>
-                      Preferred Language <span className="text-destructive">*</span>
-                    </Label>
-                    <Controller
-                      name="preferredLanguageCode"
-                      control={control}
-                      rules={{ required: "Preferred language is required" }}
-                      render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select language" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {languages.map((language) => (
-                              <SelectItem key={language.code} value={language.code}>
-                                {language.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">
+                        Password <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="Create a password"
+                        autoComplete="new-password"
+                        {...register("password", { required: "Password is required" })}
+                      />
+                      {fieldError("password", errors.password?.message) && (
+                        <p className="text-sm text-destructive">{fieldError("password", errors.password?.message)}</p>
                       )}
-                    />
-                    {fieldError("preferredLanguageCode", errors.preferredLanguageCode?.message) && (
-                      <p className="text-sm text-destructive">{fieldError("preferredLanguageCode", errors.preferredLanguageCode?.message)}</p>
-                    )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">
+                        Confirm Password <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        placeholder="Confirm password"
+                        autoComplete="new-password"
+                        {...register("confirmPassword", {
+                          required: "Confirm password",
+                          validate: (value) => value === passwordValue || "Passwords do not match",
+                        })}
+                      />
+                      {fieldError("confirmPassword", errors.confirmPassword?.message) && (
+                        <p className="text-sm text-destructive">{fieldError("confirmPassword", errors.confirmPassword?.message)}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
+                <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50/70 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">Customer Profile</p>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">
+                        Full Name <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="fullName"
+                        placeholder="John Doe"
+                        {...register("fullName", { required: "Full name is required" })}
+                      />
+                      {fieldError("fullName", errors.fullName?.message) && (
+                        <p className="text-sm text-destructive">{fieldError("fullName", errors.fullName?.message)}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="companyName">
+                        Company <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="companyName"
+                        placeholder="Acme Inc."
+                        {...register("companyName", { required: "Company is required" })}
+                      />
+                      {fieldError("companyName", errors.companyName?.message) && (
+                        <p className="text-sm text-destructive">{fieldError("companyName", errors.companyName?.message)}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNumber">
+                        Phone <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="phoneNumber"
+                        placeholder="+1 555 000 1234"
+                        {...register("phoneNumber", { required: "Phone is required" })}
+                      />
+                      {fieldError("phoneNumber", errors.phoneNumber?.message) && (
+                        <p className="text-sm text-destructive">{fieldError("phoneNumber", errors.phoneNumber?.message)}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="city">
+                        City <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="city"
+                        placeholder="San Francisco"
+                        {...register("city", { required: "City is required" })}
+                      />
+                      {fieldError("city", errors.city?.message) && (
+                        <p className="text-sm text-destructive">{fieldError("city", errors.city?.message)}</p>
+                      )}
+                    </div>
+
+                    <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label>
+                          Country <span className="text-destructive">*</span>
+                        </Label>
+                        <Controller
+                          name="countryIso2"
+                          control={control}
+                          rules={{ required: "Country is required" }}
+                          render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value || undefined}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select country" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {countries.map((country) => (
+                                  <SelectItem key={country.code} value={country.code}>
+                                    {country.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                        {fieldError("countryIso2", errors.countryIso2?.message) && (
+                          <p className="text-sm text-destructive">{fieldError("countryIso2", errors.countryIso2?.message)}</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="address">
+                          Address <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          id="address"
+                          placeholder="123 Main Street"
+                          {...register("address", { required: "Address is required" })}
+                        />
+                        {fieldError("address", errors.address?.message) && (
+                          <p className="text-sm text-destructive">{fieldError("address", errors.address?.message)}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50/70 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">Workspace Preferences</p>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>
+                        Customer Tier <span className="text-destructive">*</span>
+                      </Label>
+                      <Controller
+                        name="customerTierCode"
+                        control={control}
+                        rules={{ required: "Customer tier is required" }}
+                        render={({ field }) => (
+                          <Select onValueChange={field.onChange} value={field.value || undefined}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select tier" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {tiers.map((tier) => (
+                                <SelectItem key={tier.code} value={tier.code}>
+                                  {tier.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      {fieldError("customerTierCode", errors.customerTierCode?.message) && (
+                        <p className="text-sm text-destructive">{fieldError("customerTierCode", errors.customerTierCode?.message)}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>
+                        Preferred Language <span className="text-destructive">*</span>
+                      </Label>
+                      <Controller
+                        name="preferredLanguageCode"
+                        control={control}
+                        rules={{ required: "Preferred language is required" }}
+                        render={({ field }) => (
+                          <Select onValueChange={field.onChange} value={field.value || undefined}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select language" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {languages.map((language) => (
+                                <SelectItem key={language.code} value={language.code}>
+                                  {language.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      {fieldError("preferredLanguageCode", errors.preferredLanguageCode?.message) && (
+                        <p className="text-sm text-destructive">{fieldError("preferredLanguageCode", errors.preferredLanguageCode?.message)}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col-reverse sm:flex-row gap-3 pt-1">
                   <Button type="button" variant="outline" onClick={() => navigate("/app/login")}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to Sign In
