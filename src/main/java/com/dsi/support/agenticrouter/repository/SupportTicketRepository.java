@@ -153,6 +153,10 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
 
     Page<SupportTicket> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
 
+    boolean existsByIdAndCustomerId(Long id, Long customerId);
+
+    Page<SupportTicket> findByAssignedAgentIdOrderByLastActivityAtDesc(Long assignedAgentId, Pageable pageable);
+
     @Query("""
             select supportTicket
             from SupportTicket supportTicket
