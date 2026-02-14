@@ -136,26 +136,28 @@ public class AdminApiController {
             )
         );
 
-        return new ApiDtos.PagedResponse<>(
-            auditEvents.getContent()
-                       .stream()
-                       .map(event -> ApiDtos.AuditEventItem.builder()
-                                                           .id(event.getId())
-                                                           .eventType(event.getEventType())
-                                                           .description(event.getDescription())
-                                                           .performedBy(
-                                                               Objects.isNull(event.getPerformedBy())
-                                                                   ? "SYSTEM"
-                                                                   : event.getPerformedBy().getFullName()
-                                                           )
-                                                           .createdAt(event.getCreatedAt())
-                                                           .build())
-                       .toList(),
-            auditEvents.getNumber(),
-            auditEvents.getSize(),
-            auditEvents.getTotalElements(),
-            auditEvents.getTotalPages(),
-            auditEvents.hasNext()
-        );
+        List<ApiDtos.AuditEventItem> content = auditEvents.getContent()
+                                                          .stream()
+                                                          .map(auditEvent -> ApiDtos.AuditEventItem.builder()
+                                                                                                   .id(auditEvent.getId())
+                                                                                                   .eventType(auditEvent.getEventType())
+                                                                                                   .description(auditEvent.getDescription())
+                                                                                                   .performedBy(
+                                                                                                       Objects.isNull(auditEvent.getPerformedBy())
+                                                                                                           ? "SYSTEM"
+                                                                                                           : auditEvent.getPerformedBy().getFullName()
+                                                                                                   )
+                                                                                                   .createdAt(auditEvent.getCreatedAt())
+                                                                                                   .build())
+                                                          .toList();
+
+        return ApiDtos.PagedResponse.<ApiDtos.AuditEventItem>builder()
+                                    .content(content)
+                                    .page(auditEvents.getNumber())
+                                    .size(auditEvents.getSize())
+                                    .totalElements(auditEvents.getTotalElements())
+                                    .totalPages(auditEvents.getTotalPages())
+                                    .hasNext(auditEvents.hasNext())
+                                    .build();
     }
 }

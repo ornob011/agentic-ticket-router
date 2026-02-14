@@ -50,12 +50,14 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record LookupOption(
         String code,
         String name
     ) {
     }
 
+    @Builder
     public record SignupOptionsResponse(
         List<LookupOption> countries,
         List<LookupOption> tiers,
@@ -63,12 +65,14 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record ValidationFieldError(
         String field,
         String message
     ) {
     }
 
+    @Builder
     public record ValidationErrorResponse(
         List<ValidationFieldError> fieldErrors,
         List<String> globalErrors,
@@ -76,6 +80,7 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record PagedResponse<T>(
         List<T> content,
         int page,

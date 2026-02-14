@@ -84,39 +84,39 @@ public class AuthApiController {
     public ApiDtos.SignupOptionsResponse signupOptions() {
         List<ApiDtos.LookupOption> countries = new ArrayList<>();
         countryRepository.findByActiveTrueOrderByNameAsc()
-                         .forEach(country -> countries.add(
-                                 new ApiDtos.LookupOption(
-                                     country.getIso2(),
-                                     country.getName()
-                                 )
-                             )
-                         );
+                         .forEach(country -> {
+                             ApiDtos.LookupOption lookupOption = ApiDtos.LookupOption.builder()
+                                                                                     .code(country.getIso2())
+                                                                                     .name(country.getName())
+                                                                                     .build();
+                             countries.add(lookupOption);
+                         });
 
         List<ApiDtos.LookupOption> tiers = new ArrayList<>();
         customerTierRepository.findByActiveTrueOrderByDisplayNameAsc()
-                              .forEach(tier -> tiers.add(
-                                      new ApiDtos.LookupOption(
-                                          tier.getCode(),
-                                          tier.getDisplayName()
-                                      )
-                                  )
-                              );
+                              .forEach(tier -> {
+                                  ApiDtos.LookupOption lookupOption = ApiDtos.LookupOption.builder()
+                                                                                          .code(tier.getCode())
+                                                                                          .name(tier.getDisplayName())
+                                                                                          .build();
+                                  tiers.add(lookupOption);
+                              });
 
         List<ApiDtos.LookupOption> languages = new ArrayList<>();
         languageRepository.findAllByOrderByNameAsc()
-                          .forEach(language -> languages.add(
-                                  new ApiDtos.LookupOption(
-                                      language.getCode(),
-                                      language.getName()
-                                  )
-                              )
-                          );
+                          .forEach(language -> {
+                              ApiDtos.LookupOption lookupOption = ApiDtos.LookupOption.builder()
+                                                                                      .code(language.getCode())
+                                                                                      .name(language.getName())
+                                                                                      .build();
+                              languages.add(lookupOption);
+                          });
 
-        return new ApiDtos.SignupOptionsResponse(
-            countries,
-            tiers,
-            languages
-        );
+        return ApiDtos.SignupOptionsResponse.builder()
+                                            .countries(countries)
+                                            .tiers(tiers)
+                                            .languages(languages)
+                                            .build();
     }
 
     @PostMapping("/signup")
@@ -148,13 +148,18 @@ public class AuthApiController {
         if (errors.hasErrors()) {
             List<ApiDtos.ValidationFieldError> fieldErrors = new ArrayList<>();
             errors.getFieldErrors()
-                  .forEach(fieldError -> fieldErrors.add(
-                          new ApiDtos.ValidationFieldError(
-                              fieldError.getField(),
-                              Utils.getMessageFromMessageSource(messageSource, fieldError)
-                          )
-                      )
-                  );
+                  .forEach(fieldError -> {
+                      ApiDtos.ValidationFieldError validationFieldError = ApiDtos.ValidationFieldError.builder()
+                                                                                                      .field(fieldError.getField())
+                                                                                                      .message(
+                                                                                                          Utils.getMessageFromMessageSource(
+                                                                                                              messageSource,
+                                                                                                              fieldError
+                                                                                                          )
+                                                                                                      )
+                                                                                                      .build();
+                      fieldErrors.add(validationFieldError);
+                  });
 
             List<String> globalErrors = new ArrayList<>();
             errors.getGlobalErrors()
@@ -170,13 +175,12 @@ public class AuthApiController {
                       )
                   );
 
-            return ResponseEntity.badRequest().body(
-                new ApiDtos.ValidationErrorResponse(
-                    fieldErrors,
-                    globalErrors,
-                    allErrors
-                )
-            );
+            ApiDtos.ValidationErrorResponse validationErrorResponse = ApiDtos.ValidationErrorResponse.builder()
+                                                                                                     .fieldErrors(fieldErrors)
+                                                                                                     .globalErrors(globalErrors)
+                                                                                                     .errors(allErrors)
+                                                                                                     .build();
+            return ResponseEntity.badRequest().body(validationErrorResponse);
         }
 
         signupService.signupCustomer(signupDto);
@@ -185,11 +189,11 @@ public class AuthApiController {
     }
 
     private ApiDtos.UserMe toUserMe(AppUser appUser) {
-        return new ApiDtos.UserMe(
-            appUser.getId(),
-            appUser.getUsername(),
-            appUser.getFullName(),
-            appUser.getRole()
-        );
+        return ApiDtos.UserMe.builder()
+                             .id(appUser.getId())
+                             .username(appUser.getUsername())
+                             .fullName(appUser.getFullName())
+                             .role(appUser.getRole())
+                             .build();
     }
 }

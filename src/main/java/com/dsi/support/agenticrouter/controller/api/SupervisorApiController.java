@@ -13,6 +13,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Objects;
 
 @RestController
@@ -34,18 +35,26 @@ public class SupervisorApiController {
             PageRequest.of(
                 page,
                 size,
-                Sort.by("createdAt").descending()
+                Sort.by("createdAt")
+                    .descending()
             )
         );
 
-        return new ApiDtos.PagedResponse<>(
-            escalationPage.map(this::toEscalationSummary).getContent(),
-            escalationPage.getNumber(),
-            escalationPage.getSize(),
-            escalationPage.getTotalElements(),
-            escalationPage.getTotalPages(),
-            escalationPage.hasNext()
-        );
+        List<ApiDtos.EscalationSummary> content = escalationPage.map(
+            this::toEscalationSummary
+        ).getContent();
+
+        ApiDtos.PagedResponse<ApiDtos.EscalationSummary> pagedResponse = ApiDtos.PagedResponse
+            .<ApiDtos.EscalationSummary>builder()
+            .content(content)
+            .page(escalationPage.getNumber())
+            .size(escalationPage.getSize())
+            .totalElements(escalationPage.getTotalElements())
+            .totalPages(escalationPage.getTotalPages())
+            .hasNext(escalationPage.hasNext())
+            .build();
+
+        return pagedResponse;
     }
 
     @GetMapping("/{escalationId}")
