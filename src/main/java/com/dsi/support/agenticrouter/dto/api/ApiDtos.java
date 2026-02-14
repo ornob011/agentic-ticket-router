@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.Builder;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -17,6 +18,7 @@ public final class ApiDtos {
         // Private constructor to prevent instantiation
     }
 
+    @Builder
     public record UserMe(
         Long id,
         String username,
@@ -84,6 +86,7 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record TicketSummary(
         Long id,
         String formattedTicketNo,
@@ -98,6 +101,7 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record TicketMessageItem(
         Long id,
         String content,
@@ -109,6 +113,7 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record AuditEventItem(
         Long id,
         AuditEventType eventType,
@@ -118,6 +123,7 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record TicketRoutingItem(
         Long id,
         Integer version,
@@ -132,6 +138,7 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record TicketDetail(
         Long id,
         String formattedTicketNo,
@@ -182,6 +189,15 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
+    public record TicketMetadataResponse(
+        TicketQueue[] queues,
+        TicketStatus[] statuses,
+        TicketPriority[] priorities
+    ) {
+    }
+
+    @Builder
     public record DashboardResponse(
         UserMe user,
         DashboardCustomerSection customer,
@@ -192,6 +208,7 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record DashboardCustomerSection(
         long openTickets,
         long waitingOnMe,
@@ -200,6 +217,7 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record DashboardAgentSection(
         long myAssignedCount,
         long queueBilling,
@@ -211,6 +229,7 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record DashboardSupervisorSection(
         long pendingEscalations,
         long slaBreaches,
@@ -218,6 +237,7 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record DashboardAdminSection(
         long totalUsers,
         long totalTickets,
@@ -227,6 +247,7 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record EscalationSummary(
         Long id,
         Long ticketId,
@@ -238,6 +259,7 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record EscalationDetail(
         Long id,
         Long ticketId,
@@ -257,6 +279,7 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record ModelInfo(
         Long id,
         String modelTag,
@@ -272,6 +295,7 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record PolicyInfo(
         Long id,
         String configKey,
@@ -286,6 +310,7 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
     public record UserInfo(
         Long id,
         String username,

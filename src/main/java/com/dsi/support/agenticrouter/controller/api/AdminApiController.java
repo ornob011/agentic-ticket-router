@@ -36,15 +36,19 @@ public class AdminApiController {
     public List<ApiDtos.ModelInfo> modelRegistry() {
         return modelService.getAllModels()
                            .stream()
-                           .map(model -> new ApiDtos.ModelInfo(
-                                   model.getId(),
-                                   model.getModelTag(),
-                                   model.getModelName(),
-                                   model.isActive(),
-                                   Objects.isNull(model.getActivatedBy()) ? null : model.getActivatedBy().getId(),
-                                   model.getActivatedAt()
-                               )
-                           ).toList();
+                           .map(model -> ApiDtos.ModelInfo.builder()
+                                                          .id(model.getId())
+                                                          .modelTag(model.getModelTag())
+                                                          .provider(model.getModelName())
+                                                          .active(model.isActive())
+                                                          .activatedBy(
+                                                              Objects.isNull(model.getActivatedBy())
+                                                                  ? null
+                                                                  : model.getActivatedBy().getId()
+                                                          )
+                                                          .activatedAt(model.getActivatedAt())
+                                                          .build())
+                           .toList();
     }
 
     @PostMapping("/model-registry/activate")
@@ -61,13 +65,13 @@ public class AdminApiController {
     public List<ApiDtos.PolicyInfo> policyConfig() {
         return policyConfigService.getAllActivePolicies()
                                   .stream()
-                                  .map(policy -> new ApiDtos.PolicyInfo(
-                                          policy.getId(),
-                                          policy.getConfigKey().name(),
-                                          policy.getConfigValue(),
-                                          policy.isActive()
-                                      )
-                                  ).toList();
+                                  .map(policy -> ApiDtos.PolicyInfo.builder()
+                                                                   .id(policy.getId())
+                                                                   .configKey(policy.getConfigKey().name())
+                                                                   .configValue(policy.getConfigValue())
+                                                                   .active(policy.isActive())
+                                                                   .build())
+                                  .toList();
     }
 
     @PatchMapping("/policy-config")
@@ -84,15 +88,15 @@ public class AdminApiController {
     public List<ApiDtos.UserInfo> users() {
         return policyConfigService.getAllUsers()
                                   .stream()
-                                  .map(user -> new ApiDtos.UserInfo(
-                                          user.getId(),
-                                          user.getUsername(),
-                                          user.getEmail(),
-                                          user.getFullName(),
-                                          user.getRole(),
-                                          user.isActive()
-                                      )
-                                  ).toList();
+                                  .map(user -> ApiDtos.UserInfo.builder()
+                                                               .id(user.getId())
+                                                               .username(user.getUsername())
+                                                               .email(user.getEmail())
+                                                               .fullName(user.getFullName())
+                                                               .role(user.getRole())
+                                                               .active(user.isActive())
+                                                               .build())
+                                  .toList();
     }
 
     @PostMapping("/users")
@@ -135,14 +139,17 @@ public class AdminApiController {
         return new ApiDtos.PagedResponse<>(
             auditEvents.getContent()
                        .stream()
-                       .map(event -> new ApiDtos.AuditEventItem(
-                               event.getId(),
-                               event.getEventType(),
-                               event.getDescription(),
-                               Objects.isNull(event.getPerformedBy()) ? "SYSTEM" : event.getPerformedBy().getFullName(),
-                               event.getCreatedAt()
-                           )
-                       )
+                       .map(event -> ApiDtos.AuditEventItem.builder()
+                                                           .id(event.getId())
+                                                           .eventType(event.getEventType())
+                                                           .description(event.getDescription())
+                                                           .performedBy(
+                                                               Objects.isNull(event.getPerformedBy())
+                                                                   ? "SYSTEM"
+                                                                   : event.getPerformedBy().getFullName()
+                                                           )
+                                                           .createdAt(event.getCreatedAt())
+                                                           .build())
                        .toList(),
             auditEvents.getNumber(),
             auditEvents.getSize(),

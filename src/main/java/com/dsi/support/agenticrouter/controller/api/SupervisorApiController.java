@@ -54,18 +54,26 @@ public class SupervisorApiController {
     ) {
         Escalation escalation = ticketService.getEscalationById(escalationId);
 
-        return new ApiDtos.EscalationDetail(
-            escalation.getId(),
-            escalation.getTicket().getId(),
-            escalation.getTicket().getFormattedTicketNo(),
-            escalation.getReason(),
-            escalation.isResolved(),
-            escalation.getResolutionNotes(),
-            escalation.getCreatedAt(),
-            escalation.getResolvedAt(),
-            Objects.isNull(escalation.getAssignedSupervisor()) ? null : escalation.getAssignedSupervisor().getFullName(),
-            Objects.isNull(escalation.getResolvedBy()) ? null : escalation.getResolvedBy().getFullName()
-        );
+        return ApiDtos.EscalationDetail.builder()
+                                       .id(escalation.getId())
+                                       .ticketId(escalation.getTicket().getId())
+                                       .formattedTicketNo(escalation.getTicket().getFormattedTicketNo())
+                                       .reason(escalation.getReason())
+                                       .resolved(escalation.isResolved())
+                                       .resolutionNotes(escalation.getResolutionNotes())
+                                       .createdAt(escalation.getCreatedAt())
+                                       .resolvedAt(escalation.getResolvedAt())
+                                       .assignedSupervisor(
+                                           Objects.isNull(escalation.getAssignedSupervisor())
+                                               ? null
+                                               : escalation.getAssignedSupervisor().getFullName()
+                                       )
+                                       .resolvedBy(
+                                           Objects.isNull(escalation.getResolvedBy())
+                                               ? null
+                                               : escalation.getResolvedBy().getFullName()
+                                       )
+                                       .build();
     }
 
     @PostMapping("/{escalationId}/resolve")
@@ -73,19 +81,26 @@ public class SupervisorApiController {
         @PathVariable Long escalationId,
         @Valid @RequestBody ApiDtos.ResolveEscalationRequest request
     ) {
-        ticketService.resolveEscalation(escalationId, request.resolutionNotes());
+        ticketService.resolveEscalation(
+            escalationId,
+            request.resolutionNotes()
+        );
     }
 
     private ApiDtos.EscalationSummary toEscalationSummary(Escalation escalation) {
-        return new ApiDtos.EscalationSummary(
-            escalation.getId(),
-            escalation.getTicket().getId(),
-            escalation.getTicket().getFormattedTicketNo(),
-            escalation.getReason(),
-            escalation.isResolved(),
-            escalation.getCreatedAt(),
-            Objects.isNull(escalation.getAssignedSupervisor()) ? null : escalation.getAssignedSupervisor().getFullName()
-        );
+        return ApiDtos.EscalationSummary.builder()
+                                        .id(escalation.getId())
+                                        .ticketId(escalation.getTicket().getId())
+                                        .formattedTicketNo(escalation.getTicket().getFormattedTicketNo())
+                                        .reason(escalation.getReason())
+                                        .resolved(escalation.isResolved())
+                                        .createdAt(escalation.getCreatedAt())
+                                        .assignedSupervisor(
+                                            Objects.isNull(escalation.getAssignedSupervisor())
+                                                ? null
+                                                : escalation.getAssignedSupervisor().getFullName()
+                                        )
+                                        .build();
     }
 
     private Page<Escalation> loadEscalations(
