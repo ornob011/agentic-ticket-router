@@ -46,6 +46,7 @@ logs/**
 /frontend/.npm
 /frontend/.cache
 /frontend/dist
+/src/main/resources/static/app/
 
 ### Test Files ###
 src/test/**
