@@ -48,6 +48,32 @@ public final class ApiDtos {
     ) {
     }
 
+    public record LookupOption(
+        String code,
+        String name
+    ) {
+    }
+
+    public record SignupOptionsResponse(
+        List<LookupOption> countries,
+        List<LookupOption> tiers,
+        List<LookupOption> languages
+    ) {
+    }
+
+    public record ValidationFieldError(
+        String field,
+        String message
+    ) {
+    }
+
+    public record ValidationErrorResponse(
+        List<ValidationFieldError> fieldErrors,
+        List<String> globalErrors,
+        List<String> errors
+    ) {
+    }
+
     public record PagedResponse<T>(
         List<T> content,
         int page,
@@ -158,11 +184,46 @@ public final class ApiDtos {
 
     public record DashboardResponse(
         UserMe user,
-        Map<String, Long> customer,
-        Map<String, Long> agent,
-        Map<String, Long> supervisor,
-        Map<String, String> admin,
+        DashboardCustomerSection customer,
+        DashboardAgentSection agent,
+        DashboardSupervisorSection supervisor,
+        DashboardAdminSection admin,
         List<TicketSummary> recentTickets
+    ) {
+    }
+
+    public record DashboardCustomerSection(
+        long openTickets,
+        long waitingOnMe,
+        long resolvedTickets,
+        long closedTickets
+    ) {
+    }
+
+    public record DashboardAgentSection(
+        long myAssignedCount,
+        long queueBilling,
+        long queueTech,
+        long queueOps,
+        long queueSecurity,
+        long queueAccount,
+        long queueGeneral
+    ) {
+    }
+
+    public record DashboardSupervisorSection(
+        long pendingEscalations,
+        long slaBreaches,
+        long humanReviewCount
+    ) {
+    }
+
+    public record DashboardAdminSection(
+        long totalUsers,
+        long totalTickets,
+        String activeModelTag,
+        double routingSuccessRate,
+        Long avgRoutingLatency
     ) {
     }
 
