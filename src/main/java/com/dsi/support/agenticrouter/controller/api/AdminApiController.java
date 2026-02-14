@@ -122,7 +122,7 @@ public class AdminApiController {
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
-        Page<AuditEvent> auditEvents = auditEventRepository.findByFilters(
+        Page<AuditEventRepository.AuditEventView> auditEvents = auditEventRepository.findByFiltersView(
             ticketId,
             eventType,
             performedById,
@@ -142,11 +142,7 @@ public class AdminApiController {
                                                                                                    .id(auditEvent.getId())
                                                                                                    .eventType(auditEvent.getEventType())
                                                                                                    .description(auditEvent.getDescription())
-                                                                                                   .performedBy(
-                                                                                                       Objects.isNull(auditEvent.getPerformedBy())
-                                                                                                           ? "SYSTEM"
-                                                                                                           : auditEvent.getPerformedBy().getFullName()
-                                                                                                   )
+                                                                                                   .performedBy(auditEvent.getPerformedByName())
                                                                                                    .createdAt(auditEvent.getCreatedAt())
                                                                                                    .build())
                                                           .toList();

@@ -104,6 +104,18 @@ public class AuditService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public List<AuditEventRepository.AuditEventView> getTicketAuditTrailView(
+        Long ticketId
+    ) {
+        Objects.requireNonNull(ticketId, "ticketId");
+
+        return auditEventRepository.findTicketAuditTrailView(
+            ticketId,
+            AuditEventType.getCustomerVisible()
+        );
+    }
+
     public void recordTicketAnalysis(
         Long ticketId,
         String section,

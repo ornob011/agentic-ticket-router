@@ -14,9 +14,40 @@ import java.util.Set;
 
 public interface AuditEventRepository extends JpaRepository<AuditEvent, Long> {
 
+    interface AuditEventView {
+
+        Long getId();
+
+        AuditEventType getEventType();
+
+        String getDescription();
+
+        String getPerformedByName();
+
+        Instant getCreatedAt();
+    }
+
     List<AuditEvent> findByTicket_IdOrderByCreatedAtAsc(Long ticketId);
 
     List<AuditEvent> findByTicket_IdAndEventTypeInOrderByCreatedAtAsc(
+        @Param("ticketId") Long ticketId,
+        @Param("eventTypes") Set<AuditEventType> eventTypes
+    );
+
+    @Query("""
+        SELECT
+            ae.id AS id,
+            ae.eventType AS eventType,
+            ae.description AS description,
+            COALESCE(performedBy.fullName, 'SYSTEM') AS performedByName,
+            ae.createdAt AS createdAt
+        FROM AuditEvent ae
+        LEFT JOIN ae.performedBy performedBy
+        WHERE ae.ticket.id = :ticketId
+        AND ae.eventType IN :eventTypes
+        ORDER BY ae.createdAt ASC
+        """)
+    List<AuditEventView> findTicketAuditTrailView(
         @Param("ticketId") Long ticketId,
         @Param("eventTypes") Set<AuditEventType> eventTypes
     );
@@ -31,6 +62,42 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, Long> {
         ORDER BY ae.createdAt DESC
         """)
     Page<AuditEvent> findByFilters(
+        @Param("ticketId") Long ticketId,
+        @Param("eventType") AuditEventType eventType,
+        @Param("performedById") Long performedById,
+        @Param("startDate") Instant startDate,
+        @Param("endDate") Instant endDate,
+        Pageable pageable
+    );
+
+    @Query(
+        value = """
+            SELECT
+                ae.id AS id,
+                ae.eventType AS eventType,
+                ae.description AS description,
+                COALESCE(performedBy.fullName, 'SYSTEM') AS performedByName,
+                ae.createdAt AS createdAt
+            FROM AuditEvent ae
+            LEFT JOIN ae.performedBy performedBy
+            WHERE (:ticketId IS NULL OR ae.ticket.id = :ticketId)
+            AND (:eventType IS NULL OR ae.eventType = :eventType)
+            AND (:performedById IS NULL OR ae.performedBy.id = :performedById)
+            AND (:startDate IS NULL OR ae.createdAt >= :startDate)
+            AND (:endDate IS NULL OR ae.createdAt <= :endDate)
+            ORDER BY ae.createdAt DESC
+            """,
+        countQuery = """
+            SELECT COUNT(ae)
+            FROM AuditEvent ae
+            WHERE (:ticketId IS NULL OR ae.ticket.id = :ticketId)
+            AND (:eventType IS NULL OR ae.eventType = :eventType)
+            AND (:performedById IS NULL OR ae.performedBy.id = :performedById)
+            AND (:startDate IS NULL OR ae.createdAt >= :startDate)
+            AND (:endDate IS NULL OR ae.createdAt <= :endDate)
+            """
+    )
+    Page<AuditEventView> findByFiltersView(
         @Param("ticketId") Long ticketId,
         @Param("eventType") AuditEventType eventType,
         @Param("performedById") Long performedById,
