@@ -1,5 +1,6 @@
 package com.dsi.support.agenticrouter.exception;
 
+import com.dsi.support.agenticrouter.enums.ErrorCode;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;

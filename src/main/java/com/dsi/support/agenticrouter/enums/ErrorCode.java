@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.exception;
+package com.dsi.support.agenticrouter.enums;
 
 import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import lombok.Getter;

@@ -1,5 +1,7 @@
 package com.dsi.support.agenticrouter.exception;
 
+import com.dsi.support.agenticrouter.enums.ErrorCode;
+
 import java.util.function.Supplier;
 
 public class DataNotFoundException extends ApplicationException {
