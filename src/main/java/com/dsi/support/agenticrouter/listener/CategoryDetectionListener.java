@@ -20,7 +20,7 @@ public class CategoryDetectionListener {
         CategoryDetectionEvent categoryDetectionEvent
     ) {
         categoryDetectionEventHandlerService.handleCategoryDetection(
-
+            categoryDetectionEvent
         );
     }
 }
