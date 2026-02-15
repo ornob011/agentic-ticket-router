@@ -2,14 +2,8 @@ package com.dsi.support.agenticrouter.controller.api;
 
 import com.dsi.support.agenticrouter.dto.api.ApiDtos;
 import com.dsi.support.agenticrouter.enums.AuditEventType;
-import com.dsi.support.agenticrouter.enums.PolicyConfigKey;
 import com.dsi.support.agenticrouter.service.admin.AdminManagementService;
-import com.dsi.support.agenticrouter.service.ai.ModelService;
-import com.dsi.support.agenticrouter.service.auth.PasswordHashService;
-import com.dsi.support.agenticrouter.service.policy.PolicyConfigService;
-import com.dsi.support.agenticrouter.util.EnumDisplayNameResolver;
-import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
-import com.dsi.support.agenticrouter.util.Utils;
+import com.dsi.support.agenticrouter.service.admin.AdminPortalService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/v1/admin")
@@ -25,91 +18,48 @@ import java.util.Objects;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminApiController {
 
-    private final ModelService modelService;
-    private final PolicyConfigService policyConfigService;
-    private final PasswordHashService passwordHashService;
+    private final AdminPortalService adminPortalService;
     private final AdminManagementService adminManagementService;
 
     @GetMapping("/model-registry")
     public List<ApiDtos.ModelInfo> modelRegistry() {
-        return modelService.getAllModels()
-                           .stream()
-                           .map(model -> ApiDtos.ModelInfo.builder()
-                                                          .id(model.getId())
-                                                          .modelTag(model.getModelTag())
-                                                          .provider(model.getModelName())
-                                                          .active(model.isActive())
-                                                          .activatedBy(
-                                                              Objects.isNull(model.getActivatedBy())
-                                                                  ? null
-                                                                  : model.getActivatedBy().getId()
-                                                          )
-                                                          .activatedAt(model.getActivatedAt())
-                                                          .build())
-                           .toList();
+        return adminPortalService.modelRegistry();
     }
 
     @PostMapping("/model-registry/activate")
     public void activateModel(
         @Valid @RequestBody ApiDtos.ActivateModelRequest request
     ) {
-        modelService.activateModel(
-            StringNormalizationUtils.trimToNull(request.modelTag()),
-            Utils.getLoggedInUserId()
+        adminPortalService.activateModel(
+            request
         );
     }
 
     @GetMapping("/policy-config")
     public List<ApiDtos.PolicyInfo> policyConfig() {
-        return policyConfigService.getAllActivePolicies()
-                                  .stream()
-                                  .map(policy -> ApiDtos.PolicyInfo.builder()
-                                                                   .id(policy.getId())
-                                                                   .configKey(policy.getConfigKey().name())
-                                                                   .configValue(policy.getConfigValue())
-                                                                   .active(policy.isActive())
-                                                                   .build())
-                                  .toList();
+        return adminPortalService.policyConfig();
     }
 
     @PatchMapping("/policy-config")
     public void updatePolicyConfig(
         @Valid @RequestBody ApiDtos.PolicyUpdateRequest request
     ) {
-        policyConfigService.updatePolicy(
-            parsePolicyConfigKey(request.configKey()),
-            request.configValue()
+        adminPortalService.updatePolicyConfig(
+            request
         );
     }
 
     @GetMapping("/users")
     public List<ApiDtos.UserInfo> users() {
-        return policyConfigService.getAllUsers()
-                                  .stream()
-                                  .map(user -> ApiDtos.UserInfo.builder()
-                                                               .id(user.getId())
-                                                               .username(user.getUsername())
-                                                               .email(user.getEmail())
-                                                               .fullName(user.getFullName())
-                                                               .role(user.getRole())
-                                                               .roleLabel(EnumDisplayNameResolver.resolve(
-                                                                   user.getRole()
-                                                               ))
-                                                               .active(user.isActive())
-                                                               .build())
-                                  .toList();
+        return adminPortalService.users();
     }
 
     @PostMapping("/users")
     public void createStaffUser(
         @Valid @RequestBody ApiDtos.StaffCreateRequest request
     ) {
-        policyConfigService.createStaffUser(
-            request.username(),
-            request.email(),
-            request.fullName(),
-            request.role(),
-            passwordHashService.getPasswordHash(request.password())
+        adminPortalService.createStaffUser(
+            request
         );
     }
 
@@ -157,11 +107,4 @@ public class AdminApiController {
         );
     }
 
-    private PolicyConfigKey parsePolicyConfigKey(
-        String configKey
-    ) {
-        return PolicyConfigKey.valueOf(
-            StringNormalizationUtils.upperTrimmedOrEmpty(configKey)
-        );
-    }
 }
