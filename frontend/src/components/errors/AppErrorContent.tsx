@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useRouteLoaderData } from "react-router-dom";
 import { ArrowLeft, Home, Plus, RefreshCw, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusDot } from "@/components/ui/status-dot";
+import type { RootLoaderData } from "@/router";
 
 type AppErrorContentProps = {
   icon: ReactNode;
@@ -26,6 +27,8 @@ export function AppErrorContent({
   showRetry = false,
 }: Readonly<AppErrorContentProps>) {
   const navigate = useNavigate();
+  const appData = useRouteLoaderData<RootLoaderData>("app");
+  const isCustomer = appData?.user?.role === "CUSTOMER";
 
   return (
     <div className="space-y-6">
@@ -80,14 +83,16 @@ export function AppErrorContent({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              onClick={() => navigate("/app/tickets/new")}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create New Ticket
-            </Button>
+            {isCustomer && (
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => navigate("/app/tickets/new")}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create New Ticket
+              </Button>
+            )}
             <Button
               variant="outline"
               className="w-full justify-start"

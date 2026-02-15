@@ -57,8 +57,8 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, Long> {
         WHERE (:ticketId IS NULL OR ae.ticket.id = :ticketId)
         AND (:eventType IS NULL OR ae.eventType = :eventType)
         AND (:performedById IS NULL OR ae.performedBy.id = :performedById)
-        AND (:startDate IS NULL OR ae.createdAt >= :startDate)
-        AND (:endDate IS NULL OR ae.createdAt <= :endDate)
+        AND ae.createdAt >= COALESCE(:startDate, ae.createdAt)
+        AND ae.createdAt <= COALESCE(:endDate, ae.createdAt)
         ORDER BY ae.createdAt DESC
         """)
     Page<AuditEvent> findByFilters(
@@ -83,8 +83,8 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, Long> {
             WHERE (:ticketId IS NULL OR ae.ticket.id = :ticketId)
             AND (:eventType IS NULL OR ae.eventType = :eventType)
             AND (:performedById IS NULL OR ae.performedBy.id = :performedById)
-            AND (:startDate IS NULL OR ae.createdAt >= :startDate)
-            AND (:endDate IS NULL OR ae.createdAt <= :endDate)
+            AND ae.createdAt >= COALESCE(:startDate, ae.createdAt)
+            AND ae.createdAt <= COALESCE(:endDate, ae.createdAt)
             ORDER BY ae.createdAt DESC
             """,
         countQuery = """
@@ -93,8 +93,8 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, Long> {
             WHERE (:ticketId IS NULL OR ae.ticket.id = :ticketId)
             AND (:eventType IS NULL OR ae.eventType = :eventType)
             AND (:performedById IS NULL OR ae.performedBy.id = :performedById)
-            AND (:startDate IS NULL OR ae.createdAt >= :startDate)
-            AND (:endDate IS NULL OR ae.createdAt <= :endDate)
+            AND ae.createdAt >= COALESCE(:startDate, ae.createdAt)
+            AND ae.createdAt <= COALESCE(:endDate, ae.createdAt)
             """
     )
     Page<AuditEventView> findByFiltersView(

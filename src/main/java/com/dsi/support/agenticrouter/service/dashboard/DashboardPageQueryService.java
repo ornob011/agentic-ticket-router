@@ -7,6 +7,7 @@ import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
@@ -23,6 +24,7 @@ public class DashboardPageQueryService {
         this.dashboardComposerCatalog = dashboardComposerCatalog;
     }
 
+    @Transactional(readOnly = true)
     public DashboardDto loadDashboardViewForUser(Long dashboardOwnerId) {
         log.debug(
             "DashboardCompose({}) Actor(id:{})",

@@ -10,8 +10,8 @@ import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.enums.TicketQueryScope;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
-import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import com.dsi.support.agenticrouter.security.TicketAccessPolicyService;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.ticket.TicketService;
 import com.dsi.support.agenticrouter.util.EnumDisplayNameResolver;
@@ -22,9 +22,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -36,10 +38,10 @@ public class TicketApiController {
     private final TicketService ticketService;
     private final AuditService auditService;
     private final SupportTicketRepository supportTicketRepository;
-    private final AppUserRepository appUserRepository;
+    private final TicketAccessPolicyService ticketAccessPolicyService;
 
     @GetMapping
-    @PreAuthorize("@ticketAuthorizationService.canAccessQueueScope(#scope)")
+    @PreAuthorize("@ticketAuthorizationService.canAccessQueueScope(#scope,#queue)")
     public ApiDtos.PagedResponse<ApiDtos.TicketSummary> listTickets(
         @RequestParam(defaultValue = "MINE") TicketQueryScope scope,
         @RequestParam(required = false) TicketQueue queue,
@@ -164,6 +166,33 @@ public class TicketApiController {
             ? null
             : toUserMe(supportTicket.getAssignedAgent());
 
+        ApiDtos.TicketPermissions permissions = ApiDtos.TicketPermissions.builder()
+                                                                         .canReply(ticketAccessPolicyService.canReply(supportTicket, user))
+                                                                         .canChangeStatus(!ticketAccessPolicyService.allowedStatusTransitions(
+                                                                             supportTicket,
+                                                                             user
+                                                                         ).isEmpty())
+                                                                         .canAssignSelf(ticketAccessPolicyService.canAssignSelf(
+                                                                             supportTicket,
+                                                                             user
+                                                                         ))
+                                                                         .canAssignOthers(ticketAccessPolicyService.canAssignOthers(
+                                                                             user
+                                                                         ))
+                                                                         .canOverrideRouting(ticketAccessPolicyService.canOverrideRouting(
+                                                                             user
+                                                                         ))
+                                                                         .canResolveEscalation(ticketAccessPolicyService.canResolveEscalation(
+                                                                             user
+                                                                         ))
+                                                                         .allowedStatusTransitions(
+                                                                             ticketAccessPolicyService.allowedStatusTransitions(
+                                                                                 supportTicket,
+                                                                                 user
+                                                                             ).stream().toList()
+                                                                         )
+                                                                         .build();
+
         return ApiDtos.TicketDetail.builder()
                                    .id(supportTicket.getId())
                                    .formattedTicketNo(supportTicket.getFormattedTicketNo())
@@ -189,6 +218,8 @@ public class TicketApiController {
                                    .lastActivityAt(supportTicket.getLastActivityAt())
                                    .reopenCount(supportTicket.getReopenCount())
                                    .escalated(supportTicket.isEscalated())
+                                   .requiresHumanReview(supportTicket.isRequiresHumanReview())
+                                   .permissions(permissions)
                                    .customer(customer)
                                    .assignedAgent(assignedAgent)
                                    .messages(ticketMessageItems)
@@ -219,11 +250,11 @@ public class TicketApiController {
     }
 
     @PatchMapping("/{ticketId}/status")
-    @PreAuthorize("hasAnyRole('SUPERVISOR','ADMIN')")
+    @PreAuthorize("hasAnyRole('AGENT','SUPERVISOR','ADMIN')")
     public void changeStatus(
         @PathVariable Long ticketId,
         @Valid @RequestBody ApiDtos.TicketStatusRequest request
-    ) {
+    ) throws BindException {
         ticketService.changeTicketStatus(
             ticketId,
             request.newStatus(),
@@ -236,10 +267,20 @@ public class TicketApiController {
     public void assignAgent(
         @PathVariable Long ticketId,
         @Valid @RequestBody ApiDtos.AssignAgentRequest request
-    ) {
+    ) throws BindException {
         ticketService.assignAgent(
             ticketId,
             request.agentId()
+        );
+    }
+
+    @PatchMapping("/{ticketId}/assign-self")
+    @PreAuthorize("hasAnyRole('AGENT','SUPERVISOR','ADMIN')")
+    public void assignSelf(
+        @PathVariable Long ticketId
+    ) {
+        ticketService.assignSelf(
+            ticketId
         );
     }
 
@@ -269,29 +310,40 @@ public class TicketApiController {
 
     @GetMapping("/meta")
     public ApiDtos.TicketMetadataResponse metadata() {
-        List<ApiDtos.LookupOption> queueOptions = java.util.Arrays.stream(TicketQueue.values())
-                                                                  .map(ticketQueue -> ApiDtos.LookupOption.builder()
-                                                                                                          .code(ticketQueue.name())
-                                                                                                          .name(EnumDisplayNameResolver.resolve(ticketQueue))
-                                                                                                          .build())
-                                                                  .toList();
+        AppUser user = Utils.getLoggedInUserDetails();
 
-        List<ApiDtos.LookupOption> statusOptions = java.util.Arrays.stream(TicketStatus.values())
-                                                                   .map(ticketStatus -> ApiDtos.LookupOption.builder()
-                                                                                                            .code(ticketStatus.name())
-                                                                                                            .name(EnumDisplayNameResolver.resolve(ticketStatus))
-                                                                                                            .build())
-                                                                   .toList();
+        List<ApiDtos.LookupOption> queueOptions = Arrays.stream(TicketQueue.values())
+                                                        .map(ticketQueue -> ApiDtos.LookupOption.builder()
+                                                                                                .code(ticketQueue.name())
+                                                                                                .name(EnumDisplayNameResolver.resolve(ticketQueue))
+                                                                                                .build())
+                                                        .toList();
 
-        List<ApiDtos.LookupOption> priorityOptions = java.util.Arrays.stream(TicketPriority.values())
-                                                                     .map(ticketPriority -> ApiDtos.LookupOption.builder()
-                                                                                                                .code(ticketPriority.name())
-                                                                                                                .name(EnumDisplayNameResolver.resolve(ticketPriority))
-                                                                                                                .build())
-                                                                     .toList();
+        List<ApiDtos.LookupOption> accessibleQueueOptions = ticketAccessPolicyService.accessibleQueues(user)
+                                                                                     .stream()
+                                                                                     .map(ticketQueue -> ApiDtos.LookupOption.builder()
+                                                                                                                             .code(ticketQueue.name())
+                                                                                                                             .name(EnumDisplayNameResolver.resolve(ticketQueue))
+                                                                                                                             .build())
+                                                                                     .toList();
+
+        List<ApiDtos.LookupOption> statusOptions = Arrays.stream(TicketStatus.values())
+                                                         .map(ticketStatus -> ApiDtos.LookupOption.builder()
+                                                                                                  .code(ticketStatus.name())
+                                                                                                  .name(EnumDisplayNameResolver.resolve(ticketStatus))
+                                                                                                  .build())
+                                                         .toList();
+
+        List<ApiDtos.LookupOption> priorityOptions = Arrays.stream(TicketPriority.values())
+                                                           .map(ticketPriority -> ApiDtos.LookupOption.builder()
+                                                                                                      .code(ticketPriority.name())
+                                                                                                      .name(EnumDisplayNameResolver.resolve(ticketPriority))
+                                                                                                      .build())
+                                                           .toList();
 
         return ApiDtos.TicketMetadataResponse.builder()
                                              .queues(queueOptions)
+                                             .accessibleQueues(accessibleQueueOptions)
                                              .statuses(statusOptions)
                                              .priorities(priorityOptions)
                                              .build();
@@ -305,13 +357,9 @@ public class TicketApiController {
         Pageable pageable
     ) {
         return switch (scope) {
-            case MINE -> user.isCustomer()
-                ? ticketService.listCustomerTickets(
-                user.getId(),
-                pageable
-            )
-                : supportTicketRepository.findByAssignedAgentIdOrderByLastActivityAtDesc(
-                user.getId(),
+            case MINE -> resolveMineTickets(
+                user,
+                status,
                 pageable
             );
             case QUEUE -> ticketService.listQueueTickets(
@@ -319,12 +367,49 @@ public class TicketApiController {
                 status,
                 pageable
             );
-            case REVIEW -> supportTicketRepository.findByStatusAndAssignedQueueIsNull(
+            case REVIEW -> supportTicketRepository.findByRequiresHumanReviewTrueAndStatusOrderByLastActivityAtDesc(
                 TicketStatus.TRIAGING,
                 pageable
             );
             case ALL -> supportTicketRepository.findAll(pageable);
         };
+    }
+
+    private Page<SupportTicket> resolveMineTickets(
+        AppUser user,
+        TicketStatus status,
+        Pageable pageable
+    ) {
+        Long userId = user.getId();
+        boolean hasStatusFilter = Objects.nonNull(status);
+
+        if (user.isCustomer()) {
+            if (!hasStatusFilter) {
+                return ticketService.listCustomerTickets(
+                    userId,
+                    pageable
+                );
+            }
+
+            return supportTicketRepository.findByCustomerIdAndStatusOrderByCreatedAtDesc(
+                userId,
+                status,
+                pageable
+            );
+        }
+
+        if (!hasStatusFilter) {
+            return supportTicketRepository.findByAssignedAgentIdOrderByLastActivityAtDesc(
+                userId,
+                pageable
+            );
+        }
+
+        return supportTicketRepository.findByAssignedAgentIdAndStatusOrderByLastActivityAtDesc(
+            userId,
+            status,
+            pageable
+        );
     }
 
     private ApiDtos.PagedResponse<ApiDtos.TicketSummary> toPagedTicketSummary(
@@ -334,6 +419,7 @@ public class TicketApiController {
                                                         .stream()
                                                         .map(this::toTicketSummary)
                                                         .toList();
+
         ApiDtos.PagedResponse<ApiDtos.TicketSummary> pagedResponse = ApiDtos.PagedResponse.<ApiDtos.TicketSummary>builder()
                                                                                           .content(content)
                                                                                           .page(ticketPage.getNumber())

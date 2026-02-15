@@ -1,13 +1,14 @@
-import { useLoaderData, useNavigate, useRevalidator } from "react-router-dom";
+import { useLoaderData, useNavigate, useRevalidator, useRouteLoaderData, useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
-import type { TicketsLoaderData } from "@/router";
-import { formatLabel, formatRelativeTime, cn } from "@/lib/utils";
+import type { RootLoaderData, TicketsLoaderData } from "@/router";
+import { formatLabel, formatRelativeTime, getPriorityTone, getStatusTone, cn } from "@/lib/utils";
 import { getTicketPriorityBorderClass, getTicketStatusDotClass } from "@/lib/ticket-visuals";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Plus, Ticket, Clock } from "lucide-react";
+import { Plus, Ticket, Clock, Inbox } from "lucide-react";
 
 type TicketCardProps = Readonly<{
   ticket: TicketsLoaderData["content"][0];
@@ -34,8 +35,12 @@ function TicketCard({ ticket }: TicketCardProps) {
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-xs text-muted-foreground">{ticket.formattedTicketNo}</span>
-          <span className="text-xs text-muted-foreground">{statusLabel}</span>
-          <span className="text-xs text-muted-foreground">{priorityLabel}</span>
+          <Badge variant={getStatusTone(ticket.status)} className="text-xs">
+            {statusLabel}
+          </Badge>
+          <Badge variant={getPriorityTone(ticket.priority)} className="text-xs">
+            {priorityLabel}
+          </Badge>
         </div>
         <p className="mt-1.5 truncate font-medium text-foreground">{ticket.subject}</p>
         <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
@@ -45,7 +50,10 @@ function TicketCard({ ticket }: TicketCardProps) {
           </div>
           {ticket.queue && (
             <div className="flex items-center gap-1">
-              <span className="font-medium">{queueLabel}</span>
+              <Inbox className="h-3 w-3" />
+              <Badge variant="outline" className="text-xs">
+                {queueLabel}
+              </Badge>
             </div>
           )}
         </div>
@@ -63,8 +71,13 @@ function TicketCard({ ticket }: TicketCardProps) {
 
 export default function TicketsPage() {
   const data = useLoaderData<TicketsLoaderData>();
+  const appData = useRouteLoaderData<RootLoaderData>("app");
   const navigate = useNavigate();
   const revalidator = useRevalidator();
+  const [searchParams] = useSearchParams();
+  const isCustomer = appData?.user?.role === "CUSTOMER";
+  const statusFilter = searchParams.get("status");
+  const statusFilterLabel = formatLabel(statusFilter);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -85,12 +98,20 @@ export default function TicketsPage() {
             <EmptyState
               icon={Ticket}
               title="No tickets yet"
-              description="Create your first support ticket to get started with our AI-powered routing system."
-              action={{
-                label: "Create Ticket",
-                icon: Plus,
-                onClick: () => navigate("/app/tickets/new"),
-              }}
+              description={
+                isCustomer
+                  ? "Create your first support ticket to get started with our AI-powered routing system."
+                  : "No tickets found in your current scope."
+              }
+              action={
+                isCustomer
+                  ? {
+                      label: "Create Ticket",
+                      icon: Plus,
+                      onClick: () => navigate("/app/tickets/new"),
+                    }
+                  : undefined
+              }
             />
           </CardContent>
         </Card>
@@ -104,12 +125,14 @@ export default function TicketsPage() {
     <div className="space-y-6">
       <PageHeader
         title="My Tickets"
-        description="Track and manage your support requests"
+        description={statusFilter ? `Filtered by status: ${statusFilterLabel}` : "Track and manage your support requests"}
       >
-        <Button onClick={() => navigate("/app/tickets/new")}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Ticket
-        </Button>
+        {isCustomer && (
+          <Button onClick={() => navigate("/app/tickets/new")}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Ticket
+          </Button>
+        )}
       </PageHeader>
 
       {data && hasContent && (
@@ -119,6 +142,11 @@ export default function TicketsPage() {
             <span className="font-medium">{data.totalElements}</span>
             <span className="text-muted-foreground">total tickets</span>
           </div>
+          {statusFilter && (
+            <Button variant="ghost" size="sm" onClick={() => navigate("/app/tickets")}>
+              Clear Filter
+            </Button>
+          )}
         </div>
       )}
 

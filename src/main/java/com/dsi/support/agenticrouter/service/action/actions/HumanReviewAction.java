@@ -47,6 +47,7 @@ public class HumanReviewAction implements TicketAction {
 
         supportTicket.setStatus(TicketStatus.TRIAGING);
         supportTicket.setAssignedQueue(routerResponse.getQueue());
+        supportTicket.setRequiresHumanReview(true);
 
         supportTicketRepository.save(supportTicket);
 

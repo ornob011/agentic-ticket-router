@@ -13,6 +13,7 @@ import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,23 +49,32 @@ public class EscalateAction implements TicketAction {
             routerResponse.getConfidence()
         );
 
-        String reason = String.format(
-            "Auto-escalated: category=%s, queue=%s, tags=%s",
-            routerResponse.getCategory(),
-            routerResponse.getQueue(),
-            routerResponse.getRationaleTags()
+        String reason = StringUtils.defaultIfBlank(
+            routerResponse.getInternalNote(),
+            String.format(
+                "Auto-escalated: category=%s, queue=%s, tags=%s",
+                routerResponse.getCategory(),
+                routerResponse.getQueue(),
+                routerResponse.getRationaleTags()
+            )
         );
 
-        Escalation escalation = Escalation.builder()
-                                          .ticket(supportTicket)
-                                          .reason(reason)
-                                          .resolved(false)
-                                          .build();
+        Escalation escalation = escalationRepository.findByTicketId(supportTicket.getId())
+                                                    .map(existingEscalation -> {
+                                                        existingEscalation.reopen(reason);
+                                                        return existingEscalation;
+                                                    })
+                                                    .orElseGet(() -> Escalation.builder()
+                                                                               .ticket(supportTicket)
+                                                                               .reason(reason)
+                                                                               .resolved(false)
+                                                                               .build());
 
-        escalationRepository.save(escalation);
+        escalation = escalationRepository.save(escalation);
 
         supportTicket.setStatus(TicketStatus.ESCALATED);
         supportTicket.setEscalated(true);
+        supportTicket.setRequiresHumanReview(false);
         supportTicket.setAssignedQueue(routerResponse.getQueue());
 
         supportTicketRepository.save(supportTicket);

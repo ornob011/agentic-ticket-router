@@ -179,6 +179,13 @@ public class SupportTicket extends BaseEntity {
     private boolean escalated = false;
 
     @Column(
+        name = "requires_human_review",
+        nullable = false
+    )
+    @Builder.Default
+    private boolean requiresHumanReview = false;
+
+    @Column(
         name = "latest_routing_confidence",
         columnDefinition = "numeric(5,4)"
     )

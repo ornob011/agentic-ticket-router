@@ -5,8 +5,15 @@ export const getMe = async (): Promise<UserMe> => {
   return response.data;
 };
 
-export const login = async (username: string, password: string) => {
-  const response = await api.post<UserMe>("/auth/login", { username, password, rememberMe: true });
+export const login = async (
+  username: string,
+  password: string,
+  rememberMe = true
+) => {
+  const response = await api.post<UserMe>(
+    "/auth/login",
+    { username, password, rememberMe }
+  );
   return response.data;
 };
 

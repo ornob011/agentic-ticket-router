@@ -81,7 +81,10 @@ public class Escalation extends BaseEntity {
     )
     private AppUser resolvedBy;
 
-    public void markResolved(AppUser resolver, String notes) {
+    public void markResolved(
+        AppUser resolver,
+        String notes
+    ) {
         if (resolved) {
             return;
         }
@@ -90,6 +93,16 @@ public class Escalation extends BaseEntity {
         resolvedAt = Instant.now();
         resolvedBy = resolver;
         resolutionNotes = notes;
+    }
+
+    public void reopen(
+        String newReason
+    ) {
+        resolved = false;
+        reason = newReason;
+        resolvedAt = null;
+        resolutionNotes = null;
+        resolvedBy = null;
     }
 
     @Override

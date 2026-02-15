@@ -1,9 +1,12 @@
 import axios from "axios";
+import { setupApiInterceptors } from "@/lib/api-error";
 
 export const api = axios.create({
   baseURL: "/api/v1",
   withCredentials: true,
 });
+
+setupApiInterceptors(api);
 
 export type UserRole = "ADMIN" | "SUPERVISOR" | "AGENT" | "CUSTOMER";
 
@@ -28,6 +31,13 @@ export type UserMe = {
 export type LookupOption = {
   code: string;
   name: string;
+};
+
+export type TicketMetadataResponse = {
+  queues: LookupOption[];
+  accessibleQueues: LookupOption[];
+  statuses: LookupOption[];
+  priorities: LookupOption[];
 };
 
 export type SignupOptionsResponse = {
@@ -152,6 +162,16 @@ export type TicketRoutingItem = {
   createdAt: string;
 };
 
+export type TicketPermissions = {
+  canReply: boolean;
+  canChangeStatus: boolean;
+  canAssignSelf: boolean;
+  canAssignOthers: boolean;
+  canOverrideRouting: boolean;
+  canResolveEscalation: boolean;
+  allowedStatusTransitions: string[];
+};
+
 export type AuditEventItem = {
   id: number;
   eventType: string;
@@ -178,6 +198,8 @@ export type TicketDetail = {
   lastActivityAt: string;
   reopenCount: number;
   escalated: boolean;
+  requiresHumanReview: boolean;
+  permissions: TicketPermissions;
   customer: UserMe | null;
   assignedAgent: UserMe | null;
   messages: TicketMessage[];
@@ -248,6 +270,13 @@ export type UserInfo = {
   role: UserRole;
   roleLabel: string | null;
   active: boolean;
+};
+
+export type QueueMembershipInfo = {
+  id: number;
+  userId: number;
+  username: string;
+  queue: string;
 };
 
 export type ModelInfo = {

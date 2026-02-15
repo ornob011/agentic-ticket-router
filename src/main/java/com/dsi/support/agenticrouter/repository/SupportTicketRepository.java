@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface SupportTicketRepository extends JpaRepository<SupportTicket, Long> {
 
@@ -160,20 +161,27 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
 
     Page<SupportTicket> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
 
+    Page<SupportTicket> findByCustomerIdAndStatusOrderByCreatedAtDesc(Long customerId, TicketStatus status, Pageable pageable);
+
     boolean existsByIdAndCustomerId(Long id, Long customerId);
 
     Page<SupportTicket> findByAssignedAgentIdOrderByLastActivityAtDesc(Long assignedAgentId, Pageable pageable);
+    Page<SupportTicket> findByAssignedAgentIdAndStatusOrderByLastActivityAtDesc(Long assignedAgentId, TicketStatus status, Pageable pageable);
 
     @Query("""
             select supportTicket
             from SupportTicket supportTicket
             where (:queue is null or supportTicket.assignedQueue = :queue)
-              and (:status is null or supportTicket.status = :status)
+              and (
+                    (:status is not null and supportTicket.status = :status)
+                    or (:status is null and supportTicket.status in :defaultStatuses)
+                  )
             order by supportTicket.currentPriority desc, supportTicket.lastActivityAt asc
         """)
     Page<SupportTicket> findQueueTickets(
         @Param("queue") TicketQueue ticketQueue,
         @Param("status") TicketStatus ticketStatus,
+        @Param("defaultStatuses") Set<TicketStatus> defaultStatuses,
         Pageable pageable
     );
 
@@ -191,9 +199,17 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         Pageable pageable
     );
 
-    Page<SupportTicket> findByStatusAndAssignedQueueIsNull(
-        @Param("status") TicketStatus status,
+    Page<SupportTicket> findByRequiresHumanReviewTrue(
         Pageable pageable
+    );
+
+    Page<SupportTicket> findByRequiresHumanReviewTrueAndStatusOrderByLastActivityAtDesc(
+        TicketStatus status,
+        Pageable pageable
+    );
+
+    long countByRequiresHumanReviewTrueAndStatus(
+        TicketStatus status
     );
 
     @Query("""

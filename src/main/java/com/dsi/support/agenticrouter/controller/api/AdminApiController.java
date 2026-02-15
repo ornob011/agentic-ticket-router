@@ -1,8 +1,13 @@
 package com.dsi.support.agenticrouter.controller.api;
 
 import com.dsi.support.agenticrouter.dto.api.ApiDtos;
+import com.dsi.support.agenticrouter.entity.AgentQueueMembership;
+import com.dsi.support.agenticrouter.entity.AppUser;
 import com.dsi.support.agenticrouter.enums.AuditEventType;
 import com.dsi.support.agenticrouter.enums.PolicyConfigKey;
+import com.dsi.support.agenticrouter.exception.DataNotFoundException;
+import com.dsi.support.agenticrouter.repository.AgentQueueMembershipRepository;
+import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.AuditEventRepository;
 import com.dsi.support.agenticrouter.service.ai.ModelService;
 import com.dsi.support.agenticrouter.service.auth.PasswordHashService;
@@ -31,6 +36,8 @@ public class AdminApiController {
     private final PolicyConfigService policyConfigService;
     private final PasswordHashService passwordHashService;
     private final AuditEventRepository auditEventRepository;
+    private final AgentQueueMembershipRepository agentQueueMembershipRepository;
+    private final AppUserRepository appUserRepository;
 
     @GetMapping("/model-registry")
     public List<ApiDtos.ModelInfo> modelRegistry() {
@@ -112,6 +119,54 @@ public class AdminApiController {
             request.fullName(),
             request.role(),
             passwordHashService.getPasswordHash(request.password())
+        );
+    }
+
+    @GetMapping("/queue-memberships")
+    public List<ApiDtos.QueueMembershipInfo> queueMemberships() {
+        return agentQueueMembershipRepository.findAllWithUser()
+                                             .stream()
+                                             .map(membership -> ApiDtos.QueueMembershipInfo.builder()
+                                                                                           .id(membership.getId())
+                                                                                           .userId(membership.getUser().getId())
+                                                                                           .username(membership.getUser().getUsername())
+                                                                                           .queue(membership.getQueue())
+                                                                                           .build())
+                                             .toList();
+    }
+
+    @PostMapping("/queue-memberships")
+    public void createQueueMembership(
+        @Valid @RequestBody ApiDtos.QueueMembershipCreateRequest request
+    ) {
+        AppUser user = appUserRepository.findById(request.userId())
+                                        .orElseThrow(
+                                            DataNotFoundException.supplier(
+                                                AppUser.class,
+                                                request.userId()
+                                            )
+                                        );
+
+        if (agentQueueMembershipRepository.existsByUserIdAndQueue(
+            request.userId(),
+            request.queue()
+        )) {
+            return;
+        }
+
+        AgentQueueMembership membership = AgentQueueMembership.builder()
+                                                              .user(user)
+                                                              .queue(request.queue())
+                                                              .build();
+        agentQueueMembershipRepository.save(membership);
+    }
+
+    @DeleteMapping("/queue-memberships/{membershipId}")
+    public void deleteQueueMembership(
+        @PathVariable Long membershipId
+    ) {
+        agentQueueMembershipRepository.deleteById(
+            membershipId
         );
     }
 

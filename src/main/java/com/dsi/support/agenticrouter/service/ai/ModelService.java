@@ -70,7 +70,7 @@ public class ModelService {
 
     @Transactional(readOnly = true)
     public List<ModelRegistry> getAllModels() {
-        List<ModelRegistry> models = modelRegistryRepository.findAll();
+        List<ModelRegistry> models = modelRegistryRepository.findAllByOrderByCreatedAtAsc();
 
         log.debug(
             "ModelList({}) Outcome(modelCount:{})",

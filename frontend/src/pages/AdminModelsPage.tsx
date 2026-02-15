@@ -1,5 +1,5 @@
+import { MouseEvent, useEffect, useState } from "react";
 import { useLoaderData, useRevalidator } from "react-router-dom";
-import { useState } from "react";
 import { formatDateTime } from "@/lib/utils";
 import { api } from "@/lib/api";
 import type { AdminModelsLoaderData } from "@/router";
@@ -14,14 +14,24 @@ export default function AdminModelsPage() {
   const data = useLoaderData<AdminModelsLoaderData>();
   const revalidator = useRevalidator();
   const [activating, setActivating] = useState<string | null>(null);
+  const [models, setModels] = useState<AdminModelsLoaderData>(data ?? []);
 
-  const models = data ?? [];
+  useEffect(() => {
+    setModels(data ?? []);
+  }, [data]);
 
   const activateModel = async (modelTag: string) => {
     setActivating(modelTag);
     try {
       await api.post("/admin/model-registry/activate", { modelTag });
-      await revalidator.revalidate();
+      setModels((prevModels) =>
+        prevModels.map((model) => ({
+          ...model,
+          active: model.modelTag === modelTag,
+          activatedAt: model.modelTag === modelTag ? new Date().toISOString() : model.activatedAt,
+        }))
+      );
+      revalidator.revalidate();
       toast.success(`Model ${modelTag} activated successfully`);
     } catch (error) {
       toast.error("Failed to activate model");
@@ -93,9 +103,13 @@ export default function AdminModelsPage() {
                         )}
                         {!model.active && (
                           <Button
+                            type="button"
                             size="sm"
                             variant="outline"
-                            onClick={() => activateModel(model.modelTag)}
+                            onClick={(event: MouseEvent<HTMLButtonElement>) => {
+                              event.preventDefault();
+                              void activateModel(model.modelTag);
+                            }}
                             disabled={isActivating}
                           >
                             {activateButtonLabel}

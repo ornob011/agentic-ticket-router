@@ -1,63 +1,141 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { login, getSettings } from "@/app/auth";
+import { getSettings, login } from "@/app/auth";
+import { api, type TicketMetadataResponse } from "@/lib/api";
+import { parseApiError } from "@/lib/api-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, ArrowRight, Shield, Zap, Clock } from "lucide-react";
+import { AlertCircle, ArrowRight, Clock, Shield, Zap } from "lucide-react";
 import { canAccessAgentWorkspace } from "@/lib/role-policy";
 import type { UserRole } from "@/lib/api";
 
 type LoginForm = {
   username: string;
   password: string;
+  rememberMe: boolean;
 };
 
-function resolveLandingPath(defaultLanding: string, role: UserRole): string {
+const DEFAULT_LOGIN_ERROR = "Unable to sign in right now. Please try again.";
+const INVALID_CREDENTIALS_MESSAGE = "Invalid username or password. Please try again.";
+
+async function resolveLandingPath(
+  defaultLanding: string,
+  role: UserRole
+): Promise<string> {
   if (defaultLanding === "TICKETS") {
     return "/app/tickets";
   }
+
   if (defaultLanding === "QUEUE" && canAccessAgentWorkspace(role)) {
-    return "/app/agent/queues/GENERAL_Q";
+    if (role === "SUPERVISOR" || role === "ADMIN") {
+      return "/app/agent/queues/ALL";
+    }
+
+    try {
+      const response = await api.get<TicketMetadataResponse>("/tickets/meta");
+      const firstQueue = response.data.accessibleQueues[0]?.code;
+      if (firstQueue) {
+        return `/app/agent/queues/${firstQueue}`;
+      }
+    } catch {
+      return "/app/dashboard";
+    }
+
+    return "/app/dashboard";
   }
+
   return "/app/dashboard";
+}
+
+function resolveLoginErrorMessage(error: unknown): string {
+  const parsedError = parseApiError(error);
+
+  if (parsedError.status === 401 || parsedError.status === 403) {
+    return INVALID_CREDENTIALS_MESSAGE;
+  }
+
+  return parsedError.detail || DEFAULT_LOGIN_ERROR;
 }
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState("");
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    setValue,
+    setError,
+    clearErrors,
+    watch,
+    formState: { errors, isSubmitting },
   } = useForm<LoginForm>({
-    defaultValues: { username: "", password: "" },
+    defaultValues: {
+      username: "",
+      password: "",
+      rememberMe: true,
+    },
   });
 
-  const onSubmit = async (payload: LoginForm) => {
-    setError("");
-    setIsLoading(true);
+  const rememberMe = watch("rememberMe");
+
+  const onSubmit = useCallback(async (payload: LoginForm) => {
+    setFormError("");
+    clearErrors();
+
+    const username = payload.username.trim();
+
     try {
-      const me = await login(payload.username, payload.password);
-      let landingPath = "/app/dashboard";
+      const authenticatedUser = await login(
+        username,
+        payload.password,
+        payload.rememberMe
+      );
+
+      let landingPath: string;
       try {
         const settings = await getSettings();
-        landingPath = resolveLandingPath(settings.defaultLanding, me.role);
+        landingPath = await resolveLandingPath(
+          settings.defaultLanding,
+          authenticatedUser.role
+        );
       } catch {
+        landingPath = "/app/dashboard";
       }
+
       navigate(landingPath, { replace: true });
-    } catch {
-      setError("Invalid username or password. Please try again.");
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      const parsedError = parseApiError(error);
+      const usernameError = parsedError.fieldErrors.username;
+      const passwordError = parsedError.fieldErrors.password;
+
+      if (usernameError) {
+        setError("username", {
+          type: "server",
+          message: usernameError,
+        });
+      }
+
+      if (passwordError) {
+        setError("password", {
+          type: "server",
+          message: passwordError,
+        });
+      }
+
+      setFormError(resolveLoginErrorMessage(error));
     }
-  };
+  }, [clearErrors, navigate, setError]);
+
+  const handleRememberMeChange = useCallback((checked: boolean) => {
+    setValue("rememberMe", checked, { shouldDirty: true });
+  }, [setValue]);
 
   const renderSubmitContent = () => {
-    if (isLoading) {
+    if (isSubmitting) {
       return (
         <div className="flex items-center gap-2">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -163,24 +241,26 @@ export default function LoginPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {error && (
-                  <div className="flex items-start gap-3 rounded-lg bg-destructive/10 p-4 mb-6">
+                {formError && (
+                  <div className="flex items-start gap-3 rounded-lg bg-destructive/10 p-4 mb-6" role="alert" aria-live="polite">
                     <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-                    <div className="text-sm text-destructive">{error}</div>
+                    <div className="text-sm text-destructive">{formError}</div>
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="username">Username</Label>
-                    </div>
+                    <Label htmlFor="username">Username</Label>
                     <Input
                       id="username"
                       placeholder="Enter your username"
                       autoComplete="username"
                       autoFocus
-                      {...register("username", { required: "Username is required" })}
+                      disabled={isSubmitting}
+                      {...register("username", {
+                        required: "Username is required",
+                        setValueAs: (value: string) => value.trim(),
+                      })}
                     />
                     {errors.username && (
                       <p className="text-sm text-destructive">{errors.username.message}</p>
@@ -188,14 +268,13 @@ export default function LoginPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Password</Label>
-                    </div>
+                    <Label htmlFor="password">Password</Label>
                     <Input
                       id="password"
                       type="password"
                       placeholder="Enter your password"
                       autoComplete="current-password"
+                      disabled={isSubmitting}
                       {...register("password", { required: "Password is required" })}
                     />
                     {errors.password && (
@@ -203,7 +282,19 @@ export default function LoginPage() {
                     )}
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="rememberMe"
+                      checked={Boolean(rememberMe)}
+                      onCheckedChange={handleRememberMeChange}
+                      disabled={isSubmitting}
+                    />
+                    <Label htmlFor="rememberMe" className="text-sm text-muted-foreground">
+                      Keep me signed in on this device
+                    </Label>
+                  </div>
+
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
                     {renderSubmitContent()}
                   </Button>
                 </form>
@@ -211,7 +302,13 @@ export default function LoginPage() {
                 <div className="mt-6 pt-6 border-t">
                   <p className="text-center text-sm text-muted-foreground">
                     Don't have an account?{" "}
-                    <Button variant="link" className="px-0" onClick={() => navigate("/app/signup")}>
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="px-0"
+                      onClick={() => navigate("/app/signup")}
+                      disabled={isSubmitting}
+                    >
                       Create an account
                     </Button>
                   </p>

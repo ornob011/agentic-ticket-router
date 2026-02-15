@@ -1,7 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { api, type TicketMetadataResponse } from "@/lib/api";
 import {
   LayoutDashboard,
   Inbox,
@@ -83,6 +85,9 @@ function isItemActive(pathname: string, item: NavItem): boolean {
     case "customerTickets":
       return isCustomerTicketPath(pathname);
     case "section":
+      if (item.to.startsWith("/app/agent/queues/") && pathname.startsWith("/app/agent/queues/")) {
+        return true;
+      }
       return pathname === item.to || pathname.startsWith(`${item.to}/`);
     default:
       return false;
@@ -97,7 +102,8 @@ type NavItemLinkProps = Readonly<{
 function NavItemLink({ item, collapsed }: NavItemLinkProps) {
   const location = useLocation();
   const Icon = item.icon;
-  const isActive = isItemActive(location.pathname, item);
+  const to = item.to;
+  const isActive = isItemActive(location.pathname, { ...item, to });
   let toneClass = "text-muted-foreground hover:bg-accent hover:text-accent-foreground";
 
   if (isActive) {
@@ -106,7 +112,7 @@ function NavItemLink({ item, collapsed }: NavItemLinkProps) {
 
   return (
     <Link
-      to={item.to}
+      to={to}
       className={cn(
         "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
         toneClass,
@@ -122,7 +128,39 @@ function NavItemLink({ item, collapsed }: NavItemLinkProps) {
 export function Sidebar(
   { role, collapsed = false, onToggle }: Readonly<SidebarProps>
 ) {
-  const filteredNavItems = navItems.filter((item) => role && item.roles.includes(role));
+  const { data: ticketMetadata } = useQuery({
+    queryKey: ["ticket-metadata", "sidebar"],
+    queryFn: async () => {
+      const response = await api.get<TicketMetadataResponse>("/tickets/meta");
+      return response.data;
+    },
+    enabled: role === "AGENT" || role === "SUPERVISOR" || role === "ADMIN",
+    staleTime: 60_000,
+  });
+
+  let queueInboxTarget: string | null = null;
+  if (role === "SUPERVISOR" || role === "ADMIN") {
+    queueInboxTarget = "/app/agent/queues/ALL";
+  } else if (role === "AGENT" && ticketMetadata) {
+    const firstQueue = ticketMetadata.accessibleQueues[0];
+    if (firstQueue) {
+      queueInboxTarget = `/app/agent/queues/${firstQueue.code}`;
+    }
+  }
+
+  const filteredNavItems = navItems
+    .filter((item) => role && item.roles.includes(role))
+    .flatMap((item) => {
+      if (item.to !== "/app/agent/queues/GENERAL_Q") {
+        return [item];
+      }
+
+      if (!queueInboxTarget) {
+        return [];
+      }
+
+      return [{ ...item, to: queueInboxTarget }];
+    });
   const filteredAdminItems = adminItems.filter((item) => role && item.roles.includes(role));
   const showAdminSection = filteredAdminItems.length > 0;
   let widthClass = "w-[260px]";

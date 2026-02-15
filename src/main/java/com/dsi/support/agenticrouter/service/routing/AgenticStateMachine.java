@@ -3,6 +3,7 @@ package com.dsi.support.agenticrouter.service.routing;
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.entity.TicketAutonomousMetadata;
+import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.service.action.ActionRegistry;
@@ -127,13 +128,34 @@ public class AgenticStateMachine {
             supportTicket
         );
 
-        TicketAutonomousMetadata autonomousMetadata = supportTicket.getAutonomousMetadata();
+        TicketAutonomousMetadata autonomousMetadata = Objects.requireNonNullElse(
+            supportTicket.getAutonomousMetadata(),
+            TicketAutonomousMetadata.builder().build()
+        );
 
         autonomousMetadata.setEscalationReason(escalationReason);
 
         supportTicket.setAutonomousMetadata(autonomousMetadata);
-        supportTicket.setStatus(TicketStatus.AUTO_ESCALATED);
-        supportTicket.setAssignedQueue(routerResponse.getQueue());
+
+        if (Objects.nonNull(routerResponse.getCategory())) {
+            supportTicket.setCurrentCategory(routerResponse.getCategory());
+        }
+
+        if (Objects.nonNull(routerResponse.getPriority())) {
+            supportTicket.setCurrentPriority(routerResponse.getPriority());
+        }
+
+        supportTicket.setAssignedQueue(
+            Objects.requireNonNullElse(
+                routerResponse.getQueue(),
+                TicketQueue.GENERAL_Q
+            )
+        );
+
+        supportTicket.setLatestRoutingConfidence(routerResponse.getConfidence());
+        supportTicket.setStatus(TicketStatus.ESCALATED);
+        supportTicket.setEscalated(true);
+        supportTicket.setRequiresHumanReview(false);
 
         supportTicketRepository.save(supportTicket);
 

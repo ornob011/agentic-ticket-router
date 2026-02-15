@@ -1,11 +1,15 @@
-import { useLoaderData, useNavigate } from "react-router-dom";
+import { FormEvent, useState } from "react";
+import { useLoaderData, useNavigate, useRevalidator } from "react-router-dom";
 import type { EscalationDetailLoaderData } from "@/router";
+import { api } from "@/lib/api";
 import { formatDateTime, cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, AlertTriangle, CheckCircle, Clock, User, Calendar, MessageSquare } from "lucide-react";
+import { toast } from "sonner";
 
 type DetailSectionProps = Readonly<{
   icon?: typeof AlertTriangle;
@@ -54,6 +58,9 @@ function getEscalationStatusMeta(resolved: boolean) {
 export default function EscalationDetailPage() {
   const data = useLoaderData<EscalationDetailLoaderData>();
   const navigate = useNavigate();
+  const revalidator = useRevalidator();
+  const [resolutionNotes, setResolutionNotes] = useState("");
+  const [resolving, setResolving] = useState(false);
 
   const statusMeta = getEscalationStatusMeta(data.resolved);
   const BadgeIcon = statusMeta.badgeIcon;
@@ -62,12 +69,43 @@ export default function EscalationDetailPage() {
   const renderResolutionContent = () => {
     if (!data.resolutionNotes) {
       return (
-        <div className="flex flex-col items-center justify-center py-8 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
-            <Clock className="h-6 w-6 text-amber-600" />
+        <div className="space-y-3">
+          <div className="flex flex-col items-center justify-center py-4 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
+              <Clock className="h-6 w-6 text-amber-600" />
+            </div>
+            <p className="mt-3 font-medium text-foreground">Waiting for Resolution</p>
+            <p className="mt-1 text-sm text-muted-foreground">A supervisor will review this escalation soon</p>
           </div>
-          <p className="mt-3 font-medium text-foreground">Waiting for Resolution</p>
-          <p className="mt-1 text-sm text-muted-foreground">A supervisor will review this escalation soon</p>
+          <form onSubmit={(event: FormEvent) => {
+            event.preventDefault();
+            if (!resolutionNotes.trim() || resolving) {
+              return;
+            }
+
+            setResolving(true);
+            api.post(`/supervisor/escalations/${data.id}/resolve`, { resolutionNotes })
+               .then(async () => {
+                 await revalidator.revalidate();
+                 setResolutionNotes("");
+                 toast.success("Escalation resolved");
+               })
+               .catch((error) => {
+                 toast.error("Failed to resolve escalation");
+                 console.error("Failed to resolve escalation:", error);
+               })
+               .finally(() => setResolving(false));
+          }} className="space-y-3">
+            <Textarea
+              placeholder="Resolution notes"
+              value={resolutionNotes}
+              onChange={(event) => setResolutionNotes(event.target.value)}
+              rows={4}
+            />
+            <Button type="submit" className="w-full" disabled={!resolutionNotes.trim() || resolving}>
+              {resolving ? "Resolving..." : "Resolve Escalation"}
+            </Button>
+          </form>
         </div>
       );
     }
@@ -165,7 +203,7 @@ export default function EscalationDetailPage() {
             <MessageSquare className="h-4 w-4" />
             <span>Need to view the original ticket?</span>
           </div>
-          <Button variant="outline" onClick={() => navigate(`/app/supervisor/tickets/${data.ticketId}`)}>
+          <Button variant="outline" onClick={() => navigate(`/app/agent/tickets/${data.ticketId}`)}>
             View Ticket
           </Button>
         </CardContent>

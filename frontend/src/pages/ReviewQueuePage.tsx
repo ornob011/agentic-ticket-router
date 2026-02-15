@@ -1,14 +1,16 @@
 import { useLoaderData, useRevalidator } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReviewQueueLoaderData } from "@/router";
 import { formatLabel, getStatusTone, formatRelativeTime, getPriorityTone, cn } from "@/lib/utils";
 import { getTicketPriorityBorderClass, getTicketStatusDotClass } from "@/lib/ticket-visuals";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useNavigate } from "react-router-dom";
-import { ClipboardCheck, Clock } from "lucide-react";
+import { ClipboardCheck, Clock, Inbox, Search } from "lucide-react";
 
 type ReviewTicketCardProps = Readonly<{
   ticket: ReviewQueueLoaderData["content"][0];
@@ -53,7 +55,10 @@ function ReviewTicketCard({ ticket }: ReviewTicketCardProps) {
           </div>
           {ticket.queue && (
             <div className="flex items-center gap-1">
-              <span className="font-medium">{queueLabel}</span>
+              <Inbox className="h-3 w-3" />
+              <Badge variant="outline" className="text-xs">
+                {queueLabel}
+              </Badge>
             </div>
           )}
         </div>
@@ -72,6 +77,10 @@ function ReviewTicketCard({ ticket }: ReviewTicketCardProps) {
 export default function ReviewQueuePage() {
   const data = useLoaderData<ReviewQueueLoaderData>();
   const revalidator = useRevalidator();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [priorityFilter, setPriorityFilter] = useState("ALL");
+  const [queueFilter, setQueueFilter] = useState("ALL");
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -81,8 +90,48 @@ export default function ReviewQueuePage() {
   }, [revalidator]);
 
   const tickets = data?.content ?? [];
-  const hasContent = tickets.length > 0;
-  const showEmptyState = data !== undefined && tickets.length === 0;
+  const statusOptions = useMemo(
+    () =>
+      Array.from(new Set(tickets.map((ticket) => ticket.status).filter((status): status is string => Boolean(status)))).sort(),
+    [tickets]
+  );
+  const priorityOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(tickets.map((ticket) => ticket.priority).filter((priority): priority is string => Boolean(priority)))
+      ).sort(),
+    [tickets]
+  );
+  const queueOptions = useMemo(
+    () =>
+      Array.from(new Set(tickets.map((ticket) => ticket.queue).filter((queueCode): queueCode is string => Boolean(queueCode)))).sort(),
+    [tickets]
+  );
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredTickets = useMemo(
+    () =>
+      tickets.filter((ticket) => {
+        if (statusFilter !== "ALL" && ticket.status !== statusFilter) {
+          return false;
+        }
+        if (priorityFilter !== "ALL" && ticket.priority !== priorityFilter) {
+          return false;
+        }
+        if (queueFilter !== "ALL" && ticket.queue !== queueFilter) {
+          return false;
+        }
+        if (!normalizedSearch) {
+          return true;
+        }
+        const haystack = [ticket.formattedTicketNo, ticket.subject, ticket.customerName ?? "", ticket.assignedAgentName ?? ""]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(normalizedSearch);
+      }),
+    [tickets, statusFilter, priorityFilter, queueFilter, normalizedSearch]
+  );
+  const hasFilters = Boolean(normalizedSearch) || statusFilter !== "ALL" || priorityFilter !== "ALL" || queueFilter !== "ALL";
+  const showEmptyState = data !== undefined && filteredTickets.length === 0;
 
   const renderReviewList = () => {
     if (showEmptyState) {
@@ -91,15 +140,19 @@ export default function ReviewQueuePage() {
           <CardContent className="p-0">
             <EmptyState
               icon={ClipboardCheck}
-              title="No tickets to review"
-              description="All AI routing decisions have been validated. You're all caught up!"
+              title={hasFilters ? "No matching tickets" : "No tickets to review"}
+              description={
+                hasFilters
+                  ? "Try adjusting the filters to see more tickets."
+                  : "All AI routing decisions have been validated. You're all caught up!"
+              }
             />
           </CardContent>
         </Card>
       );
     }
 
-    return tickets.map((ticket) => <ReviewTicketCard key={ticket.id} ticket={ticket} />);
+    return filteredTickets.map((ticket) => <ReviewTicketCard key={ticket.id} ticket={ticket} />);
   };
 
   return (
@@ -109,10 +162,66 @@ export default function ReviewQueuePage() {
         description="Tickets requiring human review and validation"
       />
 
-      {data && hasContent && (
+      <Card>
+        <CardContent className="grid gap-3 p-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="relative md:col-span-2">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search ticket no, subject, customer, agent"
+              className="pl-9"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Statuses</SelectItem>
+              {statusOptions.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {formatLabel(status)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Priorities</SelectItem>
+              {priorityOptions.map((priority) => (
+                <SelectItem key={priority} value={priority}>
+                  {formatLabel(priority)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={queueFilter} onValueChange={setQueueFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Queue" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Queues</SelectItem>
+              {queueOptions.map((queueCode) => (
+                <SelectItem key={queueCode} value={queueCode}>
+                  {formatLabel(queueCode)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      {data && (
         <div className="flex items-center gap-4 rounded-lg bg-amber-50 px-4 py-2 text-sm">
           <ClipboardCheck className="h-4 w-4 text-amber-600" />
           <div className="flex items-center gap-2">
+            <span className="font-medium text-amber-700">{filteredTickets.length}</span>
+            <span className="text-amber-600">shown</span>
+            <span className="text-amber-600">of</span>
             <span className="font-medium text-amber-700">{data.totalElements}</span>
             <span className="text-amber-600">tickets awaiting review</span>
           </div>
