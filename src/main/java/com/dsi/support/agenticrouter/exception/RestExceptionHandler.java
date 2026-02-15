@@ -19,6 +19,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -47,6 +48,7 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final String VALIDATION_ERROR_DETAIL = "One or more fields are invalid.";
     private static final String INTERNAL_ERROR_DETAIL = "An unexpected error occurred. Please try again later.";
+    private static final String INVALID_CREDENTIALS_DETAIL = "Invalid username or password.";
 
     private final MessageSource messageSource;
 
@@ -119,6 +121,25 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
             request,
             ErrorCode.FORBIDDEN,
             "You do not have permission to perform this action."
+        );
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ProblemDetail handleBadCredentials(
+        BadCredentialsException exception,
+        HttpServletRequest request
+    ) {
+        logWarn(
+            request,
+            ErrorCode.UNAUTHORIZED,
+            exception,
+            "badCredentials"
+        );
+
+        return buildProblemDetail(
+            request,
+            ErrorCode.UNAUTHORIZED,
+            INVALID_CREDENTIALS_DETAIL
         );
     }
 
