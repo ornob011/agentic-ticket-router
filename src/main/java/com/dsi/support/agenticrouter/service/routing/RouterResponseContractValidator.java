@@ -3,13 +3,13 @@ package com.dsi.support.agenticrouter.service.routing;
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.enums.NextAction;
 import com.dsi.support.agenticrouter.enums.RoutingActionParameterKey;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 @Component
@@ -84,19 +84,19 @@ public class RouterResponseContractValidator {
         }
 
         Map<String, ?> actionParameters = routerResponse.getActionParameters();
-        String articleIdText = Optional.ofNullable(actionParameters)
-                                       .map(params -> params.get(RoutingActionParameterKey.ARTICLE_ID.getKey()))
-                                       .map(Object::toString)
-                                       .map(StringUtils::trimToNull)
-                                       .orElse(null);
+        String articleIdText = actionParameterText(
+            actionParameters,
+            RoutingActionParameterKey.ARTICLE_ID
+        );
 
         if (StringUtils.isBlank(articleIdText) || !StringUtils.isNumeric(articleIdText)) {
             throw new IllegalStateException("article_id must be numeric for USE_KNOWLEDGE_ARTICLE");
         }
 
-        if (Long.parseLong(articleIdText) <= 0L) {
-            throw new IllegalStateException("article_id must be positive for USE_KNOWLEDGE_ARTICLE");
-        }
+        parsePositiveLong(
+            articleIdText,
+            "article_id must be positive for USE_KNOWLEDGE_ARTICLE"
+        );
     }
 
     private void validateProfileUpdateParameters(
@@ -106,8 +106,10 @@ public class RouterResponseContractValidator {
             return;
         }
 
-        Map<String, ?> actionParameters = Optional.ofNullable(routerResponse.getActionParameters())
-                                                  .orElseThrow(() -> new IllegalStateException("action_parameters is required for UPDATE_CUSTOMER_PROFILE"));
+        Map<String, ?> actionParameters = routerResponse.getActionParameters();
+        if (Objects.isNull(actionParameters)) {
+            throw new IllegalStateException("action_parameters is required for UPDATE_CUSTOMER_PROFILE");
+        }
 
         boolean hasAnyProfileValue = Stream.of(
                                                RoutingActionParameterKey.PHONE_NUMBER,
@@ -120,7 +122,7 @@ public class RouterResponseContractValidator {
                                            .map(RoutingActionParameterKey::getKey)
                                            .map(actionParameters::get)
                                            .map(value -> Objects.toString(value, null))
-                                           .map(StringUtils::trimToNull)
+                                           .map(StringNormalizationUtils::trimToNull)
                                            .anyMatch(StringUtils::isNotBlank);
 
         if (!hasAnyProfileValue) {
@@ -137,24 +139,48 @@ public class RouterResponseContractValidator {
 
         Map<String, ?> actionParameters = routerResponse.getActionParameters();
 
-        String templateIdText = Optional.ofNullable(actionParameters)
-                                        .map(params -> params.get(RoutingActionParameterKey.TEMPLATE_ID.getKey()))
-                                        .map(Object::toString)
-                                        .map(StringUtils::trimToNull)
-                                        .orElse(null);
+        String templateIdText = actionParameterText(
+            actionParameters,
+            RoutingActionParameterKey.TEMPLATE_ID
+        );
 
         if (StringUtils.isBlank(templateIdText)) {
-            return;
+            throw new IllegalStateException("template_id is required for USE_TEMPLATE");
         }
 
         if (!StringUtils.isNumeric(templateIdText)) {
-            throw new IllegalStateException("template_id must be numeric");
+            throw new IllegalStateException("template_id must be numeric for USE_TEMPLATE");
         }
 
-        long templateId = Long.parseLong(templateIdText);
+        parsePositiveLong(
+            templateIdText,
+            "template_id must be positive for USE_TEMPLATE"
+        );
+    }
 
-        if (templateId <= 0L) {
-            throw new IllegalStateException("template_id must be positive");
+    private long parsePositiveLong(
+        String value,
+        String nonPositiveMessage
+    ) {
+        long parsed = Long.parseLong(value);
+        if (parsed <= 0L) {
+            throw new IllegalStateException(nonPositiveMessage);
         }
+
+        return parsed;
+    }
+
+    private String actionParameterText(
+        Map<String, ?> actionParameters,
+        RoutingActionParameterKey parameterKey
+    ) {
+        if (Objects.isNull(actionParameters)) {
+            return null;
+        }
+
+        Object parameterValue = actionParameters.get(parameterKey.getKey());
+        return StringNormalizationUtils.trimToNull(
+            Objects.toString(parameterValue, null)
+        );
     }
 }

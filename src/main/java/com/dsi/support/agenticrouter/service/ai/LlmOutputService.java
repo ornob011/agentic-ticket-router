@@ -9,6 +9,7 @@ import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.LlmOutputRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -98,32 +99,16 @@ public class LlmOutputService {
         Objects.requireNonNull(modelTag, "modelTag is required");
         Objects.requireNonNull(parseStatus, "parseStatus is required");
 
-        SupportTicket supportTicket = supportTicketRepository.findById(ticketId)
-                                                             .orElseThrow(
-                                                                 DataNotFoundException.supplier(
-                                                                     SupportTicket.class,
-                                                                     ticketId
-                                                                 )
-                                                             );
-
-        ObjectNode rawRequestJson = objectMapper.createObjectNode();
-        String normalizedPromptText = StringUtils.trimToNull(promptText);
-
-        if (StringUtils.isNotBlank(normalizedPromptText)) {
-            rawRequestJson.put("prompt", normalizedPromptText);
-        }
-
-        JsonNode rawResponseJson = null;
-        if (Objects.nonNull(routingResponse)) {
-            rawResponseJson = objectMapper.valueToTree(routingResponse);
-        }
+        SupportTicket supportTicket = requireTicket(
+            ticketId
+        );
 
         LlmOutput routingOutput = LlmOutput.builder()
                                            .ticket(supportTicket)
                                            .modelTag(modelTag)
                                            .outputType(LlmOutputType.ROUTING)
-                                           .rawRequest(rawRequestJson)
-                                           .rawResponse(rawResponseJson)
+                                           .rawRequest(buildPromptRequest(promptText))
+                                           .rawResponse(buildRoutingResponse(routingResponse))
                                            .parseStatus(parseStatus)
                                            .errorMessage(errorMessage)
                                            .latencyMs(latencyMs)
@@ -170,30 +155,17 @@ public class LlmOutputService {
         Objects.requireNonNull(outputType, "outputType is required");
         Objects.requireNonNull(parseStatus, "parseStatus is required");
 
-        ObjectNode rawRequestJson = objectMapper.createObjectNode();
-        rawRequestJson.put("content", requestContent);
-
-        JsonNode rawResponseJson = null;
-        String normalizedAnalysisText = StringUtils.trimToNull(analysisText);
-
-        if (StringUtils.isNotBlank(normalizedAnalysisText)) {
-            ObjectNode analysisJson = objectMapper.createObjectNode();
-
-            analysisJson.put("analysis", normalizedAnalysisText);
-
-            rawResponseJson = analysisJson;
-        }
-
         LlmOutput analysisOutput = LlmOutput.builder()
                                             .ticket(supportTicket)
                                             .modelTag(ANALYZER_MODEL_TAG)
                                             .outputType(outputType)
-                                            .rawRequest(rawRequestJson)
-                                            .rawResponse(rawResponseJson)
+                                            .rawRequest(buildContentRequest(requestContent))
+                                            .rawResponse(buildAnalysisResponse(analysisText))
                                             .parseStatus(parseStatus)
                                             .errorMessage(errorMessage)
                                             .latencyMs(latencyMs)
                                             .repairAttempts(0)
+                                            .temperature(DEFAULT_TEMPERATURE)
                                             .build();
 
         llmOutputRepository.save(analysisOutput);
@@ -208,5 +180,62 @@ public class LlmOutputService {
             analysisOutput.getParseStatus(),
             analysisOutput.getLatencyMs()
         );
+    }
+
+    private SupportTicket requireTicket(
+        Long ticketId
+    ) {
+        return supportTicketRepository.findById(ticketId)
+                                      .orElseThrow(
+                                          DataNotFoundException.supplier(
+                                              SupportTicket.class,
+                                              ticketId
+                                          )
+                                      );
+    }
+
+    private ObjectNode buildPromptRequest(
+        String promptText
+    ) {
+        ObjectNode rawRequestJson = objectMapper.createObjectNode();
+        String normalizedPromptText = StringNormalizationUtils.trimToNull(promptText);
+
+        if (StringUtils.isNotBlank(normalizedPromptText)) {
+            rawRequestJson.put("prompt", normalizedPromptText);
+        }
+
+        return rawRequestJson;
+    }
+
+    private ObjectNode buildContentRequest(
+        String requestContent
+    ) {
+        ObjectNode rawRequestJson = objectMapper.createObjectNode();
+        rawRequestJson.put("content", requestContent);
+        return rawRequestJson;
+    }
+
+    private JsonNode buildRoutingResponse(
+        RouterResponse routingResponse
+    ) {
+        if (Objects.isNull(routingResponse)) {
+            return null;
+        }
+
+        return objectMapper.valueToTree(routingResponse);
+    }
+
+    private JsonNode buildAnalysisResponse(
+        String analysisText
+    ) {
+        String normalizedAnalysisText = StringNormalizationUtils.trimToNull(analysisText);
+
+        if (StringUtils.isBlank(normalizedAnalysisText)) {
+            return null;
+        }
+
+        ObjectNode analysisJson = objectMapper.createObjectNode();
+        analysisJson.put("analysis", normalizedAnalysisText);
+        return analysisJson;
     }
 }

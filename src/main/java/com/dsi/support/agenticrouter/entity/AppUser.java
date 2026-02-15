@@ -1,6 +1,7 @@
 package com.dsi.support.agenticrouter.entity;
 
 import com.dsi.support.agenticrouter.enums.UserRole;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -118,15 +119,15 @@ public class AppUser extends BaseEntity {
     @PreUpdate
     public void normalize() {
         if (Objects.nonNull(email)) {
-            email = email.trim().toLowerCase();
+            email = StringNormalizationUtils.lowerTrimmedOrNull(email);
         }
 
         if (Objects.nonNull(username)) {
-            username = username.trim().toLowerCase();
+            username = StringNormalizationUtils.lowerTrimmedOrNull(username);
         }
 
         if (Objects.nonNull(fullName)) {
-            fullName = fullName.trim();
+            fullName = StringNormalizationUtils.trimToNull(fullName);
         }
     }
 

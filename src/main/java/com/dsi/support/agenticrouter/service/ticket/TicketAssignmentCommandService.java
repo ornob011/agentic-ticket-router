@@ -4,17 +4,12 @@ import com.dsi.support.agenticrouter.entity.AppUser;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.AuditEventType;
 import com.dsi.support.agenticrouter.enums.NotificationType;
-import com.dsi.support.agenticrouter.enums.TicketStatus;
-import com.dsi.support.agenticrouter.enums.UserRole;
-import com.dsi.support.agenticrouter.exception.DataNotFoundException;
-import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.security.TicketAccessPolicyService;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
 import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
-import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,24 +25,21 @@ import java.util.Objects;
 public class TicketAssignmentCommandService {
 
     private final SupportTicketRepository supportTicketRepository;
-    private final AppUserRepository appUserRepository;
     private final TicketAccessPolicyService ticketAccessPolicyService;
     private final AuditService auditService;
     private final NotificationService notificationService;
+    private final TicketCommandLookupService ticketCommandLookupService;
+    private final TicketAssignmentWorkflowService ticketAssignmentWorkflowService;
 
     public void assignSelf(
         Long ticketId
     ) throws BindException {
         Objects.requireNonNull(ticketId, "ticketId");
 
-        AppUser actor = Utils.getLoggedInUserDetails();
-        SupportTicket supportTicket = supportTicketRepository.findById(ticketId)
-                                                             .orElseThrow(
-                                                                 DataNotFoundException.supplier(
-                                                                     SupportTicket.class,
-                                                                     ticketId
-                                                                 )
-                                                             );
+        AppUser actor = ticketCommandLookupService.requireCurrentActor();
+        SupportTicket supportTicket = ticketCommandLookupService.requireTicket(
+            ticketId
+        );
 
         if (!ticketAccessPolicyService.canAssignSelf(
             supportTicket,
@@ -61,17 +53,11 @@ public class TicketAssignmentCommandService {
         }
 
         AppUser previousAgent = supportTicket.getAssignedAgent();
-        supportTicket.setAssignedAgent(actor);
-        completeHumanReviewIfSupervisorDecision(
+        ticketAssignmentWorkflowService.applyAssignment(
             supportTicket,
+            actor,
             actor
         );
-        supportTicket.updateLastActivity();
-
-        if (supportTicket.getStatus() == TicketStatus.ASSIGNED
-            || supportTicket.getStatus() == TicketStatus.TRIAGING) {
-            supportTicket.setStatus(TicketStatus.IN_PROGRESS);
-        }
 
         supportTicketRepository.save(supportTicket);
 
@@ -102,23 +88,13 @@ public class TicketAssignmentCommandService {
         Objects.requireNonNull(ticketId, "ticketId");
         Objects.requireNonNull(agentId, "agentId");
 
-        SupportTicket supportTicket = supportTicketRepository.findById(ticketId)
-                                                             .orElseThrow(
-                                                                 DataNotFoundException.supplier(
-                                                                     SupportTicket.class,
-                                                                     ticketId
-                                                                 )
-                                                             );
-
-        AppUser agent = appUserRepository.findById(agentId)
-                                         .orElseThrow(
-                                             DataNotFoundException.supplier(
-                                                 AppUser.class,
-                                                 agentId
-                                             )
-                                         );
-
-        AppUser actor = Utils.getLoggedInUserDetails();
+        SupportTicket supportTicket = ticketCommandLookupService.requireTicket(
+            ticketId
+        );
+        AppUser agent = ticketCommandLookupService.requireUser(
+            agentId
+        );
+        AppUser actor = ticketCommandLookupService.requireCurrentActor();
         if (!ticketAccessPolicyService.canAssignOthers(actor)) {
             throw BindValidation.fieldError(
                 "assignAgentRequest",
@@ -127,9 +103,7 @@ public class TicketAssignmentCommandService {
             );
         }
 
-        if (!agent.getRole().equals(UserRole.AGENT)
-            && !agent.getRole().equals(UserRole.SUPERVISOR)
-            && !agent.getRole().equals(UserRole.ADMIN)) {
+        if (!agent.canAccessAgentPortal()) {
             throw BindValidation.fieldError(
                 "assignAgentRequest",
                 "agentId",
@@ -138,17 +112,11 @@ public class TicketAssignmentCommandService {
         }
 
         AppUser previousAgent = supportTicket.getAssignedAgent();
-        supportTicket.setAssignedAgent(agent);
-        completeHumanReviewIfSupervisorDecision(
+        ticketAssignmentWorkflowService.applyAssignment(
             supportTicket,
-            actor
+            actor,
+            agent
         );
-        supportTicket.updateLastActivity();
-
-        if (supportTicket.getStatus() == TicketStatus.ASSIGNED
-            || supportTicket.getStatus() == TicketStatus.TRIAGING) {
-            supportTicket.setStatus(TicketStatus.IN_PROGRESS);
-        }
 
         supportTicketRepository.save(supportTicket);
 
@@ -187,24 +155,29 @@ public class TicketAssignmentCommandService {
     public void releaseAgent(
         Long ticketId
     ) throws BindException {
+        AppUser actor = ticketCommandLookupService.requireCurrentActor();
+
         log.info(
             "AgentRelease({}) SupportTicket(id:{}) Actor(id:{})",
             OperationalLogContext.PHASE_START,
             ticketId,
-            Utils.getLoggedInUserId()
+            actor.getId()
         );
 
         Objects.requireNonNull(ticketId, "ticketId");
 
-        SupportTicket supportTicket = supportTicketRepository.findById(ticketId)
-                                                             .orElseThrow(
-                                                                 DataNotFoundException.supplier(
-                                                                     SupportTicket.class,
-                                                                     ticketId
-                                                                 )
-                                                             );
+        SupportTicket supportTicket = ticketCommandLookupService.requireTicket(
+            ticketId
+        );
 
-        AppUser actor = Utils.getLoggedInUserDetails();
+        if (!actor.isAgent() && !ticketAccessPolicyService.canAssignOthers(actor)) {
+            throw BindValidation.fieldError(
+                "releaseAgentRequest",
+                "ticketId",
+                "Actor cannot release agent assignment"
+            );
+        }
+
         if (actor.isAgent()
             && Objects.nonNull(supportTicket.getAssignedAgent())
             && !Objects.equals(
@@ -231,17 +204,15 @@ public class TicketAssignmentCommandService {
             return;
         }
 
-        supportTicket.setAssignedAgent(null);
-        if (shouldTransitionToAssignedOnRelease(supportTicket.getStatus())) {
-            supportTicket.setStatus(TicketStatus.ASSIGNED);
-        }
-        supportTicket.updateLastActivity();
+        ticketAssignmentWorkflowService.applyRelease(
+            supportTicket
+        );
         supportTicketRepository.save(supportTicket);
 
         auditService.recordEvent(
             AuditEventType.AGENT_ASSIGNED,
             ticketId,
-            Utils.getLoggedInUserId(),
+            actor.getId(),
             String.format("Agent released: %s", previousAgent.getFullName()),
             null
         );
@@ -254,23 +225,6 @@ public class TicketAssignmentCommandService {
             supportTicket.getAssignedQueue(),
             previousAgent.getId()
         );
-    }
-
-    private boolean shouldTransitionToAssignedOnRelease(
-        TicketStatus currentStatus
-    ) {
-        return currentStatus == TicketStatus.TRIAGING
-               || currentStatus == TicketStatus.IN_PROGRESS
-               || currentStatus == TicketStatus.WAITING_CUSTOMER;
-    }
-
-    private void completeHumanReviewIfSupervisorDecision(
-        SupportTicket supportTicket,
-        AppUser actor
-    ) {
-        if (Objects.nonNull(actor) && (actor.isSupervisor() || actor.isAdmin())) {
-            supportTicket.setRequiresHumanReview(false);
-        }
     }
 
 }

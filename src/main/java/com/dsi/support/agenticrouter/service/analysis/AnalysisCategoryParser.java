@@ -1,8 +1,8 @@
 package com.dsi.support.agenticrouter.service.analysis;
 
 import com.dsi.support.agenticrouter.enums.TicketCategory;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import org.apache.commons.lang3.EnumUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
@@ -18,7 +18,7 @@ public class AnalysisCategoryParser {
     public TicketCategory parseFromModelResponse(
         String responseText
     ) {
-        String normalizedResponse = StringUtils.trimToEmpty(responseText);
+        String normalizedResponse = StringNormalizationUtils.trimToEmpty(responseText);
         if (normalizedResponse.isEmpty()) {
             return TicketCategory.OTHER;
         }
@@ -28,7 +28,7 @@ public class AnalysisCategoryParser {
             return TicketCategory.OTHER;
         }
 
-        String categoryToken = StringUtils.trimToEmpty(
+        String categoryToken = StringNormalizationUtils.trimToEmpty(
             matcher.group(1)
         );
 

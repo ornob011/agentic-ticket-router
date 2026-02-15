@@ -8,6 +8,7 @@ import com.dsi.support.agenticrouter.enums.ParseStatus;
 import com.dsi.support.agenticrouter.enums.TicketCategory;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import com.dsi.support.agenticrouter.service.ai.ChatClientFactory;
 import com.dsi.support.agenticrouter.service.ai.LlmOutputService;
 import com.dsi.support.agenticrouter.service.ai.PromptService;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
@@ -19,9 +20,11 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
 
 import java.util.Arrays;
-import java.util.Objects;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,12 +39,13 @@ public class TicketAnalysisService {
     private final AuditService auditService;
     private final LlmOutputService llmOutputService;
     private final AnalysisCategoryParser analysisCategoryParser;
-
-    private ChatClient chatClient;
+    private final ChatClientFactory chatClientFactory;
 
     public TicketAnalysisResult analyzeTicket(
         TicketAnalysisRequest ticketAnalysisRequest
     ) {
+        long startTime = System.currentTimeMillis();
+
         log.info(
             "TicketAnalysis({}) SupportTicket(id:{}) Outcome(contentLength:{})",
             OperationalLogContext.PHASE_START,
@@ -57,10 +61,9 @@ public class TicketAnalysisService {
                                                                  )
                                                              );
 
-        if (Objects.isNull(chatClient)) {
-            chatClient = ChatClient.builder(chatModel)
-                                   .build();
-        }
+        ChatClient chatClient = chatClientFactory.create(
+            chatModel
+        );
 
         String categoryTokens = Arrays.stream(TicketCategory.values())
                                       .map(Enum::name)
@@ -80,6 +83,8 @@ public class TicketAnalysisService {
                                         .call()
                                         .content();
 
+        long latencyMs = System.currentTimeMillis() - startTime;
+
         llmOutputService.persistAnalysisOutput(
             supportTicket,
             ticketAnalysisRequest.getContent(),
@@ -87,7 +92,7 @@ public class TicketAnalysisService {
             LlmOutputType.ANALYSIS,
             ParseStatus.SUCCESS,
             null,
-            0
+            latencyMs
         );
 
         auditService.recordTicketAnalysis(
@@ -102,17 +107,32 @@ public class TicketAnalysisService {
         );
 
         log.info(
-            "TicketAnalysis({}) SupportTicket(id:{}) Outcome(category:{},analysisLength:{})",
+            "TicketAnalysis({}) SupportTicket(id:{}) Outcome(category:{},analysisLength:{},latencyMs:{})",
             OperationalLogContext.PHASE_COMPLETE,
             supportTicket.getId(),
             category,
-            StringUtils.length(responseText)
+            StringUtils.length(responseText),
+            latencyMs
         );
 
         return TicketAnalysisResult.builder()
                                    .analysis(responseText)
                                    .category(category)
                                    .build();
+    }
+
+    private ParseStatus classifyParseStatus(
+        Throwable throwable
+    ) {
+        Throwable cause = throwable;
+        while (cause != null) {
+            if (cause instanceof TimeoutException) {
+                return ParseStatus.TIMEOUT;
+            }
+            cause = cause.getCause();
+        }
+
+        return ParseStatus.MODEL_ERROR;
     }
 
 }

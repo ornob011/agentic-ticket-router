@@ -4,8 +4,7 @@ import com.dsi.support.agenticrouter.dto.RouterRequest;
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.ModelRegistry;
 import com.dsi.support.agenticrouter.enums.*;
-import com.dsi.support.agenticrouter.exception.DataNotFoundException;
-import com.dsi.support.agenticrouter.repository.ModelRegistryRepository;
+import com.dsi.support.agenticrouter.service.ai.ModelService;
 import com.dsi.support.agenticrouter.service.ai.LlmOutputService;
 import com.dsi.support.agenticrouter.service.ai.PromptService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
@@ -24,13 +23,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.concurrent.TimeoutException;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class TicketRouterService {
 
-    private final ModelRegistryRepository modelRegistryRepository;
+    private final ModelService modelService;
     private final LlmOutputService llmOutputService;
     private final ObjectMapper objectMapper;
     private final PromptService promptService;
@@ -50,6 +50,8 @@ public class TicketRouterService {
         RouterRequest routerRequest,
         Long ticketId
     ) {
+        long startTime = System.currentTimeMillis();
+
         log.info(
             "RoutingDecision({}) SupportTicket(id:{},ticketNo:{}) RouterRequest(subjectLength:{},conversationLength:{},analysisLength:{},relevantArticleCount:{})",
             OperationalLogContext.PHASE_START,
@@ -61,15 +63,7 @@ public class TicketRouterService {
             CollectionUtils.size(routerRequest.getRelevantArticles())
         );
 
-        ModelRegistry activeModel = modelRegistryRepository.findByActiveTrue()
-                                                           .stream()
-                                                           .findFirst()
-                                                           .orElseThrow(
-                                                               DataNotFoundException.supplier(
-                                                                   ModelRegistry.class,
-                                                                   "active model"
-                                                               )
-                                                           );
+        ModelRegistry activeModel = modelService.getActiveModel();
 
         JsonNode routingDecision = routingModelClient.requestRoutingDecision(
             routerRequest
@@ -84,6 +78,8 @@ public class TicketRouterService {
             routerResponse
         );
 
+        long latencyMs = System.currentTimeMillis() - startTime;
+
         llmOutputService.persistRoutingOutput(
             ticketId,
             activeModel.getModelTag(),
@@ -91,11 +87,11 @@ public class TicketRouterService {
             routerResponse,
             ParseStatus.SUCCESS,
             null,
-            0
+            latencyMs
         );
 
         log.info(
-            "RoutingDecision({}) SupportTicket(id:{}) Model(tag:{}) RouterResponse(category:{},priority:{},queue:{},nextAction:{},confidence:{})",
+            "RoutingDecision({}) SupportTicket(id:{}) Model(tag:{}) RouterResponse(category:{},priority:{},queue:{},nextAction:{},confidence:{},latencyMs:{})",
             OperationalLogContext.PHASE_COMPLETE,
             ticketId,
             activeModel.getModelTag(),
@@ -103,7 +99,8 @@ public class TicketRouterService {
             routerResponse.getPriority(),
             routerResponse.getQueue(),
             routerResponse.getNextAction(),
-            routerResponse.getConfidence()
+            routerResponse.getConfidence(),
+            latencyMs
         );
 
         return routerResponse;
@@ -151,7 +148,7 @@ public class TicketRouterService {
             "fallback",
             routerRequest.toString(),
             null,
-            ParseStatus.TIMEOUT,
+            classifyParseStatus(throwable),
             throwable.getMessage(),
             0
         );
@@ -186,5 +183,19 @@ public class TicketRouterService {
         );
 
         return fallbackResponse;
+    }
+
+    private ParseStatus classifyParseStatus(
+        Throwable throwable
+    ) {
+        Throwable cause = throwable;
+        while (cause != null) {
+            if (cause instanceof TimeoutException) {
+                return ParseStatus.TIMEOUT;
+            }
+            cause = cause.getCause();
+        }
+
+        return ParseStatus.MODEL_ERROR;
     }
 }

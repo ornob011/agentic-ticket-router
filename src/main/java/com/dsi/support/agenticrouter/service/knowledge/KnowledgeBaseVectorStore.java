@@ -19,7 +19,6 @@ import org.springframework.ai.vectorstore.filter.Filter;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @Service
@@ -27,10 +26,9 @@ import java.util.*;
 @Slf4j
 public class KnowledgeBaseVectorStore {
 
-    private static final String DOCUMENT_ID_PREFIX = "kb_article_";
-
     private final VectorStore vectorStore;
     private final VectorStoreIngestionConfiguration vectorStoreIngestionConfiguration;
+    private final KnowledgeArticleVectorDocumentMapper knowledgeArticleVectorDocumentMapper;
 
     public List<Document> searchSimilar(
         String queryText,
@@ -69,7 +67,7 @@ public class KnowledgeBaseVectorStore {
             filterExpression
         );
 
-        List<Document> strictMatchDocuments = Optional.of(vectorStore.similaritySearch(searchRequest))
+        List<Document> strictMatchDocuments = Optional.ofNullable(vectorStore.similaritySearch(searchRequest))
                                                       .orElse(Collections.emptyList());
 
         if (!strictMatchDocuments.isEmpty() || similarityThreshold <= 0D) {
@@ -136,7 +134,7 @@ public class KnowledgeBaseVectorStore {
             }
 
             ingestBatch.add(
-                createDocument(knowledgeArticle)
+                knowledgeArticleVectorDocumentMapper.toDocument(knowledgeArticle)
             );
 
             if (ingestBatch.size() >= vectorStoreIngestionConfiguration.getIngestBatchSize()) {
@@ -214,101 +212,4 @@ public class KnowledgeBaseVectorStore {
         ).build();
     }
 
-    private String getDocumentId(
-        KnowledgeArticle article
-    ) {
-        String sourceId = DOCUMENT_ID_PREFIX + article.getId();
-
-        return UUID.nameUUIDFromBytes(sourceId.getBytes(StandardCharsets.UTF_8))
-                   .toString();
-    }
-
-    private Document createDocument(
-        KnowledgeArticle article
-    ) {
-        String documentId = getDocumentId(article);
-
-        Map<String, Object> metadata = HashMap.newHashMap(8);
-
-        metadata.put(
-            VectorStoreMetadataKey.ARTICLE_ID.name(),
-            article.getId()
-        );
-
-        category(article).ifPresent(
-            value -> metadata.put(
-                VectorStoreMetadataKey.CATEGORY.name(),
-                value
-            )
-        );
-
-        priority(article).ifPresent(
-            value -> metadata.put(
-                VectorStoreMetadataKey.PRIORITY.name(),
-                value
-            )
-        );
-
-        articleType(article).ifPresent(
-            value -> metadata.put(
-                VectorStoreMetadataKey.ARTICLE_TYPE.name(),
-                value
-            )
-        );
-
-        metadata.put(
-            VectorStoreMetadataKey.ACTIVE.name(),
-            article.getActive()
-        );
-
-        keywords(article).ifPresent(
-            value -> metadata.put(
-                VectorStoreMetadataKey.KEYWORDS.name(),
-                value
-            )
-        );
-
-        return new Document(
-            documentId,
-            renderContent(article),
-            metadata
-        );
-    }
-
-    private String renderContent(
-        KnowledgeArticle article
-    ) {
-        return String.format(
-            "%s%n%n%s",
-            article.getTitle(),
-            article.getContent()
-        );
-    }
-
-    private Optional<String> category(
-        KnowledgeArticle article
-    ) {
-        return Optional.ofNullable(article.getCategory())
-                       .map(Enum::name);
-    }
-
-    private Optional<Integer> priority(
-        KnowledgeArticle article
-    ) {
-        return Optional.ofNullable(article.getPriority());
-    }
-
-    private Optional<String> articleType(
-        KnowledgeArticle article
-    ) {
-        return Optional.ofNullable(article.getArticleType())
-                       .map(Enum::name);
-    }
-
-    private Optional<List<String>> keywords(
-        KnowledgeArticle article
-    ) {
-        return Optional.ofNullable(article.getKeywords())
-                       .map(Arrays::asList);
-    }
 }

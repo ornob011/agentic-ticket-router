@@ -34,6 +34,17 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, Long> {
         @Param("eventTypes") Set<AuditEventType> eventTypes
     );
 
+    boolean existsByTicket_IdAndEventType(
+        Long ticketId,
+        AuditEventType eventType
+    );
+
+    boolean existsByTicket_IdAndEventTypeAndCreatedAtAfter(
+        Long ticketId,
+        AuditEventType eventType,
+        Instant createdAt
+    );
+
     @Query("""
         SELECT
             ae.id AS id,

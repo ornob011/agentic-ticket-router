@@ -1,15 +1,20 @@
 package com.dsi.support.agenticrouter.configuration;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 
+import java.lang.reflect.Method;
 import java.util.concurrent.Executor;
 
 @Configuration
 @EnableAsync
-public class AsyncConfiguration {
+@Slf4j
+public class AsyncConfiguration implements AsyncConfigurer {
 
     @Bean(name = "ticketRoutingExecutor")
     public Executor ticketRoutingExecutor() {
@@ -22,5 +27,19 @@ public class AsyncConfiguration {
         executor.setAwaitTerminationSeconds(60);
         executor.initialize();
         return executor;
+    }
+
+    @Override
+    public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
+        return (
+            Throwable throwable,
+            Method method,
+            Object... params
+        ) -> log.error(
+            "AsyncExecutionFail(method:{},paramCount:{})",
+            method.getName(),
+            params.length,
+            throwable
+        );
     }
 }

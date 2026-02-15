@@ -1,21 +1,20 @@
 package com.dsi.support.agenticrouter.service.action.actions;
 
 import com.dsi.support.agenticrouter.dto.RouterResponse;
-import com.dsi.support.agenticrouter.entity.ArticleTemplate;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.entity.TicketMessage;
 import com.dsi.support.agenticrouter.enums.AuditEventType;
 import com.dsi.support.agenticrouter.enums.MessageKind;
 import com.dsi.support.agenticrouter.enums.NextAction;
+import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
+import com.dsi.support.agenticrouter.service.action.ActionParameterService;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.knowledge.TemplateService;
-import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindException;
@@ -23,7 +22,7 @@ import org.springframework.validation.BindException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -32,7 +31,9 @@ public class UseTemplateAction implements TicketAction {
 
     private final AuditService auditService;
     private final TicketMessageRepository ticketMessageRepository;
+    private final SupportTicketRepository supportTicketRepository;
     private final TemplateService templateService;
+    private final ActionParameterService actionParameterService;
 
     @Override
     public boolean canHandle(
@@ -58,16 +59,25 @@ public class UseTemplateAction implements TicketAction {
             Objects.nonNull(response.getActionParameters()) ? response.getActionParameters().size() : 0
         );
 
-        ActionParams actionParams = new ActionParams(response);
-
-        Long templateId = actionParams.templateId();
+        Map<String, ?> actionParameters = actionParameterService.requireParameters(
+            response.getActionParameters(),
+            "routerResponse"
+        );
+        Long templateId = actionParameterService.requireNumericLong(
+            actionParameters,
+            "routerResponse",
+            ActionParamKey.TEMPLATE_ID
+        );
 
         TemplateVariables templateVariables = TemplateVariables.baseForTicket(
             supportTicket
         );
 
         templateVariables.merge(
-            actionParams.variablesExcluding(ActionParamKey.TEMPLATE_ID)
+            actionParameterService.stringValuesExcluding(
+                actionParameters,
+                Set.of(ActionParamKey.TEMPLATE_ID)
+            )
         );
 
         String filledContent = templateService.fillTemplate(
@@ -83,6 +93,8 @@ public class UseTemplateAction implements TicketAction {
                                                    .build();
 
         ticketMessageRepository.save(ticketMessage);
+        supportTicket.updateLastActivity();
+        supportTicketRepository.save(supportTicket);
 
         log.info(
             "UseTemplateAction({}) SupportTicket(id:{},status:{}) Outcome(templateId:{},messageKind:{})",
@@ -110,61 +122,10 @@ public class UseTemplateAction implements TicketAction {
         );
     }
 
-    private Long autoSelectTemplateId(
-        SupportTicket supportTicket
-    ) {
-        Objects.requireNonNull(supportTicket, "supportTicket");
+    private static final class ActionParamKey {
+        private static final String TEMPLATE_ID = "template_id";
 
-        ArticleTemplate selectedTemplate = templateService.findBestMatchingTemplate(
-            supportTicket.getCurrentCategory(),
-            supportTicket.getCurrentPriority(),
-            supportTicket.getSubject()
-        );
-
-        if (Objects.isNull(selectedTemplate)) {
-            return null;
-        }
-
-        log.info(
-            "UseTemplateAutoSelect({}) SupportTicket(id:{},category:{},priority:{}) Template(id:{},name:{})",
-            OperationalLogContext.PHASE_COMPLETE,
-            supportTicket.getId(),
-            supportTicket.getCurrentCategory(),
-            supportTicket.getCurrentPriority(),
-            selectedTemplate.getId(),
-            selectedTemplate.getName()
-        );
-
-        auditService.recordEvent(
-            AuditEventType.TEMPLATE_AUTO_SELECTED,
-            supportTicket.getId(),
-            null,
-            String.format(
-                "Auto-selected template: %s (id=%s) for category=%s, priority=%s",
-                selectedTemplate.getName(),
-                selectedTemplate.getId(),
-                supportTicket.getCurrentCategory(),
-                supportTicket.getCurrentPriority()
-            ),
-            null
-        );
-
-        return selectedTemplate.getId();
-    }
-
-    private enum ActionParamKey {
-        TEMPLATE_ID("template_id");
-
-        private final String key;
-
-        ActionParamKey(
-            String key
-        ) {
-            this.key = key;
-        }
-
-        public String key() {
-            return key;
+        private ActionParamKey() {
         }
     }
 
@@ -183,72 +144,6 @@ public class UseTemplateAction implements TicketAction {
         public String key() {
             return key;
         }
-    }
-
-    private static final class ActionParams {
-
-        private final Map<String, ?> values;
-
-        private ActionParams(
-            RouterResponse response
-        ) {
-            this.values = Objects.requireNonNull(
-                response.getActionParameters(),
-                "Action parameters are required"
-            );
-        }
-
-        public Long templateId() throws BindException {
-            String rawTemplateId = text(ActionParamKey.TEMPLATE_ID).orElse(null);
-
-            if (rawTemplateId == null) {
-                throw BindValidation.fieldError(
-                    "routerResponse",
-                    ActionParamKey.TEMPLATE_ID.key(),
-                    ActionParamKey.TEMPLATE_ID.key() + " is required"
-                );
-            }
-
-            if (!StringUtils.isNumeric(rawTemplateId)) {
-                throw BindValidation.fieldError(
-                    "routerResponse",
-                    ActionParamKey.TEMPLATE_ID.key(),
-                    ActionParamKey.TEMPLATE_ID.key() + " must be numeric"
-                );
-            }
-
-            return Long.parseLong(rawTemplateId);
-        }
-
-        public Map<String, String> variablesExcluding(
-            ActionParamKey excludedKey
-        ) {
-            Map<String, String> variables = new HashMap<>();
-
-            values.forEach((key, value) -> {
-                if (excludedKey.key().equals(key)) {
-                    return;
-                }
-
-                String normalizedValue = StringUtils.trimToNull(Objects.toString(value, null));
-                if (normalizedValue == null) {
-                    return;
-                }
-
-                variables.put(key, normalizedValue);
-            });
-
-            return variables;
-        }
-
-        private Optional<String> text(
-            ActionParamKey actionParamKey
-        ) {
-            return Optional.ofNullable(values.get(actionParamKey.key()))
-                           .map(object -> Objects.toString(object, null))
-                           .map(StringUtils::trimToNull);
-        }
-
     }
 
     private static final class TemplateVariables {

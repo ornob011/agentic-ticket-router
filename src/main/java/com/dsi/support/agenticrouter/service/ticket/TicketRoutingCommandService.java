@@ -6,15 +6,13 @@ import com.dsi.support.agenticrouter.entity.TicketRouting;
 import com.dsi.support.agenticrouter.enums.AuditEventType;
 import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
-import com.dsi.support.agenticrouter.exception.DataNotFoundException;
-import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketRoutingRepository;
 import com.dsi.support.agenticrouter.security.TicketAccessPolicyService;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
-import com.dsi.support.agenticrouter.util.Utils;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -33,9 +31,10 @@ public class TicketRoutingCommandService {
 
     private final SupportTicketRepository supportTicketRepository;
     private final TicketRoutingRepository ticketRoutingRepository;
-    private final AppUserRepository appUserRepository;
     private final TicketAccessPolicyService ticketAccessPolicyService;
     private final AuditService auditService;
+    private final TicketWorkflowUpdateService ticketWorkflowUpdateService;
+    private final TicketCommandLookupService ticketCommandLookupService;
 
     public void overrideRouting(
         Long ticketId,
@@ -49,28 +48,33 @@ public class TicketRoutingCommandService {
             ticketId,
             newQueue,
             newPriority,
-            StringUtils.length(StringUtils.trimToNull(reason))
+            StringUtils.length(StringNormalizationUtils.trimToNull(reason))
         );
 
         Objects.requireNonNull(ticketId, "ticketId");
         Objects.requireNonNull(newQueue, "newQueue");
         Objects.requireNonNull(newPriority, "newPriority");
 
-        SupportTicket ticket = supportTicketRepository.findById(ticketId)
-                                                      .orElseThrow(
-                                                          DataNotFoundException.supplier(
-                                                              SupportTicket.class,
-                                                              ticketId
-                                                          )
-                                                      );
+        SupportTicket ticket = ticketCommandLookupService.requireTicket(
+            ticketId
+        );
 
-        AppUser actor = Utils.getLoggedInUserDetails();
+        AppUser actor = ticketCommandLookupService.requireCurrentActor();
 
         if (!ticketAccessPolicyService.canOverrideRouting(actor)) {
             throw BindValidation.fieldError(
                 "routingOverrideRequest",
                 "ticketId",
                 "Actor cannot override routing"
+            );
+        }
+
+        String normalizedReason = StringNormalizationUtils.trimToNull(reason);
+        if (Objects.isNull(normalizedReason)) {
+            throw BindValidation.fieldError(
+                "routingOverrideRequest",
+                "reason",
+                "Reason is required"
             );
         }
 
@@ -86,25 +90,17 @@ public class TicketRoutingCommandService {
         }
         TicketRouting latestRouting = latestRoutingOptional.get();
 
-        Long overriddenById = Utils.getLoggedInUserId();
-
-        AppUser overriddenBy = appUserRepository.findById(overriddenById)
-                                                .orElseThrow(
-                                                    DataNotFoundException.supplier(
-                                                        AppUser.class,
-                                                        overriddenById
-                                                    )
-                                                );
+        Long overriddenById = actor.getId();
 
         latestRouting.setOverridden(true);
-        latestRouting.setOverrideReason(reason);
-        latestRouting.setOverriddenBy(overriddenBy);
+        latestRouting.setOverrideReason(normalizedReason);
+        latestRouting.setOverriddenBy(actor);
 
         ticketRoutingRepository.save(latestRouting);
 
         ticket.setAssignedQueue(newQueue);
         ticket.setCurrentPriority(newPriority);
-        completeHumanReviewIfSupervisorDecision(
+        ticketWorkflowUpdateService.completeHumanReviewIfSupervisorDecision(
             ticket,
             actor
         );
@@ -115,12 +111,12 @@ public class TicketRoutingCommandService {
         auditService.recordEvent(
             AuditEventType.ROUTING_OVERRIDDEN,
             ticketId,
-            Utils.getLoggedInUserId(),
+            actor.getId(),
             String.format(
                 "Routing overridden: queue=%s, priority=%s, reason=%s",
                 newQueue,
                 newPriority,
-                reason
+                normalizedReason
             ),
             null
         );
@@ -134,15 +130,6 @@ public class TicketRoutingCommandService {
             ticket.getCurrentPriority(),
             overriddenById
         );
-    }
-
-    private void completeHumanReviewIfSupervisorDecision(
-        SupportTicket supportTicket,
-        AppUser actor
-    ) {
-        if (Objects.nonNull(actor) && (actor.isSupervisor() || actor.isAdmin())) {
-            supportTicket.setRequiresHumanReview(false);
-        }
     }
 
 }

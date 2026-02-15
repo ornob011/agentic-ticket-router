@@ -8,8 +8,10 @@ import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.PolicyConfigRepository;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,13 +45,18 @@ public class PolicyConfigService {
         PolicyConfigKey policyConfigKey
     ) {
         PolicyConfig policyConfig = policyConfigRepository.findByConfigKeyAndActiveTrue(policyConfigKey)
-                                                          .orElse(null);
+                                                          .orElseThrow(
+                                                              DataNotFoundException.supplier(
+                                                                  PolicyConfig.class,
+                                                                  policyConfigKey
+                                                              )
+                                                          );
 
         log.debug(
             "PolicyConfigLookup({}) PolicyConfig(key:{},activeFound:{})",
             OperationalLogContext.PHASE_COMPLETE,
             policyConfigKey,
-            Objects.nonNull(policyConfig)
+            true
         );
         return policyConfig;
     }
@@ -68,6 +75,10 @@ public class PolicyConfigService {
 
         Objects.requireNonNull(policyConfigKey, "configKey");
         Objects.requireNonNull(policyConfigValue, "configValue");
+        validatePolicyConfigValue(
+            policyConfigKey,
+            policyConfigValue
+        );
 
         PolicyConfig policyConfig = policyConfigRepository.findByConfigKeyAndActiveTrue(policyConfigKey)
                                                           .orElseThrow(
@@ -86,6 +97,58 @@ public class PolicyConfigService {
             policyConfig.getConfigKey(),
             policyConfig.getConfigValue()
         );
+    }
+
+    private void validatePolicyConfigValue(
+        PolicyConfigKey policyConfigKey,
+        BigDecimal policyConfigValue
+    ) {
+        switch (policyConfigKey) {
+            case AUTO_ROUTE_THRESHOLD, CRITICAL_MIN_CONF -> {
+                if (policyConfigValue.compareTo(BigDecimal.ZERO) < 0
+                    || policyConfigValue.compareTo(BigDecimal.ONE) > 0) {
+                    throw new IllegalArgumentException(
+                        policyConfigKey + " must be between 0 and 1."
+                    );
+                }
+            }
+            case ROUTER_REPAIR_MAX_RETRIES,
+                 SLA_ASSIGNED_HOURS_HIGH,
+                 WAITING_CUSTOMER_REMINDER_HOURS,
+                 INACTIVITY_AUTO_CLOSE_DAYS,
+                 SLA_CUSTOMER_RESPONSE_HOURS,
+                 SLA_AGENT_RESPONSE_HOURS,
+                 AUTO_CLOSE_WARNING_DAYS,
+                 AUTO_CLOSE_FINAL_DAYS,
+                 MAX_ATTACHMENT_BYTES,
+                 MAX_AUTONOMOUS_ACTIONS,
+                 MAX_QUESTIONS_PER_TICKET -> {
+                if (policyConfigValue.compareTo(BigDecimal.ONE) < 0) {
+                    throw new IllegalArgumentException(
+                        policyConfigKey + " must be greater than or equal to 1."
+                    );
+                }
+            }
+            case AUTO_CLOSE_ENABLED,
+                 AUTONOMOUS_ENABLED,
+                 FRUSTRATION_DETECTION_ENABLED,
+                 LOOP_DETECTION_ENABLED -> {
+                boolean isZero = policyConfigValue.compareTo(BigDecimal.ZERO) == 0;
+                boolean isOne = policyConfigValue.compareTo(BigDecimal.ONE) == 0;
+                if (!(isZero || isOne)) {
+                    throw new IllegalArgumentException(
+                        policyConfigKey + " must be 0 or 1."
+                    );
+                }
+            }
+            case DEFAULT_QUEUE, ROUTER_MODEL_PARAMS -> {
+                if (policyConfigValue.compareTo(BigDecimal.ZERO) < 0) {
+                    throw new IllegalArgumentException(
+                        policyConfigKey + " must be non-negative."
+                    );
+                }
+            }
+        }
     }
 
     @Transactional(readOnly = true)
@@ -114,12 +177,28 @@ public class PolicyConfigService {
         Objects.requireNonNull(role, "role");
         Objects.requireNonNull(passwordHash, "passwordHash");
 
-        if (appUserRepository.existsByUsernameIgnoreCase(username)) {
-            throw new IllegalArgumentException("Username already exists: " + username);
+        String normalizedUsername = StringNormalizationUtils.lowerTrimmedOrNull(username);
+        String normalizedEmail = StringNormalizationUtils.lowerTrimmedOrNull(email);
+        String normalizedFullName = StringNormalizationUtils.trimToNull(fullName);
+
+        if (StringUtils.isBlank(normalizedUsername)) {
+            throw new IllegalArgumentException("Username is required");
         }
 
-        if (appUserRepository.existsByEmailIgnoreCase(email)) {
-            throw new IllegalArgumentException("Email already exists: " + email);
+        if (StringUtils.isBlank(normalizedEmail)) {
+            throw new IllegalArgumentException("Email is required");
+        }
+
+        if (StringUtils.isBlank(normalizedFullName)) {
+            throw new IllegalArgumentException("Full name is required");
+        }
+
+        if (appUserRepository.existsByUsernameIgnoreCase(normalizedUsername)) {
+            throw new IllegalArgumentException("Username already exists: " + normalizedUsername);
+        }
+
+        if (appUserRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            throw new IllegalArgumentException("Email already exists: " + normalizedEmail);
         }
 
         if (!role.canAccessAgentPortal()) {
@@ -127,9 +206,9 @@ public class PolicyConfigService {
         }
 
         AppUser user = AppUser.builder()
-                              .username(username.toLowerCase())
-                              .email(email.toLowerCase())
-                              .fullName(fullName)
+                              .username(normalizedUsername)
+                              .email(normalizedEmail)
+                              .fullName(normalizedFullName)
                               .passwordHash(passwordHash)
                               .role(role)
                               .active(true)

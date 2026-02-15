@@ -76,6 +76,7 @@ public class EscalateAction implements TicketAction {
         supportTicket.setEscalated(true);
         supportTicket.setRequiresHumanReview(false);
         supportTicket.setAssignedQueue(routerResponse.getQueue());
+        supportTicket.updateLastActivity();
 
         supportTicketRepository.save(supportTicket);
 

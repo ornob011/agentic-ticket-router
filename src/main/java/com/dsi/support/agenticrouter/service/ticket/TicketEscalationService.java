@@ -8,19 +8,22 @@ import com.dsi.support.agenticrouter.enums.AuditEventType;
 import com.dsi.support.agenticrouter.enums.EscalationFilterStatus;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
-import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.EscalationRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.security.TicketAccessPolicyService;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
+import com.dsi.support.agenticrouter.util.PageResponseUtils;
+import com.dsi.support.agenticrouter.util.PaginationUtils;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindException;
@@ -33,12 +36,14 @@ import java.util.Objects;
 @RequiredArgsConstructor
 @Slf4j
 public class TicketEscalationService {
+    private static final Sort DEFAULT_ESCALATION_SORT = Sort.by("createdAt").descending();
 
     private final EscalationRepository escalationRepository;
     private final SupportTicketRepository supportTicketRepository;
-    private final AppUserRepository appUserRepository;
     private final TicketAccessPolicyService ticketAccessPolicyService;
     private final AuditService auditService;
+    private final TicketCommandLookupService ticketCommandLookupService;
+    private final TicketWorkflowUpdateService ticketWorkflowUpdateService;
 
     public void resolveEscalation(
         Long escalationId,
@@ -49,12 +54,12 @@ public class TicketEscalationService {
             OperationalLogContext.PHASE_START,
             escalationId,
             Utils.getLoggedInUserId(),
-            StringUtils.length(StringUtils.trimToNull(resolutionNotes))
+            StringUtils.length(StringNormalizationUtils.trimToNull(resolutionNotes))
         );
 
         Objects.requireNonNull(escalationId, "escalationId");
-        Objects.requireNonNull(resolutionNotes, "resolutionNotes");
-        if (!StringUtils.isNotBlank(resolutionNotes)) {
+        String normalizedResolutionNotes = StringNormalizationUtils.trimToNull(resolutionNotes);
+        if (Objects.isNull(normalizedResolutionNotes)) {
             throw BindValidation.fieldError(
                 "resolveEscalationRequest",
                 "resolutionNotes",
@@ -85,13 +90,7 @@ public class TicketEscalationService {
             );
         }
 
-        AppUser resolver = appUserRepository.findById(Utils.getLoggedInUserId())
-                                            .orElseThrow(
-                                                DataNotFoundException.supplier(
-                                                    AppUser.class,
-                                                    Utils.getLoggedInUserId()
-                                                )
-                                            );
+        AppUser resolver = ticketCommandLookupService.requireCurrentActor();
         if (!ticketAccessPolicyService.canResolveEscalation(resolver)) {
             throw BindValidation.fieldError(
                 "resolveEscalationRequest",
@@ -102,7 +101,7 @@ public class TicketEscalationService {
 
         escalation.markResolved(
             resolver,
-            resolutionNotes
+            normalizedResolutionNotes
         );
 
         escalationRepository.save(escalation);
@@ -110,15 +109,18 @@ public class TicketEscalationService {
         SupportTicket supportTicket = escalation.getTicket();
         supportTicket.setStatus(TicketStatus.IN_PROGRESS);
         supportTicket.setEscalated(false);
-        supportTicket.setRequiresHumanReview(false);
+        ticketWorkflowUpdateService.completeHumanReviewIfSupervisorDecision(
+            supportTicket,
+            resolver
+        );
         supportTicket.updateLastActivity();
         supportTicketRepository.save(supportTicket);
 
         auditService.recordEvent(
             AuditEventType.ESCALATION_RESOLVED,
             escalation.getTicket().getId(),
-            Utils.getLoggedInUserId(),
-            String.format("Escalation resolved: %s", resolutionNotes),
+            resolver.getId(),
+            String.format("Escalation resolved: %s", normalizedResolutionNotes),
             null
         );
 
@@ -135,30 +137,44 @@ public class TicketEscalationService {
     @Transactional(readOnly = true)
     public ApiDtos.PagedResponse<ApiDtos.EscalationSummary> listEscalationSummaries(
         EscalationFilterStatus escalationFilterStatus,
+        int page,
+        int size
+    ) {
+        return listEscalationSummaries(
+            escalationFilterStatus,
+            PaginationUtils.normalize(
+                page,
+                size,
+                DEFAULT_ESCALATION_SORT
+            )
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public ApiDtos.PagedResponse<ApiDtos.EscalationSummary> listEscalationSummaries(
+        EscalationFilterStatus escalationFilterStatus,
         Pageable pageable
     ) {
+        Pageable normalizedPageable = PaginationUtils.normalize(
+            pageable,
+            DEFAULT_ESCALATION_SORT
+        );
+
         EscalationFilterStatus effectiveFilterStatus = Objects.requireNonNullElse(
             escalationFilterStatus,
             EscalationFilterStatus.ALL
         );
 
         Page<Escalation> escalationPage = switch (effectiveFilterStatus) {
-            case RESOLVED -> escalationRepository.findByResolvedTrue(pageable);
-            case PENDING -> escalationRepository.findByResolvedFalse(pageable);
-            case ALL -> escalationRepository.findAll(pageable);
+            case RESOLVED -> escalationRepository.findByResolvedTrue(normalizedPageable);
+            case PENDING -> escalationRepository.findByResolvedFalse(normalizedPageable);
+            case ALL -> escalationRepository.findAll(normalizedPageable);
         };
 
-        List<ApiDtos.EscalationSummary> content = escalationPage.map(this::toEscalationSummaryDto)
-                                                                .getContent();
-
-        return ApiDtos.PagedResponse.<ApiDtos.EscalationSummary>builder()
-                                    .content(content)
-                                    .page(escalationPage.getNumber())
-                                    .size(escalationPage.getSize())
-                                    .totalElements(escalationPage.getTotalElements())
-                                    .totalPages(escalationPage.getTotalPages())
-                                    .hasNext(escalationPage.hasNext())
-                                    .build();
+        return PageResponseUtils.fromPage(
+            escalationPage,
+            this::toEscalationSummaryDto
+        );
     }
 
     @Transactional(readOnly = true)

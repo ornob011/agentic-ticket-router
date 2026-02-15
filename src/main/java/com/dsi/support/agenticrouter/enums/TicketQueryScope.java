@@ -1,6 +1,7 @@
 package com.dsi.support.agenticrouter.enums;
 
-import java.util.Locale;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
+
 import java.util.Objects;
 
 public enum TicketQueryScope {
@@ -17,8 +18,7 @@ public enum TicketQueryScope {
         }
 
         return TicketQueryScope.valueOf(
-            scope.trim()
-                 .toUpperCase(Locale.ROOT)
+            StringNormalizationUtils.upperTrimmedOrEmpty(scope)
         );
     }
 }

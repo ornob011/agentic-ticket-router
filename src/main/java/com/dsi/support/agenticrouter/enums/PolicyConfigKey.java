@@ -2,10 +2,6 @@ package com.dsi.support.agenticrouter.enums;
 
 import lombok.Getter;
 
-import java.math.BigDecimal;
-import java.util.Objects;
-import java.util.function.Function;
-
 @Getter
 public enum PolicyConfigKey {
     AUTO_ROUTE_THRESHOLD("Minimum confidence threshold for auto-routing"),
@@ -36,39 +32,4 @@ public enum PolicyConfigKey {
     PolicyConfigKey(String description) {
         this.description = description;
     }
-
-    private static <T> T getValue(
-        BigDecimal value,
-        T defaultValue,
-        Function<BigDecimal, T> converter
-    ) {
-        if (Objects.isNull(value)) {
-            return defaultValue;
-        }
-
-        return converter.apply(value);
-    }
-
-    public static int getIntValue(
-        BigDecimal value,
-        int defaultValue
-    ) {
-        return getValue(
-            value,
-            defaultValue,
-            BigDecimal::intValue
-        );
-    }
-
-    public static BigDecimal getBigDecimalValue(
-        BigDecimal value,
-        BigDecimal defaultValue
-    ) {
-        return getValue(
-            value,
-            defaultValue,
-            Function.identity()
-        );
-    }
-
 }

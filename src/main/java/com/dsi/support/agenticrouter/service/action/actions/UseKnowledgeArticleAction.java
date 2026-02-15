@@ -4,16 +4,20 @@ import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.KnowledgeArticle;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.entity.TicketMessage;
-import com.dsi.support.agenticrouter.enums.*;
+import com.dsi.support.agenticrouter.enums.AuditEventType;
+import com.dsi.support.agenticrouter.enums.MessageKind;
+import com.dsi.support.agenticrouter.enums.NextAction;
+import com.dsi.support.agenticrouter.enums.NotificationType;
+import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.KnowledgeArticleRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
+import com.dsi.support.agenticrouter.service.action.ActionParameterService;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.knowledge.KnowledgeBaseService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
-import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -27,8 +31,6 @@ import org.springframework.validation.BindException;
 
 import java.time.Instant;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -41,6 +43,7 @@ public class UseKnowledgeArticleAction implements TicketAction {
     private final AuditService auditService;
     private final NotificationService notificationService;
     private final KnowledgeBaseService knowledgeBaseService;
+    private final ActionParameterService actionParameterService;
 
     @Override
     public boolean canHandle(
@@ -62,9 +65,15 @@ public class UseKnowledgeArticleAction implements TicketAction {
             supportTicket.getStatus()
         );
 
-        ActionParams actionParams = new ActionParams(response);
-
-        Long articleId = actionParams.articleId();
+        Map<String, ?> actionParameters = actionParameterService.requireParameters(
+            response.getActionParameters(),
+            "routerResponse"
+        );
+        Long articleId = actionParameterService.requireNumericLong(
+            actionParameters,
+            "routerResponse",
+            ActionParamKey.ARTICLE_ID
+        );
 
         KnowledgeArticle article = knowledgeArticleRepository.findById(articleId)
                                                              .orElseThrow(
@@ -143,65 +152,11 @@ public class UseKnowledgeArticleAction implements TicketAction {
         supportTicket.updateLastActivity();
     }
 
-    private enum ActionParamKey {
-        ARTICLE_ID("article_id");
+    private static final class ActionParamKey {
+        private static final String ARTICLE_ID = "article_id";
 
-        private final String key;
-
-        ActionParamKey(
-            String key
-        ) {
-            this.key = key;
+        private ActionParamKey() {
         }
-
-        public String key() {
-            return key;
-        }
-    }
-
-    private static final class ActionParams {
-
-        private final Map<String, ?> values;
-
-        private ActionParams(
-            RouterResponse response
-        ) {
-            this.values = Objects.requireNonNull(
-                response.getActionParameters(),
-                "Action parameters are required"
-            );
-        }
-
-        public Long articleId() throws BindException {
-            String rawArticleId = text(ActionParamKey.ARTICLE_ID).orElse(null);
-
-            if (rawArticleId == null) {
-                throw BindValidation.fieldError(
-                    "routerResponse",
-                    ActionParamKey.ARTICLE_ID.key(),
-                    ActionParamKey.ARTICLE_ID.key() + " is required"
-                );
-            }
-
-            if (!StringUtils.isNumeric(rawArticleId)) {
-                throw BindValidation.fieldError(
-                    "routerResponse",
-                    ActionParamKey.ARTICLE_ID.key(),
-                    ActionParamKey.ARTICLE_ID.key() + " must be numeric"
-                );
-            }
-
-            return Long.parseLong(rawArticleId);
-        }
-
-        private Optional<String> text(
-            ActionParamKey key
-        ) {
-            return Optional.ofNullable(values.get(key.key()))
-                           .map(v -> Objects.toString(v, null))
-                           .map(StringUtils::trimToNull);
-        }
-
     }
 
     public static final class AuditMetadata {

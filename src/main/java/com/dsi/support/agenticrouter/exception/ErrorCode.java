@@ -1,5 +1,6 @@
 package com.dsi.support.agenticrouter.exception;
 
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -106,7 +107,7 @@ public enum ErrorCode {
 
     public String getTypeUri() {
         String normalizedCode = StringUtils.replaceChars(
-            StringUtils.lowerCase(code),
+            StringNormalizationUtils.lowerTrimmedOrEmpty(code),
             '_',
             '-'
         );

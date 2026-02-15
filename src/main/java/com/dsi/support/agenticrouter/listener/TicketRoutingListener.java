@@ -32,9 +32,10 @@ public class TicketRoutingListener {
         );
 
         log.info(
-            "TicketCreatedEventHandle({}) SupportTicket(id:{})",
+            "TicketCreatedEventHandle({}) SupportTicket(id:{}) Outcome(dispatch:{})",
             OperationalLogContext.PHASE_COMPLETE,
-            event.getTicketId()
+            event.getTicketId(),
+            "async_routing_triggered"
         );
     }
 

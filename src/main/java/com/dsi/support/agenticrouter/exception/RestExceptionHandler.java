@@ -38,7 +38,11 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 import java.net.URI;
 import java.time.Instant;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice(annotations = RestController.class)
@@ -225,9 +229,16 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         BindException exception,
         HttpServletRequest request
     ) {
+        Locale locale = LocaleContextHolder.getLocale();
+
         Map<String, String> fieldErrors = toFieldErrors(
             exception.getBindingResult().getFieldErrors()
         );
+        List<String> globalErrors = exception.getBindingResult()
+                                             .getGlobalErrors()
+                                             .stream()
+                                             .map(error -> messageSource.getMessage(error, locale))
+                                             .toList();
 
         ProblemDetail problemDetail = buildProblemDetail(
             request,
@@ -236,12 +247,13 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         );
 
         problemDetail.setProperty("fieldErrors", fieldErrors);
+        problemDetail.setProperty("globalErrors", globalErrors);
 
         logWarn(
             request,
             ErrorCode.VALIDATION_ERROR,
             exception,
-            "fieldErrors=" + fieldErrors.size()
+            "fieldErrors=" + fieldErrors.size() + ",globalErrors=" + globalErrors.size()
         );
 
         return problemDetail;

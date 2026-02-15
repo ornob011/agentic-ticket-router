@@ -1,20 +1,17 @@
 package com.dsi.support.agenticrouter.service.ticket;
 
 import com.dsi.support.agenticrouter.entity.AppUser;
-import com.dsi.support.agenticrouter.entity.Escalation;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.AuditEventType;
 import com.dsi.support.agenticrouter.enums.NotificationType;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
-import com.dsi.support.agenticrouter.exception.DataNotFoundException;
-import com.dsi.support.agenticrouter.repository.AppUserRepository;
-import com.dsi.support.agenticrouter.repository.EscalationRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.security.TicketAccessPolicyService;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
 import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +24,6 @@ import java.time.Instant;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
@@ -67,9 +63,10 @@ public class TicketStatusCommandService {
     private final SupportTicketRepository supportTicketRepository;
     private final NotificationService notificationService;
     private final AuditService auditService;
-    private final AppUserRepository appUserRepository;
-    private final EscalationRepository escalationRepository;
     private final TicketAccessPolicyService ticketAccessPolicyService;
+    private final TicketWorkflowUpdateService ticketWorkflowUpdateService;
+    private final TicketStatusEscalationService ticketStatusEscalationService;
+    private final TicketCommandLookupService ticketCommandLookupService;
 
     public void changeTicketStatus(
         Long ticketId,
@@ -96,7 +93,7 @@ public class TicketStatusCommandService {
             ticketId,
             targetStatus,
             businessDriver,
-            StringUtils.length(StringUtils.trimToNull(reason))
+            StringUtils.length(StringNormalizationUtils.trimToNull(reason))
         );
 
         Objects.requireNonNull(ticketId, "ticketId");
@@ -104,21 +101,12 @@ public class TicketStatusCommandService {
 
         Long actorId = Utils.getLoggedInUserId();
 
-        AppUser actor = appUserRepository.findById(actorId)
-                                         .orElseThrow(
-                                             DataNotFoundException.supplier(
-                                                 AppUser.class,
-                                                 actorId
-                                             )
-                                         );
-
-        SupportTicket supportTicket = supportTicketRepository.findById(ticketId)
-                                                             .orElseThrow(
-                                                                 DataNotFoundException.supplier(
-                                                                     SupportTicket.class,
-                                                                     ticketId
-                                                                 )
-                                                             );
+        AppUser actor = ticketCommandLookupService.requireUser(
+            actorId
+        );
+        SupportTicket supportTicket = ticketCommandLookupService.requireTicket(
+            ticketId
+        );
 
         TicketStatus previousStatus = supportTicket.getStatus();
         if (previousStatus == targetStatus) {
@@ -150,23 +138,34 @@ public class TicketStatusCommandService {
             );
         }
 
-        if (previousStatus == TicketStatus.ESCALATED) {
-            boolean hasOpenEscalation = escalationRepository.findByTicketId(supportTicket.getId())
-                                                            .map(existingEscalation -> !existingEscalation.isResolved())
-                                                            .orElse(false);
-            if (hasOpenEscalation) {
-                throw BindValidation.fieldError(
-                    "ticketStatusRequest",
-                    "newStatus",
-                    "Please resolve the escalation before changing ticket status."
-                );
-            }
+        ticketStatusEscalationService.validateEscalationResolvedBeforeStatusChange(
+            supportTicket
+        );
+
+        String normalizedBusinessDriver = StringNormalizationUtils.trimToNull(businessDriver);
+        if (Objects.isNull(normalizedBusinessDriver)) {
+            normalizedBusinessDriver = BUSINESS_DRIVER_UNSPECIFIED;
         }
+
+        String normalizedReason = StringNormalizationUtils.trimToNull(reason);
+
+        if (targetStatus == TicketStatus.ESCALATED && Objects.isNull(normalizedReason)) {
+            throw BindValidation.fieldError(
+                "ticketStatusRequest",
+                "reason",
+                "Escalation reason is required."
+            );
+        }
+
+        String resolvedReason = Objects.requireNonNullElse(
+            normalizedReason,
+            "No reason provided"
+        );
 
         Instant statusChangeTimestamp = Instant.now();
 
         supportTicket.setStatus(targetStatus);
-        completeHumanReviewIfSupervisorDecision(
+        ticketWorkflowUpdateService.completeHumanReviewIfSupervisorDecision(
             supportTicket,
             actor
         );
@@ -175,31 +174,13 @@ public class TicketStatusCommandService {
         STATUS_SIDE_EFFECTS.getOrDefault(targetStatus, NO_STATUS_SIDE_EFFECT)
                            .accept(supportTicket, statusChangeTimestamp);
 
-        String normalizedBusinessDriver = Optional.ofNullable(businessDriver)
-                                                  .map(String::trim)
-                                                  .filter(StringUtils::isNotBlank)
-                                                  .orElse(BUSINESS_DRIVER_UNSPECIFIED);
-
-        String normalizedReason = Optional.ofNullable(reason)
-                                          .map(String::trim)
-                                          .filter(StringUtils::isNotBlank)
-                                          .orElse("No reason provided");
-
-        if (targetStatus == TicketStatus.ESCALATED && !StringUtils.isNotBlank(reason)) {
-            throw BindValidation.fieldError(
-                "ticketStatusRequest",
-                "reason",
-                "Escalation reason is required."
-            );
-        }
-
         auditService.recordEvent(
             AuditEventType.TICKET_STATUS_CHANGED,
             supportTicket.getId(),
             actor.getId(),
             String.format(
                 "Status changed from %s to %s. Triggered by: %s. Reason: %s.",
-                previousStatus, targetStatus, normalizedBusinessDriver, normalizedReason
+                previousStatus, targetStatus, normalizedBusinessDriver, resolvedReason
             ),
             null
         );
@@ -212,29 +193,13 @@ public class TicketStatusCommandService {
             supportTicket.getId()
         );
 
-        if (targetStatus == TicketStatus.ESCALATED) {
-            String escalationReason = String.format(
-                "Manual escalation by %s. Triggered by: %s. Reason: %s.",
-                actor.getRole(),
-                normalizedBusinessDriver,
-                normalizedReason
-            );
-
-            escalationRepository.findByTicketId(supportTicket.getId())
-                                .ifPresentOrElse(
-                                    escalation -> escalation.reopen(escalationReason),
-                                    () -> escalationRepository.save(
-                                        Escalation.builder()
-                                                  .ticket(supportTicket)
-                                                  .reason(escalationReason)
-                                                  .resolved(false)
-                                                  .build()
-                                    )
-                                );
-            supportTicket.setEscalated(true);
-        } else {
-            supportTicket.setEscalated(false);
-        }
+        ticketStatusEscalationService.synchronizeEscalationState(
+            supportTicket,
+            targetStatus,
+            actor,
+            normalizedBusinessDriver,
+            resolvedReason
+        );
 
         supportTicketRepository.save(supportTicket);
 
@@ -248,15 +213,6 @@ public class TicketStatusCommandService {
             actor.getRole(),
             normalizedBusinessDriver
         );
-    }
-
-    private void completeHumanReviewIfSupervisorDecision(
-        SupportTicket supportTicket,
-        AppUser actor
-    ) {
-        if (Objects.nonNull(actor) && (actor.isSupervisor() || actor.isAdmin())) {
-            supportTicket.setRequiresHumanReview(false);
-        }
     }
 
 }

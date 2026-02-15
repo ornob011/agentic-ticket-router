@@ -2,58 +2,36 @@ package com.dsi.support.agenticrouter.controller.api;
 
 import com.dsi.support.agenticrouter.dto.NotificationDto;
 import com.dsi.support.agenticrouter.dto.QueueStatsDto;
-import com.dsi.support.agenticrouter.entity.BaseEntity;
-import com.dsi.support.agenticrouter.repository.EscalationRepository;
-import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
-import com.dsi.support.agenticrouter.service.notification.NotificationService;
+import com.dsi.support.agenticrouter.service.dashboard.DashboardStatsService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
-import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/dashboard-stats")
 @RequiredArgsConstructor
 @Slf4j
+@PreAuthorize("isAuthenticated()")
 public class DashboardStatsController {
 
-    private final SupportTicketRepository supportTicketRepository;
-    private final EscalationRepository escalationRepository;
-    private final NotificationService notificationService;
+    private final DashboardStatsService dashboardStatsService;
 
     @GetMapping("/queue-count")
+    @PreAuthorize("hasAnyRole('AGENT','SUPERVISOR','ADMIN')")
     public QueueStatsDto getQueueStats(
         @RequestParam(required = false) Long agentId
     ) {
-        Long dashboardOwnerId = Objects.requireNonNullElse(
-            agentId,
-            Utils.getLoggedInUserId()
+        QueueStatsDto queueStatsDto = dashboardStatsService.getQueueStats(
+            agentId
         );
 
         log.debug(
-            "DashboardStatsQueue({}) Actor(id:{})",
-            OperationalLogContext.PHASE_START,
-            dashboardOwnerId
-        );
-
-        QueueStatsDto queueStatsDto = QueueStatsDto.builder()
-                                                   .assignedCount(supportTicketRepository.countAssignedTicketsInQueue(dashboardOwnerId))
-                                                   .inProgressCount(supportTicketRepository.countInProgressTickets(dashboardOwnerId))
-                                                   .resolvedCount(supportTicketRepository.countResolvedTickets(dashboardOwnerId))
-                                                   .escalatedCount(supportTicketRepository.countEscalatedTickets(dashboardOwnerId))
-                                                   .awaitingCustomerCount(supportTicketRepository.countAwaitingCustomerTickets(dashboardOwnerId))
-                                                   .triagingCount(supportTicketRepository.countTriagingTickets(dashboardOwnerId))
-                                                   .build();
-
-        log.debug(
-            "DashboardStatsQueue({}) Actor(id:{}) Outcome(assigned:{},inProgress:{},resolved:{},escalated:{},awaitingCustomer:{},triaging:{})",
+            "DashboardStatsQueue({}) Outcome(assigned:{},inProgress:{},resolved:{},escalated:{},awaitingCustomer:{},triaging:{})",
             OperationalLogContext.PHASE_COMPLETE,
-            dashboardOwnerId,
             queueStatsDto.getAssignedCount(),
             queueStatsDto.getInProgressCount(),
             queueStatsDto.getResolvedCount(),
@@ -69,17 +47,13 @@ public class DashboardStatsController {
     public long getUnreadNotificationCount(
         @RequestParam(required = false) Long userId
     ) {
-        Long dashboardOwnerId = Objects.requireNonNullElse(
-            userId,
-            Utils.getLoggedInUserId()
+        long unreadCount = dashboardStatsService.getUnreadNotificationCount(
+            userId
         );
 
-        long unreadCount = notificationService.getUnreadCount(dashboardOwnerId);
-
         log.debug(
-            "DashboardStatsNotificationsCount({}) Actor(id:{}) Outcome(unreadCount:{})",
+            "DashboardStatsNotificationsCount({}) Outcome(unreadCount:{})",
             OperationalLogContext.PHASE_COMPLETE,
-            dashboardOwnerId,
             unreadCount
         );
 
@@ -90,33 +64,13 @@ public class DashboardStatsController {
     public List<NotificationDto> getRecentNotifications(
         @RequestParam(required = false) Long userId
     ) {
-        Long dashboardOwnerId = Objects.requireNonNullElse(
-            userId,
-            Utils.getLoggedInUserId()
+        List<NotificationDto> notificationDtos = dashboardStatsService.getRecentNotifications(
+            userId
         );
 
-        List<NotificationDto> notificationDtos = notificationService.getRecentNotifications(dashboardOwnerId)
-                                                                    .stream()
-                                                                    .map(notification -> NotificationDto.builder()
-                                                                                                        .id(notification.getId())
-                                                                                                        .title(notification.getTitle())
-                                                                                                        .body(notification.getBody())
-                                                                                                        .type(Optional.ofNullable(notification.getNotificationType())
-                                                                                                                      .map(Enum::name)
-                                                                                                                      .orElse(null))
-                                                                                                        .ticketId(Optional.ofNullable(notification.getTicket())
-                                                                                                                          .map(BaseEntity::getId)
-                                                                                                                          .orElse(null))
-                                                                                                        .link(notification.getLink())
-                                                                                                        .read(notification.isRead())
-                                                                                                        .createdAt(notification.getCreatedAt())
-                                                                                                        .build())
-                                                                    .toList();
-
         log.debug(
-            "DashboardStatsNotificationsRecent({}) Actor(id:{}) Outcome(resultCount:{})",
+            "DashboardStatsNotificationsRecent({}) Outcome(resultCount:{})",
             OperationalLogContext.PHASE_COMPLETE,
-            dashboardOwnerId,
             notificationDtos.size()
         );
 
@@ -127,23 +81,21 @@ public class DashboardStatsController {
     public void markAllNotificationsAsRead(
         @RequestParam(required = false) Long userId
     ) {
-        Long dashboardOwnerId = Objects.requireNonNullElse(
-            userId,
-            Utils.getLoggedInUserId()
+        Long actorId = dashboardStatsService.markAllNotificationsAsRead(
+            userId
         );
-
-        notificationService.markAllAsRead(dashboardOwnerId);
 
         log.info(
             "DashboardStatsNotificationsMarkAllRead({}) Actor(id:{})",
             OperationalLogContext.PHASE_COMPLETE,
-            dashboardOwnerId
+            actorId
         );
     }
 
     @GetMapping("/escalations-count")
+    @PreAuthorize("hasAnyRole('SUPERVISOR','ADMIN')")
     public long getEscalationCount() {
-        long escalationCount = escalationRepository.countByResolvedFalse();
+        long escalationCount = dashboardStatsService.getEscalationCount();
 
         log.debug(
             "DashboardStatsEscalationCount({}) Outcome(count:{})",

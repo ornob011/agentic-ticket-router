@@ -16,6 +16,7 @@ import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
@@ -143,6 +144,37 @@ public class AuditService {
             null,
             description,
             null
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasEventType(
+        Long ticketId,
+        AuditEventType eventType
+    ) {
+        Objects.requireNonNull(ticketId, "ticketId");
+        Objects.requireNonNull(eventType, "eventType");
+
+        return auditEventRepository.existsByTicket_IdAndEventType(
+            ticketId,
+            eventType
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasEventTypeSince(
+        Long ticketId,
+        AuditEventType eventType,
+        Instant since
+    ) {
+        Objects.requireNonNull(ticketId, "ticketId");
+        Objects.requireNonNull(eventType, "eventType");
+        Objects.requireNonNull(since, "since");
+
+        return auditEventRepository.existsByTicket_IdAndEventTypeAndCreatedAtAfter(
+            ticketId,
+            eventType,
+            since
         );
     }
 }

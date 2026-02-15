@@ -1,5 +1,6 @@
 package com.dsi.support.agenticrouter.filter;
 
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
@@ -29,8 +30,10 @@ public class CorrelationIdFilter extends GenericFilterBean {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-        String correlationId = httpRequest.getHeader(CORRELATION_ID_HEADER);
-        if (correlationId == null || correlationId.trim().isEmpty()) {
+        String correlationId = StringNormalizationUtils.trimToNull(
+            httpRequest.getHeader(CORRELATION_ID_HEADER)
+        );
+        if (correlationId == null) {
             correlationId = UUID.randomUUID().toString();
         }
 

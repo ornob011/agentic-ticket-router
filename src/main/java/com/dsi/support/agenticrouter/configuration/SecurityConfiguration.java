@@ -178,7 +178,7 @@ public class SecurityConfiguration {
         );
 
         rememberMeServices.setTokenValiditySeconds(tokenValiditySeconds);
-        rememberMeServices.setAlwaysRemember(true);
+        rememberMeServices.setAlwaysRemember(false);
         rememberMeServices.setCookieName("remember-me");
 
         return rememberMeServices;

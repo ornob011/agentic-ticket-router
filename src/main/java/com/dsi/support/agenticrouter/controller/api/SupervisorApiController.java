@@ -5,8 +5,6 @@ import com.dsi.support.agenticrouter.enums.EscalationFilterStatus;
 import com.dsi.support.agenticrouter.service.ticket.TicketEscalationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.*;
@@ -27,12 +25,8 @@ public class SupervisorApiController {
     ) {
         return ticketEscalationService.listEscalationSummaries(
             status,
-            PageRequest.of(
-                page,
-                size,
-                Sort.by("createdAt")
-                    .descending()
-            )
+            page,
+            size
         );
     }
 

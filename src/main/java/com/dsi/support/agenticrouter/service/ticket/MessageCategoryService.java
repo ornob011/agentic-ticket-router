@@ -9,10 +9,12 @@ import com.dsi.support.agenticrouter.enums.TicketCategory;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
+import com.dsi.support.agenticrouter.service.ai.ChatClientFactory;
 import com.dsi.support.agenticrouter.service.ai.LlmOutputService;
 import com.dsi.support.agenticrouter.service.ai.PromptService;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,8 +43,7 @@ public class MessageCategoryService {
     private final PromptService promptService;
     private final SupportTicketRepository supportTicketRepository;
     private final TicketMessageRepository ticketMessageRepository;
-
-    private ChatClient chatClient;
+    private final ChatClientFactory chatClientFactory;
 
     public CategoryDetectionResult detectCategory(
         String content,
@@ -56,10 +58,9 @@ public class MessageCategoryService {
             StringUtils.length(content)
         );
 
-        if (Objects.isNull(chatClient)) {
-            chatClient = ChatClient.builder(ollamaChatModel)
-                                   .build();
-        }
+        ChatClient chatClient = chatClientFactory.create(
+            ollamaChatModel
+        );
 
         SupportTicket supportTicket = supportTicketRepository.findById(supportTicketId)
                                                              .orElseThrow(
@@ -87,7 +88,13 @@ public class MessageCategoryService {
                                             .text(promptService.getCategoryDetectionPrompt())
                                             .param("content", content)
                                             .param("category", categoryValues)
-                                            .param("current_category", supportTicket.getCurrentCategory().name())
+                                            .param(
+                                                "current_category",
+                                                Objects.requireNonNullElse(
+                                                    supportTicket.getCurrentCategory(),
+                                                    TicketCategory.OTHER
+                                                ).name()
+                                            )
                                             .param("conversation_history", conversationHistory))
                                         .call()
                                         .content();
@@ -182,7 +189,7 @@ public class MessageCategoryService {
         String response
     ) {
         return StringUtils.strip(
-            StringUtils.upperCase(StringUtils.trimToEmpty(response)),
+            StringNormalizationUtils.upperTrimmedOrEmpty(response),
             ".;,"
         );
     }
@@ -198,6 +205,20 @@ public class MessageCategoryService {
                      .filter(ticketCategory -> response.contains(ticketCategory.name()))
                      .findFirst()
                      .orElse(TicketCategory.OTHER);
+    }
+
+    private ParseStatus classifyParseStatus(
+        Throwable throwable
+    ) {
+        Throwable cause = throwable;
+        while (cause != null) {
+            if (cause instanceof TimeoutException) {
+                return ParseStatus.TIMEOUT;
+            }
+            cause = cause.getCause();
+        }
+
+        return ParseStatus.MODEL_ERROR;
     }
 
     @Data

@@ -9,14 +9,18 @@ import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
+import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.BindException;
 
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -53,14 +57,14 @@ public class TriggerNotificationAction implements TicketAction {
     ) {
         return Optional.ofNullable(value)
                        .map(Object::toString)
-                       .map(StringUtils::trim)
+                       .map(StringNormalizationUtils::trimToNull)
                        .filter(StringUtils::isNotBlank);
     }
 
     private static Optional<String> enumKey(
         Object value
     ) {
-        return text(value).map(String::toUpperCase);
+        return text(value).map(text -> text.toUpperCase(Locale.ROOT));
     }
 
     @Override
@@ -75,7 +79,7 @@ public class TriggerNotificationAction implements TicketAction {
     public void execute(
         SupportTicket supportTicket,
         RouterResponse routerResponse
-    ) {
+    ) throws BindException {
         log.info(
             "TriggerNotificationAction({}) SupportTicket(id:{},status:{})",
             OperationalLogContext.PHASE_START,
@@ -83,10 +87,15 @@ public class TriggerNotificationAction implements TicketAction {
             supportTicket.getStatus()
         );
 
-        Map<String, Object> params = Objects.requireNonNull(
-            routerResponse.getActionParameters(),
-            "Action parameters are required"
-        );
+        if (Objects.isNull(routerResponse.getActionParameters())) {
+            throw BindValidation.fieldError(
+                "routerResponse",
+                "actionParameters",
+                "actionParameters are required"
+            );
+        }
+
+        Map<String, Object> params = routerResponse.getActionParameters();
 
         String defaultTitle = "Ticket Update: " + supportTicket.getFormattedTicketNo();
 

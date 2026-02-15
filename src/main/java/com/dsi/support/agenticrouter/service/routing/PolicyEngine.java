@@ -1,23 +1,29 @@
 package com.dsi.support.agenticrouter.service.routing;
 
 import com.dsi.support.agenticrouter.dto.RouterResponse;
-import com.dsi.support.agenticrouter.entity.PolicyConfig;
-import com.dsi.support.agenticrouter.enums.*;
-import com.dsi.support.agenticrouter.exception.DataNotFoundException;
-import com.dsi.support.agenticrouter.repository.PolicyConfigRepository;
+import com.dsi.support.agenticrouter.enums.NextAction;
+import com.dsi.support.agenticrouter.enums.PolicyConfigKey;
+import com.dsi.support.agenticrouter.enums.SecurityTag;
+import com.dsi.support.agenticrouter.enums.TicketCategory;
+import com.dsi.support.agenticrouter.enums.TicketPriority;
+import com.dsi.support.agenticrouter.enums.TicketQueue;
+import com.dsi.support.agenticrouter.service.policy.PolicyValueLookupService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class PolicyEngine {
 
-    private final PolicyConfigRepository policyConfigRepository;
+    private final PolicyValueLookupService policyValueLookupService;
 
     public RouterResponse applyPolicyGates(
         RouterResponse routerResponse
@@ -62,18 +68,8 @@ public class PolicyEngine {
         }
 
         if (TicketPriority.CRITICAL.equals(routerResponse.getPriority())) {
-            BigDecimal configValue = policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.CRITICAL_MIN_CONF)
-                                                           .map(PolicyConfig::getConfigValue)
-                                                           .orElseThrow(
-                                                               DataNotFoundException.supplier(
-                                                                   PolicyConfig.class,
-                                                                   PolicyConfigKey.CRITICAL_MIN_CONF
-                                                               )
-                                                           );
-
-            BigDecimal criticalMinConf = PolicyConfigKey.getBigDecimalValue(
-                configValue,
-                BigDecimal.valueOf(0.85)
+            BigDecimal criticalMinConf = policyValueLookupService.getRequiredBigDecimalValue(
+                PolicyConfigKey.CRITICAL_MIN_CONF
             );
 
             if (routerResponse.getConfidence().compareTo(criticalMinConf) < 0) {
@@ -91,18 +87,8 @@ public class PolicyEngine {
             }
         }
 
-        BigDecimal configValue = policyConfigRepository.findByConfigKeyAndActiveTrue(PolicyConfigKey.AUTO_ROUTE_THRESHOLD)
-                                                       .map(PolicyConfig::getConfigValue)
-                                                       .orElseThrow(
-                                                           DataNotFoundException.supplier(
-                                                               PolicyConfig.class,
-                                                               PolicyConfigKey.AUTO_ROUTE_THRESHOLD
-                                                           )
-                                                       );
-
-        BigDecimal autoRouteThreshold = PolicyConfigKey.getBigDecimalValue(
-            configValue,
-            BigDecimal.valueOf(0.70)
+        BigDecimal autoRouteThreshold = policyValueLookupService.getRequiredBigDecimalValue(
+            PolicyConfigKey.AUTO_ROUTE_THRESHOLD
         );
 
         if (routerResponse.getConfidence().compareTo(autoRouteThreshold) < 0 && !policyTriggered) {
@@ -140,10 +126,10 @@ public class PolicyEngine {
             return true;
         }
 
-        return routerResponse.getRationaleTags()
-                             .stream()
-                             .anyMatch(
-                                 tag -> SecurityTag.getDangerousTags().contains(tag.toUpperCase())
-                             );
+        return Optional.ofNullable(routerResponse.getRationaleTags())
+                       .orElse(Collections.emptyList())
+                       .stream()
+                       .map(StringNormalizationUtils::upperTrimmedOrEmpty)
+                       .anyMatch(SecurityTag.getDangerousTags()::contains);
     }
 }

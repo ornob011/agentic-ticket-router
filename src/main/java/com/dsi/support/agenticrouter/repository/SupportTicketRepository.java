@@ -159,15 +159,20 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         @Param("customerId") Long customerId
     );
 
+    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
     Page<SupportTicket> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
     Page<SupportTicket> findByCustomerIdAndStatusOrderByCreatedAtDesc(Long customerId, TicketStatus status, Pageable pageable);
 
     boolean existsByIdAndCustomerId(Long id, Long customerId);
 
+    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
     Page<SupportTicket> findByAssignedAgentIdOrderByLastActivityAtDesc(Long assignedAgentId, Pageable pageable);
+    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
     Page<SupportTicket> findByAssignedAgentIdAndStatusOrderByLastActivityAtDesc(Long assignedAgentId, TicketStatus status, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
     @Query("""
             select supportTicket
             from SupportTicket supportTicket
@@ -185,6 +190,7 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         Pageable pageable
     );
 
+    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
     @Query("""
         SELECT supportTicket
         FROM SupportTicket supportTicket
@@ -199,10 +205,12 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         Pageable pageable
     );
 
+    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
     Page<SupportTicket> findByRequiresHumanReviewTrue(
         Pageable pageable
     );
 
+    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
     Page<SupportTicket> findByRequiresHumanReviewTrueAndStatusOrderByLastActivityAtDesc(
         TicketStatus status,
         Pageable pageable

@@ -5,6 +5,7 @@ import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.CountryRepository;
 import com.dsi.support.agenticrouter.repository.CustomerTierRepository;
 import com.dsi.support.agenticrouter.repository.LanguageRepository;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -74,39 +75,31 @@ public class SignupValidator implements Validator {
             }
         }
 
-        String normalizedEmail = signupDto.getEmail()
-                                          .trim()
-                                          .toLowerCase();
+        String normalizedEmail = StringNormalizationUtils.lowerTrimmedOrEmpty(signupDto.getEmail());
 
         if (appUserRepository.existsByEmailIgnoreCase(normalizedEmail)) {
             errors.rejectValue("email", "error.signup.email.exists");
         }
 
-        String normalizedUsername = signupDto.getUsername()
-                                             .trim()
-                                             .toLowerCase();
+        String normalizedUsername = StringNormalizationUtils.lowerTrimmedOrEmpty(signupDto.getUsername());
 
         if (appUserRepository.existsByUsernameIgnoreCase(normalizedUsername)) {
             errors.rejectValue("username", "error.signup.username.exists");
         }
 
-        String normalizedCountryIso2 = signupDto.getCountryIso2()
-                                                .trim()
-                                                .toUpperCase();
+        String normalizedCountryIso2 = StringNormalizationUtils.upperTrimmedOrEmpty(signupDto.getCountryIso2());
 
         if (!countryRepository.existsByIso2IgnoreCase(normalizedCountryIso2)) {
             errors.rejectValue("countryIso2", "error.signup.countryIso2.invalid");
         }
 
-        String normalizedTierCode = signupDto.getCustomerTierCode()
-                                             .trim();
+        String normalizedTierCode = StringNormalizationUtils.trimToEmpty(signupDto.getCustomerTierCode());
 
         if (!customerTierRepository.existsByCode(normalizedTierCode)) {
             errors.rejectValue("customerTierCode", "error.signup.customerTierCode.invalid");
         }
 
-        String normalizedLanguageCode = signupDto.getPreferredLanguageCode()
-                                                 .trim();
+        String normalizedLanguageCode = StringNormalizationUtils.trimToEmpty(signupDto.getPreferredLanguageCode());
 
         if (!languageRepository.existsByCode(normalizedLanguageCode)) {
             errors.rejectValue("preferredLanguageCode", "error.signup.preferredLanguageCode.invalid");

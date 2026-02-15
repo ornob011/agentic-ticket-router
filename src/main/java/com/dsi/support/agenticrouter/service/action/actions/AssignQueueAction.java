@@ -48,6 +48,7 @@ public class AssignQueueAction implements TicketAction {
 
         supportTicket.setAssignedQueue(routerResponse.getQueue());
         supportTicket.setStatus(TicketStatus.ASSIGNED);
+        supportTicket.updateLastActivity();
 
         if (supportTicket.getFirstAssignedAt() == null) {
             supportTicket.setFirstAssignedAt(Instant.now());
