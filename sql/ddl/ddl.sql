@@ -279,6 +279,7 @@ CREATE TABLE support_ticket
                       'IN_PROGRESS',
                       'RESOLVED',
                       'ESCALATED',
+                      'AUTO_ESCALATED',
                       'AUTO_CLOSED_PENDING',
                       'CLOSED'
       )),
@@ -292,8 +293,6 @@ CREATE TABLE support_ticket
                                                             'SECURITY',
                                                             'PRICING',
                                                             'OTHER',
-                                                            'PRICING',
-                                                            'ACCOUNT',
                                                             'CANCEL',
                                                             'CONTACT',
                                                             'DELIVERY',
@@ -302,7 +301,6 @@ CREATE TABLE support_ticket
                                                             'ORDER',
                                                             'PAYMENT',
                                                             'REFUND',
-                                                            'SHIPPING',
                                                             'SUBSCRIPTION'
       )),
 
