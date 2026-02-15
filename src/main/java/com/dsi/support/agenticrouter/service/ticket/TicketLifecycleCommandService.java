@@ -2,6 +2,7 @@ package com.dsi.support.agenticrouter.service.ticket;
 
 import com.dsi.support.agenticrouter.dto.CreateTicketDto;
 import com.dsi.support.agenticrouter.entity.AppUser;
+import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
@@ -20,11 +21,11 @@ public class TicketLifecycleCommandService {
     private final TicketStatusCommandService ticketStatusCommandService;
     private final TicketRoutingCommandService ticketRoutingCommandService;
 
-    public void createTicket(
+    public SupportTicket createTicket(
         CreateTicketDto createTicketDto,
         Long customerId
     ) {
-        ticketCreationCommandService.createTicket(
+        return ticketCreationCommandService.createTicket(
             createTicketDto,
             customerId
         );

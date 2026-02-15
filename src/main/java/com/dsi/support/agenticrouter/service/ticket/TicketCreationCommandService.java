@@ -38,7 +38,7 @@ public class TicketCreationCommandService {
     private final AppUserRepository appUserRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    public void createTicket(
+    public SupportTicket createTicket(
         CreateTicketDto createTicketDto,
         Long customerId
     ) {
@@ -119,5 +119,7 @@ public class TicketCreationCommandService {
             supportTicket.getStatus(),
             TicketCreatedEvent.class.getSimpleName()
         );
+
+        return supportTicket;
     }
 }

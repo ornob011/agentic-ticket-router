@@ -85,21 +85,10 @@ public class TicketApiController {
                                                          .content(request.content())
                                                          .build();
 
-        ticketLifecycleCommandService.createTicket(
+        SupportTicket createdTicket = ticketLifecycleCommandService.createTicket(
             createTicketDto,
             user.getId()
         );
-
-        SupportTicket createdTicket = supportTicketRepository.findByCustomerIdOrderByCreatedAtDesc(
-                                                                 user.getId(),
-                                                                 PageRequest.of(
-                                                                     0,
-                                                                     1
-                                                                 )
-                                                             )
-                                                             .stream()
-                                                             .findFirst()
-                                                             .orElseThrow();
 
         return toTicketSummary(createdTicket);
     }
