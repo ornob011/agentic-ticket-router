@@ -13,6 +13,7 @@ import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.security.TicketAccessPolicyService;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
+import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindException;
 
 import java.time.Instant;
@@ -138,7 +138,9 @@ public class TicketStatusCommandService {
             actor
         );
         if (!allowedTransitions.contains(targetStatus)) {
-            throw new IllegalStateException(
+            throw BindValidation.fieldError(
+                "ticketStatusRequest",
+                "newStatus",
                 String.format(
                     "Transition %s -> %s is not allowed for actor role %s",
                     previousStatus,
@@ -153,7 +155,7 @@ public class TicketStatusCommandService {
                                                             .map(existingEscalation -> !existingEscalation.isResolved())
                                                             .orElse(false);
             if (hasOpenEscalation) {
-                throwBindValidation(
+                throw BindValidation.fieldError(
                     "ticketStatusRequest",
                     "newStatus",
                     "Please resolve the escalation before changing ticket status."
@@ -184,7 +186,7 @@ public class TicketStatusCommandService {
                                           .orElse("No reason provided");
 
         if (targetStatus == TicketStatus.ESCALATED && !StringUtils.isNotBlank(reason)) {
-            throwBindValidation(
+            throw BindValidation.fieldError(
                 "ticketStatusRequest",
                 "reason",
                 "Escalation reason is required."
@@ -257,22 +259,4 @@ public class TicketStatusCommandService {
         }
     }
 
-    private void throwBindValidation(
-        String objectName,
-        String fieldName,
-        String message
-    ) throws BindException {
-        BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(
-            new Object(),
-            objectName
-        );
-
-        bindingResult.rejectValue(
-            fieldName,
-            "validation.error",
-            message
-        );
-
-        throw new BindException(bindingResult);
-    }
 }

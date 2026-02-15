@@ -240,7 +240,7 @@ public class TicketApiController {
     public void addReply(
         @PathVariable Long ticketId,
         @Valid @RequestBody ApiDtos.TicketReplyRequest request
-    ) {
+    ) throws BindException {
         AppUser user = Utils.getLoggedInUserDetails();
         if (user.isCustomer()) {
             ticketLifecycleCommandService.addCustomerReply(
@@ -285,7 +285,7 @@ public class TicketApiController {
     @PreAuthorize("hasAnyRole('AGENT','SUPERVISOR','ADMIN')")
     public void assignSelf(
         @PathVariable Long ticketId
-    ) {
+    ) throws BindException {
         ticketAssignmentCommandService.assignSelf(
             ticketId
         );
@@ -295,7 +295,7 @@ public class TicketApiController {
     @PreAuthorize("hasAnyRole('AGENT','SUPERVISOR','ADMIN')")
     public void releaseAgent(
         @PathVariable Long ticketId
-    ) {
+    ) throws BindException {
         ticketAssignmentCommandService.releaseAgent(
             ticketId
         );
@@ -306,7 +306,7 @@ public class TicketApiController {
     public void overrideRouting(
         @PathVariable Long ticketId,
         @Valid @RequestBody ApiDtos.RoutingOverrideRequest request
-    ) {
+    ) throws BindException {
         ticketLifecycleCommandService.overrideRouting(
             ticketId,
             request.queue(),

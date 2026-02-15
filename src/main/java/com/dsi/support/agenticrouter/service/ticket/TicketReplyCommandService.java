@@ -16,6 +16,7 @@ import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.security.TicketAccessPolicyService;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
+import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.BindException;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -52,7 +54,7 @@ public class TicketReplyCommandService {
         Long ticketId,
         String content,
         Long customerId
-    ) {
+    ) throws BindException {
         log.info(
             "CustomerReply({}) SupportTicket(id:{}) Actor(id:{}) Outcome(contentLength:{})",
             OperationalLogContext.PHASE_START,
@@ -81,7 +83,11 @@ public class TicketReplyCommandService {
             supportTicket,
             customer
         )) {
-            throw new IllegalStateException("Actor cannot reply to this ticket");
+            throw BindValidation.fieldError(
+                "ticketReplyRequest",
+                "ticketId",
+                "Actor cannot reply to this ticket"
+            );
         }
 
         if (Objects.nonNull(supportTicket.getStatus())
@@ -160,7 +166,7 @@ public class TicketReplyCommandService {
     public void addAgentReply(
         Long ticketId,
         String content
-    ) {
+    ) throws BindException {
         Long agentId = Utils.getLoggedInUserId();
 
         AppUser agent = appUserRepository.findById(agentId)
@@ -184,7 +190,7 @@ public class TicketReplyCommandService {
         String content,
         AppUser agent,
         String businessDriver
-    ) {
+    ) throws BindException {
         log.info(
             "AgentReply({}) SupportTicket(id:{}) Actor(id:{},role:{}) Outcome(contentLength:{},businessDriver:{})",
             OperationalLogContext.PHASE_START,
@@ -210,7 +216,11 @@ public class TicketReplyCommandService {
             supportTicket,
             agent
         )) {
-            throw new IllegalStateException("Actor cannot reply to this ticket");
+            throw BindValidation.fieldError(
+                "ticketReplyRequest",
+                "ticketId",
+                "Actor cannot reply to this ticket"
+            );
         }
 
         if (!StringUtils.isNotBlank(content)) {

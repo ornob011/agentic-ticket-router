@@ -11,12 +11,14 @@ import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
+import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.BindException;
 
 import java.time.Instant;
 
@@ -42,7 +44,7 @@ public class AutoResolveAction implements TicketAction {
     public void execute(
         SupportTicket supportTicket,
         RouterResponse routerResponse
-    ) {
+    ) throws BindException {
         String solution = routerResponse.getDraftReply();
 
         log.info(
@@ -55,7 +57,11 @@ public class AutoResolveAction implements TicketAction {
         );
 
         if (StringUtils.isBlank(solution)) {
-            throw new IllegalStateException("Solution content is required");
+            throw BindValidation.fieldError(
+                "routerResponse",
+                "draftReply",
+                "Solution content is required"
+            );
         }
 
         TicketMessage ticketMessage = TicketMessage.builder()
@@ -101,4 +107,5 @@ public class AutoResolveAction implements TicketAction {
             supportTicket.getStatus()
         );
     }
+
 }

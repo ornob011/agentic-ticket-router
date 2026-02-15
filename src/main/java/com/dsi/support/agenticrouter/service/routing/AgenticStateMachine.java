@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.BindException;
 
 import java.util.Objects;
 
@@ -29,7 +30,7 @@ public class AgenticStateMachine {
     public void executeAction(
         SupportTicket supportTicket,
         RouterResponse routerResponse
-    ) {
+    ) throws BindException {
         log.info(
             "StateMachineExecute({}) SupportTicket(id:{},status:{},queue:{},priority:{}) RouterResponse(nextAction:{},queue:{},priority:{},confidence:{})",
             OperationalLogContext.PHASE_START,

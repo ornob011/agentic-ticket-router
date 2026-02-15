@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.validation.BindException;
 
 @Component
 @RequiredArgsConstructor
@@ -19,7 +20,7 @@ public class TicketRoutingListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleTicketCreated(
         TicketCreatedEvent event
-    ) {
+    ) throws BindException {
         log.info(
             "TicketCreatedEventHandle({}) SupportTicket(id:{})",
             OperationalLogContext.PHASE_START,

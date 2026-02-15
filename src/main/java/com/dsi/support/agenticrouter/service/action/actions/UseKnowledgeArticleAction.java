@@ -13,6 +13,7 @@ import com.dsi.support.agenticrouter.service.action.TicketAction;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.knowledge.KnowledgeBaseService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
+import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -22,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.BindException;
 
 import java.time.Instant;
 import java.util.Map;
@@ -52,7 +54,7 @@ public class UseKnowledgeArticleAction implements TicketAction {
     public void execute(
         SupportTicket supportTicket,
         RouterResponse response
-    ) {
+    ) throws BindException {
         log.info(
             "UseKnowledgeArticleAction({}) SupportTicket(id:{},status:{})",
             OperationalLogContext.PHASE_START,
@@ -170,14 +172,23 @@ public class UseKnowledgeArticleAction implements TicketAction {
             );
         }
 
-        public Long articleId() {
-            String rawArticleId = text(ActionParamKey.ARTICLE_ID)
-                .orElseThrow(() -> new IllegalStateException(
+        public Long articleId() throws BindException {
+            String rawArticleId = text(ActionParamKey.ARTICLE_ID).orElse(null);
+
+            if (rawArticleId == null) {
+                throw BindValidation.fieldError(
+                    "routerResponse",
+                    ActionParamKey.ARTICLE_ID.key(),
                     ActionParamKey.ARTICLE_ID.key() + " is required"
-                ));
+                );
+            }
 
             if (!StringUtils.isNumeric(rawArticleId)) {
-                throw new IllegalStateException(ActionParamKey.ARTICLE_ID.key() + " must be numeric");
+                throw BindValidation.fieldError(
+                    "routerResponse",
+                    ActionParamKey.ARTICLE_ID.key(),
+                    ActionParamKey.ARTICLE_ID.key() + " must be numeric"
+                );
             }
 
             return Long.parseLong(rawArticleId);
@@ -190,6 +201,7 @@ public class UseKnowledgeArticleAction implements TicketAction {
                            .map(v -> Objects.toString(v, null))
                            .map(StringUtils::trimToNull);
         }
+
     }
 
     public static final class AuditMetadata {

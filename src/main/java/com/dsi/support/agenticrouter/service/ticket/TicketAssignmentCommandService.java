@@ -12,13 +12,13 @@ import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.security.TicketAccessPolicyService;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
+import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindException;
 
 import java.util.Objects;
@@ -37,7 +37,7 @@ public class TicketAssignmentCommandService {
 
     public void assignSelf(
         Long ticketId
-    ) {
+    ) throws BindException {
         Objects.requireNonNull(ticketId, "ticketId");
 
         AppUser actor = Utils.getLoggedInUserDetails();
@@ -53,7 +53,11 @@ public class TicketAssignmentCommandService {
             supportTicket,
             actor
         )) {
-            throw new IllegalStateException("Actor cannot self-assign this ticket");
+            throw BindValidation.fieldError(
+                "assignSelfRequest",
+                "ticketId",
+                "Actor cannot self-assign this ticket"
+            );
         }
 
         AppUser previousAgent = supportTicket.getAssignedAgent();
@@ -116,13 +120,17 @@ public class TicketAssignmentCommandService {
 
         AppUser actor = Utils.getLoggedInUserDetails();
         if (!ticketAccessPolicyService.canAssignOthers(actor)) {
-            throw new IllegalStateException("Actor cannot assign other agents");
+            throw BindValidation.fieldError(
+                "assignAgentRequest",
+                "agentId",
+                "Actor cannot assign other agents"
+            );
         }
 
         if (!agent.getRole().equals(UserRole.AGENT)
             && !agent.getRole().equals(UserRole.SUPERVISOR)
             && !agent.getRole().equals(UserRole.ADMIN)) {
-            throwBindValidation(
+            throw BindValidation.fieldError(
                 "assignAgentRequest",
                 "agentId",
                 "Selected user must be an agent, supervisor, or admin."
@@ -176,7 +184,9 @@ public class TicketAssignmentCommandService {
         );
     }
 
-    public void releaseAgent(Long ticketId) {
+    public void releaseAgent(
+        Long ticketId
+    ) throws BindException {
         log.info(
             "AgentRelease({}) SupportTicket(id:{}) Actor(id:{})",
             OperationalLogContext.PHASE_START,
@@ -201,7 +211,11 @@ public class TicketAssignmentCommandService {
             supportTicket.getAssignedAgent().getId(),
             actor.getId()
         )) {
-            throw new IllegalStateException("Agent can only release self assignment");
+            throw BindValidation.fieldError(
+                "releaseAgentRequest",
+                "ticketId",
+                "Agent can only release self assignment"
+            );
         }
 
         AppUser previousAgent = supportTicket.getAssignedAgent();
@@ -218,7 +232,9 @@ public class TicketAssignmentCommandService {
         }
 
         supportTicket.setAssignedAgent(null);
-        supportTicket.setStatus(TicketStatus.ASSIGNED);
+        if (shouldTransitionToAssignedOnRelease(supportTicket.getStatus())) {
+            supportTicket.setStatus(TicketStatus.ASSIGNED);
+        }
         supportTicket.updateLastActivity();
         supportTicketRepository.save(supportTicket);
 
@@ -240,6 +256,14 @@ public class TicketAssignmentCommandService {
         );
     }
 
+    private boolean shouldTransitionToAssignedOnRelease(
+        TicketStatus currentStatus
+    ) {
+        return currentStatus == TicketStatus.TRIAGING
+               || currentStatus == TicketStatus.IN_PROGRESS
+               || currentStatus == TicketStatus.WAITING_CUSTOMER;
+    }
+
     private void completeHumanReviewIfSupervisorDecision(
         SupportTicket supportTicket,
         AppUser actor
@@ -249,22 +273,4 @@ public class TicketAssignmentCommandService {
         }
     }
 
-    private void throwBindValidation(
-        String objectName,
-        String fieldName,
-        String message
-    ) throws BindException {
-        BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(
-            new Object(),
-            objectName
-        );
-
-        bindingResult.rejectValue(
-            fieldName,
-            "validation.error",
-            message
-        );
-
-        throw new BindException(bindingResult);
-    }
 }

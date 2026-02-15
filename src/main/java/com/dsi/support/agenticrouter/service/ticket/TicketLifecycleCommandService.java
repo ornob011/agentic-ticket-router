@@ -35,7 +35,7 @@ public class TicketLifecycleCommandService {
         Long ticketId,
         String content,
         Long customerId
-    ) {
+    ) throws BindException {
         ticketReplyCommandService.addCustomerReply(
             ticketId,
             content,
@@ -46,7 +46,7 @@ public class TicketLifecycleCommandService {
     public void addAgentReply(
         Long ticketId,
         String content
-    ) {
+    ) throws BindException {
         ticketReplyCommandService.addAgentReply(
             ticketId,
             content
@@ -58,7 +58,7 @@ public class TicketLifecycleCommandService {
         String content,
         AppUser agent,
         String businessDriver
-    ) {
+    ) throws BindException {
         ticketReplyCommandService.addAgentReply(
             ticketId,
             content,
@@ -98,7 +98,7 @@ public class TicketLifecycleCommandService {
         TicketQueue newQueue,
         TicketPriority newPriority,
         String reason
-    ) {
+    ) throws BindException {
         ticketRoutingCommandService.overrideRouting(
             ticketId,
             newQueue,

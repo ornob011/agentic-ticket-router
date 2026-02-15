@@ -5,6 +5,7 @@ import com.dsi.support.agenticrouter.entity.*;
 import com.dsi.support.agenticrouter.enums.UserRole;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.*;
+import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.EnumDisplayNameResolver;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
@@ -12,8 +13,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindException;
+import org.springframework.validation.BindingResult;
 
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -50,18 +51,18 @@ public class ProfileService {
             StringUtils.trimToEmpty(request.email())
         );
         if (appUserRepository.existsByEmailIgnoreCaseAndIdNot(normalizedEmail, appUser.getId())) {
-            BeanPropertyBindingResult errors = new BeanPropertyBindingResult(
+            BindingResult errors = BindValidation.bindingResult(
                 request,
                 "profileUpdateRequest"
             );
 
-            errors.rejectValue(
+            BindValidation.rejectField(
+                errors,
                 "email",
-                "Duplicate",
                 "Email is already in use."
             );
 
-            throw new BindException(errors);
+            throw BindValidation.exception(errors);
         }
 
         appUser.setEmail(normalizedEmail);
@@ -106,7 +107,7 @@ public class ProfileService {
         CustomerProfile existingProfile,
         ApiDtos.ProfileUpdateRequest request
     ) throws BindException {
-        BeanPropertyBindingResult errors = new BeanPropertyBindingResult(
+        BindingResult errors = BindValidation.bindingResult(
             request,
             "profileUpdateRequest"
         );
@@ -158,9 +159,9 @@ public class ProfileService {
         if (StringUtils.isNotBlank(normalizedCountryIso2)) {
             country = countryRepository.findByIso2(normalizedCountryIso2).orElse(null);
             if (Objects.isNull(country)) {
-                errors.rejectValue(
+                BindValidation.rejectField(
+                    errors,
                     "countryIso2",
-                    "Invalid",
                     "Country is invalid."
                 );
             }
@@ -170,9 +171,9 @@ public class ProfileService {
         if (StringUtils.isNotBlank(normalizedTierCode)) {
             customerTier = customerTierRepository.findByCode(normalizedTierCode).orElse(null);
             if (Objects.isNull(customerTier)) {
-                errors.rejectValue(
+                BindValidation.rejectField(
+                    errors,
                     "customerTierCode",
-                    "Invalid",
                     "Tier is invalid."
                 );
             }
@@ -182,16 +183,16 @@ public class ProfileService {
         if (StringUtils.isNotBlank(normalizedLanguageCode)) {
             language = languageRepository.findByCode(normalizedLanguageCode).orElse(null);
             if (Objects.isNull(language)) {
-                errors.rejectValue(
+                BindValidation.rejectField(
+                    errors,
                     "preferredLanguageCode",
-                    "Invalid",
                     "Preferred language is invalid."
                 );
             }
         }
 
         if (errors.hasErrors()) {
-            throw new BindException(errors);
+            throw BindValidation.exception(errors);
         }
 
         CustomerProfile customerProfile = Objects.nonNull(existingProfile)
@@ -216,13 +217,13 @@ public class ProfileService {
         String value,
         String fieldName,
         String errorMessage,
-        BeanPropertyBindingResult errors
+        BindingResult errors
     ) {
         String normalizedValue = StringUtils.trimToEmpty(value);
         if (StringUtils.isBlank(normalizedValue)) {
-            errors.rejectValue(
+            BindValidation.rejectField(
+                errors,
                 fieldName,
-                "NotBlank",
                 errorMessage
             );
             return null;
@@ -235,7 +236,7 @@ public class ProfileService {
         String value,
         String fieldName,
         String errorMessage,
-        BeanPropertyBindingResult errors
+        BindingResult errors
     ) {
         String normalized = requiredTrimmedValue(
             value,
@@ -390,33 +391,33 @@ public class ProfileService {
         AppUser appUser = getCurrentUser();
 
         if (!passwordEncoder.matches(request.currentPassword(), appUser.getPasswordHash())) {
-            BeanPropertyBindingResult errors = new BeanPropertyBindingResult(
+            BindingResult errors = BindValidation.bindingResult(
                 request,
                 "changePasswordRequest"
             );
 
-            errors.rejectValue(
+            BindValidation.rejectField(
+                errors,
                 "currentPassword",
-                "Invalid",
                 "Current password is incorrect."
             );
 
-            throw new BindException(errors);
+            throw BindValidation.exception(errors);
         }
 
         if (!Objects.equals(request.newPassword(), request.confirmNewPassword())) {
-            BeanPropertyBindingResult errors = new BeanPropertyBindingResult(
+            BindingResult errors = BindValidation.bindingResult(
                 request,
                 "changePasswordRequest"
             );
 
-            errors.rejectValue(
+            BindValidation.rejectField(
+                errors,
                 "confirmNewPassword",
-                "Mismatch",
                 "New passwords do not match."
             );
 
-            throw new BindException(errors);
+            throw BindValidation.exception(errors);
         }
 
         appUser.setPasswordHash(

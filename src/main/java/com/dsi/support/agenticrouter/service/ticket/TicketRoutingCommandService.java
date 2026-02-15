@@ -12,6 +12,7 @@ import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketRoutingRepository;
 import com.dsi.support.agenticrouter.security.TicketAccessPolicyService;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +20,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.BindException;
 
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -39,7 +42,7 @@ public class TicketRoutingCommandService {
         TicketQueue newQueue,
         TicketPriority newPriority,
         String reason
-    ) {
+    ) throws BindException {
         log.info(
             "RoutingOverride({}) SupportTicket(id:{}) Outcome(newQueue:{},newPriority:{},reasonLength:{})",
             OperationalLogContext.PHASE_START,
@@ -64,15 +67,24 @@ public class TicketRoutingCommandService {
         AppUser actor = Utils.getLoggedInUserDetails();
 
         if (!ticketAccessPolicyService.canOverrideRouting(actor)) {
-            throw new IllegalStateException("Actor cannot override routing");
+            throw BindValidation.fieldError(
+                "routingOverrideRequest",
+                "ticketId",
+                "Actor cannot override routing"
+            );
         }
 
-        TicketRouting latestRouting = ticketRoutingRepository.findByTicketIdOrderByCreatedAtDesc(ticketId)
-                                                             .stream()
-                                                             .findFirst()
-                                                             .orElseThrow(
-                                                                 () -> new IllegalStateException("No routing found for ticket: " + ticketId)
-                                                             );
+        Optional<TicketRouting> latestRoutingOptional = ticketRoutingRepository.findByTicketIdOrderByCreatedAtDesc(ticketId)
+                                                                               .stream()
+                                                                               .findFirst();
+        if (latestRoutingOptional.isEmpty()) {
+            throw BindValidation.fieldError(
+                "routingOverrideRequest",
+                "ticketId",
+                "No routing found for ticket: " + ticketId
+            );
+        }
+        TicketRouting latestRouting = latestRoutingOptional.get();
 
         Long overriddenById = Utils.getLoggedInUserId();
 
@@ -132,4 +144,5 @@ public class TicketRoutingCommandService {
             supportTicket.setRequiresHumanReview(false);
         }
     }
+
 }

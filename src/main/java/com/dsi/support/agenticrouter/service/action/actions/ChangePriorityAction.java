@@ -11,11 +11,13 @@ import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.BindException;
 
 import java.util.Objects;
 
@@ -40,7 +42,7 @@ public class ChangePriorityAction implements TicketAction {
     public void execute(
         SupportTicket supportTicket,
         RouterResponse routerResponse
-    ) {
+    ) throws BindException {
         TicketPriority newPriority = routerResponse.getPriority();
         TicketPriority oldPriority = supportTicket.getCurrentPriority();
 
@@ -54,7 +56,11 @@ public class ChangePriorityAction implements TicketAction {
         );
 
         if (Objects.isNull(newPriority)) {
-            throw new IllegalStateException("Priority is required");
+            throw BindValidation.fieldError(
+                "routerResponse",
+                "priority",
+                "Priority is required"
+            );
         }
 
         supportTicket.setCurrentPriority(newPriority);
@@ -102,4 +108,5 @@ public class ChangePriorityAction implements TicketAction {
             !newPriority.equals(oldPriority)
         );
     }
+
 }

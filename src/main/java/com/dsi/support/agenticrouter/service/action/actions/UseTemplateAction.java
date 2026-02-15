@@ -11,12 +11,14 @@ import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.knowledge.TemplateService;
+import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.BindException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -44,7 +46,7 @@ public class UseTemplateAction implements TicketAction {
     public void execute(
         SupportTicket supportTicket,
         RouterResponse response
-    ) {
+    ) throws BindException {
         log.info(
             "UseTemplateAction({}) SupportTicket(id:{},status:{},queue:{},priority:{}) RouterResponse(confidence:{},actionParamCount:{})",
             OperationalLogContext.PHASE_START,
@@ -68,40 +70,8 @@ public class UseTemplateAction implements TicketAction {
             actionParams.variablesExcluding(ActionParamKey.TEMPLATE_ID)
         );
 
-        Long actualTemplateId = Objects.requireNonNullElseGet(
-            templateId,
-            () -> {
-                log.info(
-                    "UseTemplateAction({}) SupportTicket(id:{}) Outcome(reason:{})",
-                    OperationalLogContext.PHASE_DECISION,
-                    supportTicket.getId(),
-                    "template_id_missing_auto_select"
-                );
-
-                Long selectedTemplateId = autoSelectTemplateId(
-                    supportTicket
-                );
-
-                if (Objects.isNull(selectedTemplateId)) {
-                    log.warn(
-                        "UseTemplateAction({}) SupportTicket(id:{},status:{}) Outcome(reason:{})",
-                        OperationalLogContext.PHASE_FAIL,
-                        supportTicket.getId(),
-                        supportTicket.getStatus(),
-                        "no_matching_template"
-                    );
-
-                    throw new IllegalStateException(
-                        "No suitable template found for ticket. Escalating to human review."
-                    );
-                }
-
-                return selectedTemplateId;
-            }
-        );
-
         String filledContent = templateService.fillTemplate(
-            actualTemplateId,
+            templateId,
             templateVariables.asMap()
         );
 
@@ -119,7 +89,7 @@ public class UseTemplateAction implements TicketAction {
             OperationalLogContext.PHASE_PERSIST,
             supportTicket.getId(),
             supportTicket.getStatus(),
-            actualTemplateId,
+            templateId,
             MessageKind.AUTO_REPLY
         );
 
@@ -127,7 +97,7 @@ public class UseTemplateAction implements TicketAction {
             AuditEventType.MESSAGE_POSTED,
             supportTicket.getId(),
             null,
-            "Template used: " + actualTemplateId,
+            "Template used: " + templateId,
             null
         );
 
@@ -136,7 +106,7 @@ public class UseTemplateAction implements TicketAction {
             OperationalLogContext.PHASE_COMPLETE,
             supportTicket.getId(),
             supportTicket.getStatus(),
-            actualTemplateId
+            templateId
         );
     }
 
@@ -228,14 +198,23 @@ public class UseTemplateAction implements TicketAction {
             );
         }
 
-        public Long templateId() {
-            String rawTemplateId = text(ActionParamKey.TEMPLATE_ID)
-                .orElseThrow(() -> new IllegalStateException(
+        public Long templateId() throws BindException {
+            String rawTemplateId = text(ActionParamKey.TEMPLATE_ID).orElse(null);
+
+            if (rawTemplateId == null) {
+                throw BindValidation.fieldError(
+                    "routerResponse",
+                    ActionParamKey.TEMPLATE_ID.key(),
                     ActionParamKey.TEMPLATE_ID.key() + " is required"
-                ));
+                );
+            }
 
             if (!StringUtils.isNumeric(rawTemplateId)) {
-                throw new IllegalStateException(ActionParamKey.TEMPLATE_ID.key() + " must be numeric");
+                throw BindValidation.fieldError(
+                    "routerResponse",
+                    ActionParamKey.TEMPLATE_ID.key(),
+                    ActionParamKey.TEMPLATE_ID.key() + " must be numeric"
+                );
             }
 
             return Long.parseLong(rawTemplateId);
@@ -269,6 +248,7 @@ public class UseTemplateAction implements TicketAction {
                            .map(object -> Objects.toString(object, null))
                            .map(StringUtils::trimToNull);
         }
+
     }
 
     private static final class TemplateVariables {

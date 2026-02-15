@@ -9,12 +9,14 @@ import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
+import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.BindException;
 
 @Component
 @RequiredArgsConstructor
@@ -38,7 +40,7 @@ public class AskClarifyingAction implements TicketAction {
     public void execute(
         SupportTicket supportTicket,
         RouterResponse routerResponse
-    ) {
+    ) throws BindException {
         log.info(
             "AskClarifyingAction({}) SupportTicket(id:{},status:{}) RouterResponse(questionLength:{},confidence:{})",
             OperationalLogContext.PHASE_START,
@@ -49,7 +51,11 @@ public class AskClarifyingAction implements TicketAction {
         );
 
         if (StringUtils.isBlank(routerResponse.getClarifyingQuestion())) {
-            throw new IllegalStateException("Clarifying question is required");
+            throw BindValidation.fieldError(
+                "routerResponse",
+                "clarifyingQuestion",
+                "Clarifying question is required"
+            );
         }
 
         TicketMessage message = TicketMessage.builder()
@@ -95,4 +101,5 @@ public class AskClarifyingAction implements TicketAction {
             supportTicket.getStatus()
         );
     }
+
 }

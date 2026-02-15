@@ -13,6 +13,7 @@ import com.dsi.support.agenticrouter.repository.EscalationRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.security.TicketAccessPolicyService;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindException;
 
 import java.util.List;
@@ -55,7 +55,7 @@ public class TicketEscalationService {
         Objects.requireNonNull(escalationId, "escalationId");
         Objects.requireNonNull(resolutionNotes, "resolutionNotes");
         if (!StringUtils.isNotBlank(resolutionNotes)) {
-            throwBindValidation(
+            throw BindValidation.fieldError(
                 "resolveEscalationRequest",
                 "resolutionNotes",
                 "Resolution notes are required."
@@ -78,7 +78,11 @@ public class TicketEscalationService {
                 "already_resolved"
             );
 
-            throw new IllegalStateException("Escalation already resolved: " + escalationId);
+            throw BindValidation.fieldError(
+                "resolveEscalationRequest",
+                "escalationId",
+                "Escalation already resolved: " + escalationId
+            );
         }
 
         AppUser resolver = appUserRepository.findById(Utils.getLoggedInUserId())
@@ -89,7 +93,11 @@ public class TicketEscalationService {
                                                 )
                                             );
         if (!ticketAccessPolicyService.canResolveEscalation(resolver)) {
-            throw new IllegalStateException("Actor cannot resolve escalation");
+            throw BindValidation.fieldError(
+                "resolveEscalationRequest",
+                "escalationId",
+                "Actor cannot resolve escalation"
+            );
         }
 
         escalation.markResolved(
@@ -203,22 +211,4 @@ public class TicketEscalationService {
                                         .build();
     }
 
-    private void throwBindValidation(
-        String objectName,
-        String fieldName,
-        String message
-    ) throws BindException {
-        BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(
-            new Object(),
-            objectName
-        );
-
-        bindingResult.rejectValue(
-            fieldName,
-            "validation.error",
-            message
-        );
-
-        throw new BindException(bindingResult);
-    }
 }
