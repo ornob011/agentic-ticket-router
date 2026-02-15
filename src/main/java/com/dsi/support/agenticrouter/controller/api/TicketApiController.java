@@ -84,6 +84,7 @@ public class TicketApiController {
         @Valid @RequestBody ApiDtos.TicketReplyRequest request
     ) throws BindException {
         AppUser user = Utils.getLoggedInUserDetails();
+
         if (user.isCustomer()) {
             ticketLifecycleCommandService.addCustomerReply(
                 ticketId,

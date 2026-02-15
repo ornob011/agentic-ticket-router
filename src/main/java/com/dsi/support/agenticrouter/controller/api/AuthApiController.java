@@ -150,6 +150,7 @@ public class AuthApiController {
         @Valid @RequestBody ApiDtos.ChangePasswordRequest request
     ) throws BindException {
         profileService.changePassword(request);
+
         return ResponseEntity.noContent().build();
     }
 
