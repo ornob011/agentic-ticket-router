@@ -206,8 +206,8 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-dvh lg:h-screen flex bg-slate-50 overflow-hidden">
-      <div className="hidden h-full lg:flex lg:w-[42%] xl:w-[46%] bg-gradient-to-b from-slate-300 via-blue-300 to-slate-200 p-10 xl:p-12 flex-col relative overflow-hidden border-r border-slate-300">
+    <div className="min-h-dvh flex bg-slate-50">
+      <div className="hidden lg:flex lg:w-[42%] xl:w-[46%] bg-gradient-to-b from-slate-300 via-blue-300 to-slate-200 p-10 xl:p-12 flex-col relative overflow-hidden border-r border-slate-300">
         <div className="absolute inset-0 opacity-[0.06]">
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -261,9 +261,9 @@ export default function SignupPage() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-dvh lg:h-full overflow-y-auto">
-        <div className="min-h-dvh lg:min-h-full flex items-start lg:items-center justify-center p-4 sm:p-6 lg:p-6">
-          <div className="w-full max-w-4xl py-2 lg:py-3">
+      <div className="flex-1">
+        <div className="flex items-start justify-center p-4 sm:p-6 lg:p-6">
+          <div className="w-full max-w-4xl">
             <div className="lg:hidden mb-5 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-100 to-slate-100 p-4">
               <div className="flex items-center gap-2">
                 <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center">
