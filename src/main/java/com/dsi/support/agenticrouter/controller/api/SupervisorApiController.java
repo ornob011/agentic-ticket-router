@@ -2,7 +2,7 @@ package com.dsi.support.agenticrouter.controller.api;
 
 import com.dsi.support.agenticrouter.dto.api.ApiDtos;
 import com.dsi.support.agenticrouter.enums.EscalationFilterStatus;
-import com.dsi.support.agenticrouter.service.ticket.TicketService;
+import com.dsi.support.agenticrouter.service.ticket.TicketEscalationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("hasAnyRole('SUPERVISOR','ADMIN')")
 public class SupervisorApiController {
 
-    private final TicketService ticketService;
+    private final TicketEscalationService ticketEscalationService;
 
     @GetMapping
     public ApiDtos.PagedResponse<ApiDtos.EscalationSummary> listEscalations(
@@ -25,7 +25,7 @@ public class SupervisorApiController {
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
-        return ticketService.listEscalationSummaries(
+        return ticketEscalationService.listEscalationSummaries(
             status,
             PageRequest.of(
                 page,
@@ -40,7 +40,7 @@ public class SupervisorApiController {
     public ApiDtos.EscalationDetail getEscalation(
         @PathVariable Long escalationId
     ) {
-        return ticketService.getEscalationDetail(
+        return ticketEscalationService.getEscalationDetail(
             escalationId
         );
     }
@@ -50,7 +50,7 @@ public class SupervisorApiController {
         @PathVariable Long escalationId,
         @Valid @RequestBody ApiDtos.ResolveEscalationRequest request
     ) throws BindException {
-        ticketService.resolveEscalation(
+        ticketEscalationService.resolveEscalation(
             escalationId,
             request.resolutionNotes()
         );

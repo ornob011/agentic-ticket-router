@@ -10,10 +10,14 @@ import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.enums.TicketQueryScope;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
+import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
+import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
+import com.dsi.support.agenticrouter.repository.TicketRoutingRepository;
 import com.dsi.support.agenticrouter.security.TicketAccessPolicyService;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
-import com.dsi.support.agenticrouter.service.ticket.TicketService;
+import com.dsi.support.agenticrouter.service.ticket.TicketAssignmentCommandService;
+import com.dsi.support.agenticrouter.service.ticket.TicketLifecycleCommandService;
 import com.dsi.support.agenticrouter.util.EnumDisplayNameResolver;
 import com.dsi.support.agenticrouter.util.Utils;
 import jakarta.validation.Valid;
@@ -35,9 +39,12 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class TicketApiController {
 
-    private final TicketService ticketService;
+    private final TicketLifecycleCommandService ticketLifecycleCommandService;
+    private final TicketAssignmentCommandService ticketAssignmentCommandService;
     private final AuditService auditService;
     private final SupportTicketRepository supportTicketRepository;
+    private final TicketMessageRepository ticketMessageRepository;
+    private final TicketRoutingRepository ticketRoutingRepository;
     private final TicketAccessPolicyService ticketAccessPolicyService;
 
     @GetMapping
@@ -78,7 +85,7 @@ public class TicketApiController {
                                                          .content(request.content())
                                                          .build();
 
-        ticketService.createTicket(
+        ticketLifecycleCommandService.createTicket(
             createTicketDto,
             user.getId()
         );
@@ -102,10 +109,21 @@ public class TicketApiController {
     public ApiDtos.TicketDetail getTicket(
         @PathVariable Long ticketId
     ) {
-        SupportTicket supportTicket = ticketService.getTicketDetail(ticketId);
+        SupportTicket supportTicket = supportTicketRepository.findTicketDetailById(ticketId)
+                                                             .orElseThrow(
+                                                                 DataNotFoundException.supplier(
+                                                                     SupportTicket.class,
+                                                                     ticketId
+                                                                 )
+                                                             );
 
-        List<TicketMessage> ticketMessages = ticketService.getTicketMessages(ticketId);
-        List<TicketRouting> routingHistory = ticketService.getTicketRoutingHistory(ticketId);
+        List<TicketMessage> ticketMessages = ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(
+            ticketId
+        );
+
+        List<TicketRouting> routingHistory = ticketRoutingRepository.findByTicketIdOrderByCreatedAtDesc(
+            ticketId
+        );
 
         AppUser user = Utils.getLoggedInUserDetails();
         if (user.isCustomer()) {
@@ -236,13 +254,13 @@ public class TicketApiController {
     ) {
         AppUser user = Utils.getLoggedInUserDetails();
         if (user.isCustomer()) {
-            ticketService.addCustomerReply(
+            ticketLifecycleCommandService.addCustomerReply(
                 ticketId,
                 request.content(),
                 user.getId()
             );
         } else {
-            ticketService.addAgentReply(
+            ticketLifecycleCommandService.addAgentReply(
                 ticketId,
                 request.content()
             );
@@ -255,7 +273,7 @@ public class TicketApiController {
         @PathVariable Long ticketId,
         @Valid @RequestBody ApiDtos.TicketStatusRequest request
     ) throws BindException {
-        ticketService.changeTicketStatus(
+        ticketLifecycleCommandService.changeTicketStatus(
             ticketId,
             request.newStatus(),
             request.reason()
@@ -268,7 +286,7 @@ public class TicketApiController {
         @PathVariable Long ticketId,
         @Valid @RequestBody ApiDtos.AssignAgentRequest request
     ) throws BindException {
-        ticketService.assignAgent(
+        ticketAssignmentCommandService.assignAgent(
             ticketId,
             request.agentId()
         );
@@ -279,7 +297,7 @@ public class TicketApiController {
     public void assignSelf(
         @PathVariable Long ticketId
     ) {
-        ticketService.assignSelf(
+        ticketAssignmentCommandService.assignSelf(
             ticketId
         );
     }
@@ -289,7 +307,7 @@ public class TicketApiController {
     public void releaseAgent(
         @PathVariable Long ticketId
     ) {
-        ticketService.releaseAgent(
+        ticketAssignmentCommandService.releaseAgent(
             ticketId
         );
     }
@@ -300,7 +318,7 @@ public class TicketApiController {
         @PathVariable Long ticketId,
         @Valid @RequestBody ApiDtos.RoutingOverrideRequest request
     ) {
-        ticketService.overrideRouting(
+        ticketLifecycleCommandService.overrideRouting(
             ticketId,
             request.queue(),
             request.priority(),
@@ -362,9 +380,10 @@ public class TicketApiController {
                 status,
                 pageable
             );
-            case QUEUE -> ticketService.listQueueTickets(
+            case QUEUE -> supportTicketRepository.findQueueTickets(
                 queue,
                 status,
+                TicketStatus.queueInboxDefaults(),
                 pageable
             );
             case REVIEW -> supportTicketRepository.findByRequiresHumanReviewTrueAndStatusOrderByLastActivityAtDesc(
@@ -385,7 +404,7 @@ public class TicketApiController {
 
         if (user.isCustomer()) {
             if (!hasStatusFilter) {
-                return ticketService.listCustomerTickets(
+                return supportTicketRepository.findByCustomerIdOrderByCreatedAtDesc(
                     userId,
                     pageable
                 );
