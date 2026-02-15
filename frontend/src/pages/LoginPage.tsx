@@ -7,7 +7,7 @@ import { parseApiError } from "@/lib/api-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, ArrowRight, Clock, Shield, Zap } from "lucide-react";
 import { canAccessAgentWorkspace } from "@/lib/role-policy";
@@ -283,14 +283,14 @@ export default function LoginPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Switch
+                    <Checkbox
                       id="rememberMe"
                       checked={Boolean(rememberMe)}
                       onCheckedChange={handleRememberMeChange}
                       disabled={isSubmitting}
                     />
-                    <Label htmlFor="rememberMe" className="text-sm text-muted-foreground">
-                      Keep me signed in on this device
+                    <Label htmlFor="rememberMe" className="text-sm text-muted-foreground cursor-pointer">
+                      Remember me
                     </Label>
                   </div>
 
