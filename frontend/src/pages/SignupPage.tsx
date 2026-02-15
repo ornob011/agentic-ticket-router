@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AxiosError } from "axios";
 import { Controller, useForm } from "react-hook-form";
 import { api } from "@/lib/api";
+import { parseApiError } from "@/lib/api-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,34 +34,92 @@ type SignupErrorResponse = {
   detail?: string;
 };
 
-function toSignupErrorPayload(rawError: unknown): SignupErrorResponse | null {
-  if (!(rawError instanceof AxiosError)) {
-    return null;
+function normalizeApiFieldErrors(
+  rawFieldErrors: unknown
+): Partial<Record<keyof SignupForm, string>> {
+  const normalizedFieldErrors: Partial<Record<keyof SignupForm, string>> = {};
+  if (!rawFieldErrors || typeof rawFieldErrors !== "object" || Array.isArray(rawFieldErrors)) {
+    return normalizedFieldErrors;
   }
 
-  return rawError.response?.data ?? null;
+  for (const [fieldName, fieldMessage] of Object.entries(rawFieldErrors as Record<string, unknown>)) {
+    if (typeof fieldMessage !== "string" || !fieldMessage.trim()) {
+      continue;
+    }
+
+    normalizedFieldErrors[fieldName as keyof SignupForm] = fieldMessage;
+  }
+
+  return normalizedFieldErrors;
 }
 
-function toFieldErrorMap(
-  payload: SignupErrorResponse | null,
+function toLegacyFieldErrorMap(
+  fieldErrors: SignupErrorResponse["fieldErrors"],
 ): Partial<Record<keyof SignupForm, string>> {
   const fieldErrorMap: Partial<Record<keyof SignupForm, string>> = {};
-  if (!payload?.fieldErrors?.length) {
+  if (!fieldErrors?.length) {
     return fieldErrorMap;
   }
 
-  for (const item of payload.fieldErrors) {
+  for (const item of fieldErrors) {
+    if (typeof item?.message !== "string" || !item.message.trim()) {
+      continue;
+    }
     fieldErrorMap[item.field] = item.message;
   }
 
   return fieldErrorMap;
 }
 
-function resolveSignupErrorMessage(payload: SignupErrorResponse | null): string {
-  return payload?.errors?.[0]
-    ?? payload?.globalErrors?.[0]
-    ?? payload?.detail
-    ?? "Signup failed.";
+function toSignupErrorPayload(rawError: unknown): SignupErrorResponse | null {
+  if (!rawError || typeof rawError !== "object") {
+    return null;
+  }
+
+  const maybePayload = rawError as Partial<SignupErrorResponse>;
+  const hasKnownShape = Array.isArray(maybePayload.fieldErrors)
+                        || Array.isArray(maybePayload.globalErrors)
+                        || Array.isArray(maybePayload.errors)
+                        || typeof maybePayload.detail === "string";
+
+  return hasKnownShape ? maybePayload : null;
+}
+
+function resolveSignupErrors(
+  rawError: unknown
+): { fieldErrors: Partial<Record<keyof SignupForm, string>>; message: string } {
+  const parsedApiError = parseApiError(rawError);
+  const payload = toSignupErrorPayload(rawError);
+
+  const legacyFieldErrors = toLegacyFieldErrorMap(
+    payload?.fieldErrors
+  );
+  const apiFieldErrors = normalizeApiFieldErrors(
+    parsedApiError.fieldErrors
+  );
+  const mergedFieldErrors: Partial<Record<keyof SignupForm, string>> = {
+    ...apiFieldErrors,
+    ...legacyFieldErrors,
+  };
+
+  const firstFieldError = Object.values(mergedFieldErrors).find(
+    (value): value is string => value.trim().length > 0
+  );
+  const rawMessage = firstFieldError
+                  ?? payload?.errors?.[0]
+                  ?? payload?.globalErrors?.[0]
+                  ?? parsedApiError.globalErrors[0]
+                  ?? payload?.detail
+                  ?? parsedApiError.detail
+                  ?? "Signup failed.";
+  const message = rawMessage.trim().length > 0
+    ? rawMessage
+    : "Signup failed.";
+
+  return {
+    fieldErrors: mergedFieldErrors,
+    message,
+  };
 }
 
 export default function SignupPage() {
@@ -97,11 +155,19 @@ export default function SignupPage() {
   const passwordValue = watch("password");
 
   useEffect(() => {
-    api.get<{ countries: Option[]; tiers: Option[]; languages: Option[] }>("/auth/signup-options").then((response) => {
-      setCountries(response.data.countries);
-      setTiers(response.data.tiers);
-      setLanguages(response.data.languages);
-    });
+    api.get<{ countries: Option[]; tiers: Option[]; languages: Option[] }>("/auth/signup-options")
+       .then((response) => {
+         setCountries(response.data.countries);
+         setTiers(response.data.tiers);
+         setLanguages(response.data.languages);
+       })
+       .catch((rawError: unknown) => {
+         const parsedError = parseApiError(rawError);
+         const detail = parsedError.detail.trim().length > 0
+           ? parsedError.detail
+           : "Failed to load signup options.";
+         setFormError(detail);
+       });
   }, []);
 
   const onSubmit = async (form: SignupForm) => {
@@ -111,12 +177,14 @@ export default function SignupPage() {
       await api.post("/auth/signup", form);
       navigate("/app/login");
     } catch (rawError) {
-      const payload = toSignupErrorPayload(rawError);
-      const normalizedFieldErrors = toFieldErrorMap(payload);
-      const resolvedMessage = resolveSignupErrorMessage(payload);
-
-      setServerFieldErrors(normalizedFieldErrors);
-      setFormError(resolvedMessage);
+      try {
+        const signupErrors = resolveSignupErrors(rawError);
+        setServerFieldErrors(signupErrors.fieldErrors);
+        setFormError(signupErrors.message);
+      } catch {
+        setServerFieldErrors({});
+        setFormError("Signup failed.");
+      }
     }
   };
 
@@ -125,7 +193,8 @@ export default function SignupPage() {
       return clientMessage;
     }
 
-    return serverFieldErrors[field];
+    const serverMessage = serverFieldErrors[field];
+    return typeof serverMessage === "string" ? serverMessage : undefined;
   };
 
   const getSubmitLabel = () => {
