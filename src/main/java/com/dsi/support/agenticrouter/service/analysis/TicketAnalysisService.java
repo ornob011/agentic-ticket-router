@@ -14,14 +14,15 @@ import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -34,6 +35,7 @@ public class TicketAnalysisService {
     private final SupportTicketRepository supportTicketRepository;
     private final AuditService auditService;
     private final LlmOutputService llmOutputService;
+    private final AnalysisCategoryParser analysisCategoryParser;
 
     private ChatClient chatClient;
 
@@ -60,10 +62,21 @@ public class TicketAnalysisService {
                                    .build();
         }
 
+        String categoryTokens = Arrays.stream(TicketCategory.values())
+                                      .map(Enum::name)
+                                      .collect(Collectors.joining(" | "));
+
+        String categoryContract = String.format(
+            "The final line must be exactly one category token from this list: %s",
+            categoryTokens
+        );
+
         String responseText = chatClient.prompt()
                                         .system(promptService.getSystemPrompt())
                                         .user(promptUserSpec -> promptUserSpec.text(promptService.getAnalysisPrompt())
-                                                                              .param("content", ticketAnalysisRequest.getContent()))
+                                                                              .param("content", ticketAnalysisRequest.getContent())
+                                                                              .param("category_contract", categoryContract)
+                                                                              .param("fallback_category", TicketCategory.OTHER.name()))
                                         .call()
                                         .content();
 
@@ -84,7 +97,7 @@ public class TicketAnalysisService {
             null
         );
 
-        TicketCategory category = parseCategory(
+        TicketCategory category = analysisCategoryParser.parseFromModelResponse(
             responseText
         );
 
@@ -102,27 +115,4 @@ public class TicketAnalysisService {
                                    .build();
     }
 
-    private TicketCategory parseCategory(
-        String responseText
-    ) {
-        String[] lines = StringUtils.splitPreserveAllTokens(
-            StringUtils.trimToEmpty(responseText),
-            '\n'
-        );
-
-        String lastLine = StringUtils.trimToEmpty(
-            lines[lines.length - 1]
-        );
-
-        String key = StringUtils.stripEnd(
-            lastLine,
-            StringUtils.CR
-        );
-
-        return EnumUtils.getEnumIgnoreCase(
-            TicketCategory.class,
-            key,
-            TicketCategory.OTHER
-        );
-    }
 }
