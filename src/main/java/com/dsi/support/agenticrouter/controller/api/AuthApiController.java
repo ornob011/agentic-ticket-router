@@ -13,6 +13,7 @@ import com.dsi.support.agenticrouter.util.EnumDisplayNameResolver;
 import com.dsi.support.agenticrouter.util.Utils;
 import com.dsi.support.agenticrouter.validator.SignupValidator;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
@@ -23,6 +24,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.RememberMeServices;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.BindException;
@@ -44,11 +46,13 @@ public class AuthApiController {
     private final LanguageRepository languageRepository;
     private final MessageSource messageSource;
     private final ProfileService profileService;
+    private final RememberMeServices rememberMeServices;
 
     @PostMapping("/login")
     public ApiDtos.UserMe login(
         @Valid @RequestBody ApiDtos.LoginRequest loginRequest,
-        HttpServletRequest request
+        HttpServletRequest request,
+        HttpServletResponse response
     ) {
         Authentication authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(
@@ -65,13 +69,31 @@ public class AuthApiController {
             context
         );
 
+        if (loginRequest.rememberMe()) {
+            rememberMeServices.loginSuccess(
+                request,
+                response,
+                authentication
+            );
+        } else {
+            rememberMeServices.loginFail(
+                request,
+                response
+            );
+        }
+
         return toUserMe(Utils.getLoggedInUserDetails());
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
-        HttpServletRequest request
+        HttpServletRequest request,
+        HttpServletResponse response
     ) {
+        rememberMeServices.loginFail(
+            request,
+            response
+        );
         request.getSession().invalidate();
         SecurityContextHolder.clearContext();
 

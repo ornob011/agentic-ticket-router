@@ -27,6 +27,8 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.HttpStatusAccessDeniedHandler;
+import org.springframework.security.web.authentication.RememberMeServices;
+import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
 
 import java.io.IOException;
 import java.net.URI;
@@ -45,6 +47,7 @@ public class SecurityConfiguration {
     public SecurityFilterChain apiSecurityFilterChain(
         HttpSecurity http,
         DaoAuthenticationProvider daoAuthenticationProvider,
+        RememberMeServices rememberMeServices,
         AuthenticationEntryPoint apiAuthenticationEntryPoint,
         AccessDeniedHandler apiAccessDeniedHandler
     ) throws Exception {
@@ -63,6 +66,9 @@ public class SecurityConfiguration {
             .formLogin(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable)
             .logout(AbstractHttpConfigurer::disable)
+            .rememberMe(remember -> remember
+                .rememberMeServices(rememberMeServices)
+            )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .sessionFixation(SessionManagementConfigurer.SessionFixationConfigurer::migrateSession)
@@ -77,6 +83,7 @@ public class SecurityConfiguration {
     public SecurityFilterChain appSecurityFilterChain(
         HttpSecurity http,
         DaoAuthenticationProvider daoAuthenticationProvider,
+        RememberMeServices rememberMeServices,
         AuthenticationEntryPoint appAuthenticationEntryPoint
     ) throws Exception {
         http
@@ -93,6 +100,9 @@ public class SecurityConfiguration {
             .formLogin(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable)
             .logout(AbstractHttpConfigurer::disable)
+            .rememberMe(remember -> remember
+                .rememberMeServices(rememberMeServices)
+            )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .sessionFixation(SessionManagementConfigurer.SessionFixationConfigurer::migrateSession)
@@ -155,6 +165,23 @@ public class SecurityConfiguration {
         AuthenticationConfiguration authenticationConfiguration
     ) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
+    }
+
+    @Bean
+    public RememberMeServices rememberMeServices(
+        @Value("${security.rememberme.key}") String rememberMeKey,
+        @Value("${security.rememberme.token-validity-seconds}") int tokenValiditySeconds
+    ) {
+        TokenBasedRememberMeServices rememberMeServices = new TokenBasedRememberMeServices(
+            rememberMeKey,
+            customUserDetailsService
+        );
+
+        rememberMeServices.setTokenValiditySeconds(tokenValiditySeconds);
+        rememberMeServices.setAlwaysRemember(true);
+        rememberMeServices.setCookieName("remember-me");
+
+        return rememberMeServices;
     }
 
     @Bean
