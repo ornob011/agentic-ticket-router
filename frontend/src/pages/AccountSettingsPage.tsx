@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { Controller, useForm } from "react-hook-form";
+import { useLoaderData } from "react-router-dom";
 import { getProfile, getSettings, getSignupOptions, updateProfile, updateSettings, changePassword } from "@/app/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ import type {
 } from "@/lib/api";
 import { getRoleBadgeVariant, isCustomerRole, canAccessAgentWorkspace } from "@/lib/role-policy";
 import { formatRelativeTime } from "@/lib/utils";
+import type { SettingsLoaderData } from "@/lib/loaders";
 
 type ProfileForm = {
   email: string;
@@ -148,6 +150,7 @@ function applyProfileToForm(profile: ProfileResponse, reset: (values: ProfileFor
 }
 
 export default function AccountSettingsPage() {
+  const loaderData = useLoaderData() as SettingsLoaderData;
   const queryClient = useQueryClient();
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState(false);
@@ -162,14 +165,17 @@ export default function AccountSettingsPage() {
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["profile"],
     queryFn: getProfile,
+    initialData: loaderData.profile,
   });
   const { data: settings, isLoading: isSettingsLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: getSettings,
+    initialData: loaderData.settings,
   });
   const { data: signupOptions } = useQuery({
     queryKey: ["signup-options"],
     queryFn: getSignupOptions,
+    initialData: loaderData.signupOptions ?? undefined,
   });
 
   const {
