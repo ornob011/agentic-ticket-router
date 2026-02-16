@@ -48,8 +48,8 @@ export function AppLayout({ children }: Readonly<AppLayoutProps>) {
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-          <div className="mx-auto max-w-7xl">
-            {children ?? <Outlet />}
+          <div className="mx-auto w-full">
+            {children ?? <Outlet/>}
           </div>
         </main>
       </div>
