@@ -11,6 +11,7 @@ import com.dsi.support.agenticrouter.util.Utils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.BindException;
 
 import java.util.List;
 import java.util.Objects;
@@ -68,7 +69,7 @@ public class AdminPortalService {
     @Transactional
     public void updatePolicyConfig(
         ApiDtos.PolicyUpdateRequest request
-    ) {
+    ) throws BindException {
         policyConfigService.updatePolicy(
             PolicyConfigKey.valueOf(
                 StringNormalizationUtils.upperTrimmedOrEmpty(request.configKey())
@@ -98,7 +99,7 @@ public class AdminPortalService {
     @Transactional
     public void createStaffUser(
         ApiDtos.StaffCreateRequest request
-    ) {
+    ) throws BindException {
         policyConfigService.createStaffUser(
             request.username(),
             request.email(),

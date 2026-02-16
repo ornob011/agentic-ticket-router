@@ -7,6 +7,7 @@ import com.dsi.support.agenticrouter.service.admin.AdminPortalService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -43,7 +44,7 @@ public class AdminApiController {
     @PatchMapping("/policy-config")
     public void updatePolicyConfig(
         @Valid @RequestBody ApiDtos.PolicyUpdateRequest request
-    ) {
+    ) throws BindException {
         adminPortalService.updatePolicyConfig(
             request
         );
@@ -57,7 +58,7 @@ public class AdminApiController {
     @PostMapping("/users")
     public void createStaffUser(
         @Valid @RequestBody ApiDtos.StaffCreateRequest request
-    ) {
+    ) throws BindException {
         adminPortalService.createStaffUser(
             request
         );
