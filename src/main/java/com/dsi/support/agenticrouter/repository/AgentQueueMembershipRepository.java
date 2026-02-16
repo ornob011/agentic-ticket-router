@@ -16,7 +16,7 @@ public interface AgentQueueMembershipRepository extends JpaRepository<AgentQueue
     @Query("""
         SELECT membership
         FROM AgentQueueMembership membership
-        JOIN FETCH membership.user user
+        JOIN membership.user user
         ORDER BY user.username ASC, membership.queue ASC
         """)
     List<AgentQueueMembership> findAllWithUser();

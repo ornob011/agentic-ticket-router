@@ -12,7 +12,7 @@ public interface TicketMessageRepository extends JpaRepository<TicketMessage, Lo
     @Query("""
             select tm
             from TicketMessage tm
-            left join fetch tm.author
+            left join tm.author
             where tm.ticket.id = :ticketId
             order by tm.createdAt asc
         """)
