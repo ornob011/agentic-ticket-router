@@ -11,6 +11,7 @@ import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
 import com.dsi.support.agenticrouter.service.action.actions.profile.CustomerProfileUpdateOutcome;
 import com.dsi.support.agenticrouter.service.action.actions.profile.CustomerProfileUpdateProcessor;
+import com.dsi.support.agenticrouter.service.action.actions.profile.CustomerProfileUserMessageRenderer;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
 import com.dsi.support.agenticrouter.util.BindValidation;
@@ -28,13 +29,13 @@ import java.util.Map;
 @Slf4j
 public class UpdateCustomerProfileAction implements TicketAction {
 
-    private static final String NO_CHANGE_SYSTEM_PREFIX = "No profile changes were necessary.\n";
     private final CustomerProfileRepository customerProfileRepository;
     private final SupportTicketRepository supportTicketRepository;
     private final AuditService auditService;
     private final NotificationService notificationService;
     private final TicketMessageRepository ticketMessageRepository;
     private final CustomerProfileUpdateProcessor customerProfileUpdateProcessor;
+    private final CustomerProfileUserMessageRenderer customerProfileUserMessageRenderer;
 
     @Override
     public boolean canHandle(
@@ -83,7 +84,7 @@ public class UpdateCustomerProfileAction implements TicketAction {
         TicketMessage systemMessage = TicketMessage.builder()
                                                    .ticket(supportTicket)
                                                    .messageKind(MessageKind.SYSTEM_MESSAGE)
-                                                   .content(systemMessageContent(updateOutcome))
+                                                   .content(customerProfileUserMessageRenderer.systemMessage(updateOutcome))
                                                    .visibleToCustomer(true)
                                                    .build();
 
@@ -104,8 +105,8 @@ public class UpdateCustomerProfileAction implements TicketAction {
         notificationService.createNotification(
             supportTicket.getCustomer().getId(),
             NotificationType.STATUS_CHANGE,
-            notificationTitle(updateOutcome),
-            notificationBody(updateOutcome),
+            customerProfileUserMessageRenderer.notificationTitle(updateOutcome),
+            customerProfileUserMessageRenderer.notificationBody(updateOutcome),
             supportTicket.getId()
         );
 
@@ -118,15 +119,6 @@ public class UpdateCustomerProfileAction implements TicketAction {
         );
     }
 
-    private String systemMessageContent(
-        CustomerProfileUpdateOutcome updateOutcome
-    ) {
-        if (updateOutcome.changed()) {
-            return "Your profile has been updated: " + updateOutcome.changeSummary();
-        }
-        return NO_CHANGE_SYSTEM_PREFIX + updateOutcome.noChangeDetails();
-    }
-
     private String auditMessageContent(
         CustomerProfileUpdateOutcome updateOutcome
     ) {
@@ -134,23 +126,5 @@ public class UpdateCustomerProfileAction implements TicketAction {
             return "Customer profile updated: " + updateOutcome.changeSummary();
         }
         return "Customer profile update requested, but no changes were necessary.";
-    }
-
-    private String notificationTitle(
-        CustomerProfileUpdateOutcome updateOutcome
-    ) {
-        if (updateOutcome.changed()) {
-            return "Profile Updated";
-        }
-        return "No Profile Changes";
-    }
-
-    private String notificationBody(
-        CustomerProfileUpdateOutcome updateOutcome
-    ) {
-        if (updateOutcome.changed()) {
-            return "Your profile has been updated based on your ticket information.";
-        }
-        return "We reviewed your ticket information, but your profile already matched it. No changes were made.";
     }
 }

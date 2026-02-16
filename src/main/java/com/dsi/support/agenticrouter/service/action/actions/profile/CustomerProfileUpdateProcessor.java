@@ -4,6 +4,7 @@ import com.dsi.support.agenticrouter.entity.CustomerProfile;
 import com.dsi.support.agenticrouter.entity.Language;
 import com.dsi.support.agenticrouter.repository.LanguageRepository;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -27,7 +28,7 @@ public class CustomerProfileUpdateProcessor {
     ) {
         CustomerProfileActionParams actionParams = new CustomerProfileActionParams(actionParameters);
 
-        List<String> changes = new ArrayList<>();
+        List<CustomerProfileFieldChange> changes = new ArrayList<>();
 
         updateCompanyName(
             actionParams,
@@ -63,7 +64,9 @@ public class CustomerProfileUpdateProcessor {
         boolean hasChanges = !changes.isEmpty();
         String changeSummary = String.join(
             CHANGE_SEPARATOR,
-            changes
+            changes.stream()
+                   .map(this::formatChangeForAudit)
+                   .toList()
         );
 
         return new CustomerProfileUpdateOutcome(
@@ -72,14 +75,15 @@ public class CustomerProfileUpdateProcessor {
             noChangeDetailRenderer.render(
                 actionParams,
                 customerProfile
-            )
+            ),
+            changes
         );
     }
 
     private void updateCompanyName(
         CustomerProfileActionParams actionParams,
         CustomerProfile customerProfile,
-        List<String> changes
+        List<CustomerProfileFieldChange> changes
     ) {
         actionParams.companyName().ifPresent(newValue -> applyStringChange(
             CustomerProfileActionParams.KEY_COMPANY_NAME,
@@ -93,7 +97,7 @@ public class CustomerProfileUpdateProcessor {
     private void updatePhoneNumber(
         CustomerProfileActionParams actionParams,
         CustomerProfile customerProfile,
-        List<String> changes
+        List<CustomerProfileFieldChange> changes
     ) {
         actionParams.phoneNumber().ifPresent(newValue -> applyStringChange(
             CustomerProfileActionParams.KEY_PHONE_NUMBER,
@@ -107,7 +111,7 @@ public class CustomerProfileUpdateProcessor {
     private void updateAddress(
         CustomerProfileActionParams actionParams,
         CustomerProfile customerProfile,
-        List<String> changes
+        List<CustomerProfileFieldChange> changes
     ) {
         actionParams.address().ifPresent(newValue -> applyStringChange(
             CustomerProfileActionParams.KEY_ADDRESS,
@@ -121,7 +125,7 @@ public class CustomerProfileUpdateProcessor {
     private void updateCity(
         CustomerProfileActionParams actionParams,
         CustomerProfile customerProfile,
-        List<String> changes
+        List<CustomerProfileFieldChange> changes
     ) {
         actionParams.city().ifPresent(newValue -> applyStringChange(
             CustomerProfileActionParams.KEY_CITY,
@@ -135,7 +139,7 @@ public class CustomerProfileUpdateProcessor {
     private void updatePostalCode(
         CustomerProfileActionParams actionParams,
         CustomerProfile customerProfile,
-        List<String> changes
+        List<CustomerProfileFieldChange> changes
     ) {
         actionParams.postalCode().ifPresent(newValue -> applyStringChange(
             CustomerProfileActionParams.KEY_POSTAL_CODE,
@@ -149,7 +153,7 @@ public class CustomerProfileUpdateProcessor {
     private void updatePreferredLanguage(
         CustomerProfileActionParams actionParams,
         CustomerProfile customerProfile,
-        List<String> changes
+        List<CustomerProfileFieldChange> changes
     ) {
         actionParams.preferredLanguageCode().ifPresent(newCode -> {
             Language currentLanguage = customerProfile.getPreferredLanguage();
@@ -162,7 +166,7 @@ public class CustomerProfileUpdateProcessor {
             languageRepository.findByCode(newCode)
                               .ifPresent(language -> {
                                   customerProfile.setPreferredLanguage(language);
-                                  changes.add(formatChange(
+                                  changes.add(toFieldChange(
                                       CustomerProfileActionParams.KEY_PREFERRED_LANGUAGE_CODE,
                                       oldCode,
                                       newCode
@@ -176,25 +180,39 @@ public class CustomerProfileUpdateProcessor {
         String oldValue,
         String newValue,
         Consumer<String> setter,
-        List<String> changes
+        List<CustomerProfileFieldChange> changes
     ) {
         if (Objects.equals(oldValue, newValue)) {
             return;
         }
 
         setter.accept(newValue);
-        changes.add(formatChange(
+        changes.add(toFieldChange(
             field,
             oldValue,
             newValue
         ));
     }
 
-    private String formatChange(
+    private CustomerProfileFieldChange toFieldChange(
         String field,
         String oldValue,
         String newValue
     ) {
-        return field + ": " + Objects.toString(oldValue, "") + " -> " + Objects.toString(newValue, "");
+        return new CustomerProfileFieldChange(
+            field,
+            Objects.toString(oldValue, StringUtils.EMPTY),
+            Objects.toString(newValue, StringUtils.EMPTY)
+        );
+    }
+
+    private String formatChangeForAudit(
+        CustomerProfileFieldChange change
+    ) {
+        return String.format("%s: %s -> %s",
+            change.field(),
+            change.previousValue(),
+            change.currentValue()
+        );
     }
 }

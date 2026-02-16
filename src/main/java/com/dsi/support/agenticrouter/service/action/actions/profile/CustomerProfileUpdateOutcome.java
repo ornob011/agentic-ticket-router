@@ -1,8 +1,11 @@
 package com.dsi.support.agenticrouter.service.action.actions.profile;
 
+import java.util.List;
+
 public record CustomerProfileUpdateOutcome(
     boolean changed,
     String changeSummary,
-    String noChangeDetails
+    String noChangeDetails,
+    List<CustomerProfileFieldChange> fieldChanges
 ) {
 }
