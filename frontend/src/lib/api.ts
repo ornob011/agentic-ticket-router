@@ -129,7 +129,7 @@ export type TicketSummary = {
   priority: string | null;
   priorityLabel: string | null;
   queue: string | null;
-  queueLabel: string | null;
+  queueLabel: string;
   lastActivityAt: string;
   customerName: string | null;
   assignedAgentName: string | null;
@@ -153,7 +153,7 @@ export type TicketRoutingItem = {
   priority: string;
   priorityLabel: string | null;
   queue: string;
-  queueLabel: string | null;
+  queueLabel: string;
   nextAction: string;
   nextActionLabel: string | null;
   confidence: number;
@@ -192,7 +192,7 @@ export type TicketDetail = {
   priority: string;
   priorityLabel: string | null;
   queue: string | null;
-  queueLabel: string | null;
+  queueLabel: string;
   createdAt: string;
   updatedAt: string;
   lastActivityAt: string;
@@ -277,6 +277,7 @@ export type QueueMembershipInfo = {
   userId: number;
   username: string;
   queue: string;
+  queueLabel: string;
 };
 
 export type ModelInfo = {

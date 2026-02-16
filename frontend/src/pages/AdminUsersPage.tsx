@@ -1,7 +1,7 @@
 import { useLoaderData, useRevalidator } from "react-router-dom";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import type { AdminUsersLoaderData } from "@/router";
-import { api, type QueueMembershipInfo, type UserRole } from "@/lib/api";
+import { api, type LookupOption, type QueueMembershipInfo, type UserRole } from "@/lib/api";
 import { getErrorMessage } from "@/lib/api-error";
 import { formatLabel } from "@/lib/utils";
 import { getRoleBadgeVariant } from "@/lib/role-policy";
@@ -14,17 +14,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Users, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
-type QueueCode = "BILLING_Q" | "TECH_Q" | "OPS_Q" | "SECURITY_Q" | "ACCOUNT_Q" | "GENERAL_Q";
-
-const QUEUE_OPTIONS: QueueCode[] = [
-  "BILLING_Q",
-  "TECH_Q",
-  "OPS_Q",
-  "SECURITY_Q",
-  "ACCOUNT_Q",
-  "GENERAL_Q",
-];
-
 const DEFAULT_STAFF_FORM = {
   username: "",
   email: "",
@@ -35,7 +24,7 @@ const DEFAULT_STAFF_FORM = {
 
 const DEFAULT_MEMBERSHIP_FORM = {
   userId: "",
-  queue: "GENERAL_Q" as QueueCode,
+  queue: "GENERAL_Q",
 };
 
 export default function AdminUsersPage() {
@@ -46,9 +35,10 @@ export default function AdminUsersPage() {
   const [deletingMembershipId, setDeletingMembershipId] = useState<number | null>(null);
   const [membershipsLoading, setMembershipsLoading] = useState(false);
   const [memberships, setMemberships] = useState<QueueMembershipInfo[]>([]);
+  const [queueOptions, setQueueOptions] = useState<LookupOption[]>([]);
   const [membershipFilter, setMembershipFilter] = useState({
     userQuery: "",
-    queue: "ALL" as "ALL" | QueueCode,
+    queue: "ALL" as "ALL" | string,
   });
   const [form, setForm] = useState(DEFAULT_STAFF_FORM);
   const [membershipForm, setMembershipForm] = useState(DEFAULT_MEMBERSHIP_FORM);
@@ -71,18 +61,19 @@ export default function AdminUsersPage() {
     }
 
     return memberships.some(
-      (membership) => membership.userId === targetUserId && membership.queue === membershipForm.queue
+      (membership) =>
+        membership.userId === targetUserId &&
+        membership.queue === membershipForm.queue
     );
   }, [membershipForm.queue, membershipForm.userId, memberships]);
   const filteredMemberships = useMemo(() => {
     const normalizedQuery = membershipFilter.userQuery.trim().toLowerCase();
 
     return memberships.filter((membership) => {
-      if (
-        membershipFilter.queue !== "ALL" &&
-        membership.queue !== membershipFilter.queue
-      ) {
-        return false;
+      if (membershipFilter.queue !== "ALL") {
+        if (membership.queue !== membershipFilter.queue) {
+          return false;
+        }
       }
 
       if (!normalizedQuery) {
@@ -115,6 +106,19 @@ export default function AdminUsersPage() {
   useEffect(() => {
     void loadMemberships();
   }, [loadMemberships]);
+
+  useEffect(() => {
+    const loadQueueOptions = async () => {
+      try {
+        const response = await api.get<{ queues: LookupOption[] }>("/tickets/meta");
+        setQueueOptions(response.data.queues ?? []);
+      } catch (error) {
+        toast.error(getErrorMessage(error));
+      }
+    };
+
+    void loadQueueOptions();
+  }, []);
 
   const onCreateUser = async (event: FormEvent) => {
     event.preventDefault();
@@ -260,16 +264,16 @@ export default function AdminUsersPage() {
             <Select
               value={membershipForm.queue}
               onValueChange={(value) => {
-                setMembershipForm((prev) => ({ ...prev, queue: value as QueueCode }));
+                setMembershipForm((prev) => ({ ...prev, queue: value }));
               }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select queue" />
               </SelectTrigger>
               <SelectContent>
-                {QUEUE_OPTIONS.map((queueCode) => (
-                  <SelectItem key={queueCode} value={queueCode}>
-                    {formatLabel(queueCode)}
+                {queueOptions.map((queueOption) => (
+                  <SelectItem key={queueOption.code} value={queueOption.code}>
+                    {queueOption.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -303,7 +307,7 @@ export default function AdminUsersPage() {
             <Select
               value={membershipFilter.queue}
               onValueChange={(value) => {
-                setMembershipFilter((prev) => ({ ...prev, queue: value as "ALL" | QueueCode }));
+                setMembershipFilter((prev) => ({ ...prev, queue: value as "ALL" | string }));
               }}
             >
               <SelectTrigger>
@@ -311,9 +315,9 @@ export default function AdminUsersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">ALL</SelectItem>
-                {QUEUE_OPTIONS.map((queueCode) => (
-                  <SelectItem key={queueCode} value={queueCode}>
-                    {formatLabel(queueCode)}
+                {queueOptions.map((queueOption) => (
+                  <SelectItem key={queueOption.code} value={queueOption.code}>
+                    {queueOption.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -333,7 +337,7 @@ export default function AdminUsersPage() {
                 <TableRow key={membership.id}>
                   <TableCell>{membership.username}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{formatLabel(membership.queue)}</Badge>
+                    <Badge variant="outline">{membership.queueLabel}</Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <Button
