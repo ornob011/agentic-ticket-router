@@ -2,7 +2,7 @@ import { useLoaderData, useRevalidator } from "react-router-dom";
 import { useEffect, useState } from "react";
 import type { AdminPoliciesLoaderData } from "@/router";
 import { api } from "@/lib/api";
-import { getErrorMessage } from "@/lib/api-error";
+import { getErrorMessage, parseApiError } from "@/lib/api-error";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ export default function AdminPoliciesPage() {
   const revalidator = useRevalidator();
   const policies = data ?? [];
   const [values, setValues] = useState<Record<string, string>>({});
+  const [valueErrors, setValueErrors] = useState<Record<string, string>>({});
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -31,22 +32,32 @@ export default function AdminPoliciesPage() {
         policies.map((policy) => [policy.configKey, String(policy.configValue)])
       )
     );
+    setValueErrors({});
   }, [policies]);
 
   const onSave = async (configKey: string, value: string) => {
     const configValue = Number(value);
     if (Number.isNaN(configValue)) {
-      toast.error("Value must be a number");
+      setValueErrors((prev) => ({ ...prev, [configKey]: "Value must be a number" }));
       return;
     }
 
+    setValueErrors((prev) => ({ ...prev, [configKey]: "" }));
     setLoadingKey(configKey);
     try {
       await api.patch("/admin/policy-config", { configKey, configValue });
       await revalidator.revalidate();
       toast.success(`${configKey} updated`);
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      const apiError = parseApiError(error);
+      const fieldError = apiError.fieldErrors.configValue || apiError.globalErrors[0];
+
+      if (fieldError) {
+        setValueErrors((prev) => ({ ...prev, [configKey]: fieldError }));
+        return;
+      }
+
+      toast.error(apiError.detail);
     } finally {
       setLoadingKey(null);
     }
@@ -111,6 +122,7 @@ export default function AdminPoliciesPage() {
                   {policies.map((policy) => {
                     const isLoading = loadingKey === policy.configKey;
                     const currentValue = values[policy.configKey] ?? String(policy.configValue);
+                    const valueError = valueErrors[policy.configKey];
                     const hasChanges = currentValue !== String(policy.configValue);
 
                     return (
@@ -138,14 +150,23 @@ export default function AdminPoliciesPage() {
                           </div>
                         </TableCell>
                         <TableCell className="py-3">
-                          <Input
-                            type="number"
-                            step="any"
-                            value={currentValue}
-                            onChange={(e) => setValues((prev) => ({ ...prev, [policy.configKey]: e.target.value }))}
-                            className={`font-mono text-sm ${hasChanges ? "border-amber-300" : ""}`}
-                            disabled={isLoading}
-                          />
+                          <div className="space-y-1">
+                            <Input
+                              type="number"
+                              step="any"
+                              value={currentValue}
+                              onChange={(e) => {
+                                const nextValue = e.target.value;
+                                setValues((prev) => ({ ...prev, [policy.configKey]: nextValue }));
+                                if (valueErrors[policy.configKey]) {
+                                  setValueErrors((prev) => ({ ...prev, [policy.configKey]: "" }));
+                                }
+                              }}
+                              className={`font-mono text-sm ${hasChanges ? "border-amber-300" : ""} ${valueError ? "border-destructive" : ""}`}
+                              disabled={isLoading}
+                            />
+                            {valueError && <p className="text-xs text-destructive">{valueError}</p>}
+                          </div>
                         </TableCell>
                         <TableCell className="text-center hidden sm:table-cell py-3">
                           <Badge variant={policy.active ? "success" : "secondary"} className="text-xs">
