@@ -453,7 +453,8 @@ public final class ApiDtos {
         Long id,
         Long userId,
         String username,
-        TicketQueue queue
+        TicketQueue queue,
+        String queueLabel
     ) {
     }
 
