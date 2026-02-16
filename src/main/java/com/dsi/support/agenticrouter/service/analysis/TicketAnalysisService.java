@@ -22,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 @Service
@@ -117,20 +116,6 @@ public class TicketAnalysisService {
                                    .analysis(responseText)
                                    .category(category)
                                    .build();
-    }
-
-    private ParseStatus classifyParseStatus(
-        Throwable throwable
-    ) {
-        Throwable cause = throwable;
-        while (cause != null) {
-            if (cause instanceof TimeoutException) {
-                return ParseStatus.TIMEOUT;
-            }
-            cause = cause.getCause();
-        }
-
-        return ParseStatus.MODEL_ERROR;
     }
 
 }
