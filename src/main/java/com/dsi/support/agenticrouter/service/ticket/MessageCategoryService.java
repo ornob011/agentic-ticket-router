@@ -207,20 +207,6 @@ public class MessageCategoryService {
                      .orElse(TicketCategory.OTHER);
     }
 
-    private ParseStatus classifyParseStatus(
-        Throwable throwable
-    ) {
-        Throwable cause = throwable;
-        while (cause != null) {
-            if (cause instanceof TimeoutException) {
-                return ParseStatus.TIMEOUT;
-            }
-            cause = cause.getCause();
-        }
-
-        return ParseStatus.MODEL_ERROR;
-    }
-
     @Data
     @Builder
     public static class CategoryDetectionResult {
