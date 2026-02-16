@@ -67,8 +67,7 @@ public class KnowledgeBaseVectorStore {
             filterExpression
         );
 
-        List<Document> strictMatchDocuments = Optional.ofNullable(vectorStore.similaritySearch(searchRequest))
-                                                      .orElse(Collections.emptyList());
+        List<Document> strictMatchDocuments = vectorStore.similaritySearch(searchRequest);
 
         if (!strictMatchDocuments.isEmpty() || similarityThreshold <= 0D) {
             log.debug(
