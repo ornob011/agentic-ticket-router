@@ -144,7 +144,6 @@ public class TicketEscalationService {
         );
     }
 
-    @Transactional(readOnly = true)
     public ApiDtos.PagedResponse<ApiDtos.EscalationSummary> listEscalationSummaries(
         EscalationFilterStatus escalationFilterStatus,
         Pageable pageable
