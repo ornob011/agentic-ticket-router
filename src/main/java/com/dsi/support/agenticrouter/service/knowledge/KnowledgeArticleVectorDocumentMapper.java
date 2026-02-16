@@ -35,7 +35,7 @@ public class KnowledgeArticleVectorDocumentMapper {
     private Map<String, Object> buildMetadata(
         KnowledgeArticle article
     ) {
-        Map<String, Object> metadata = new HashMap<>(8);
+        Map<String, Object> metadata = HashMap.newHashMap(8);
 
         metadata.put(
             VectorStoreMetadataKey.ARTICLE_ID.name(),
