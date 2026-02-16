@@ -65,12 +65,13 @@ public class AuthApiController {
             )
         );
 
+        request.getSession(true);
         request.changeSessionId();
 
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
-        request.getSession(true).setAttribute(
+        request.getSession(false).setAttribute(
             HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
             context
         );
