@@ -86,7 +86,8 @@ public final class AppRoutePolicy {
     public enum ApiRoute implements RoutePath {
         AUTH_LOGIN("/api/v1/auth/login"),
         AUTH_SIGNUP("/api/v1/auth/signup"),
-        AUTH_SIGNUP_OPTIONS("/api/v1/auth/signup-options");
+        AUTH_SIGNUP_OPTIONS("/api/v1/auth/signup-options"),
+        DEV_API("/api/dev/**");
 
         private final String path;
 
