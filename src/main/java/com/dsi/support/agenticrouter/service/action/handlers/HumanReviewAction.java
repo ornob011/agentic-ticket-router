@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.service.action.actions;
+package com.dsi.support.agenticrouter.service.action.handlers;
 
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
@@ -8,7 +8,6 @@ import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
-import com.dsi.support.agenticrouter.service.notification.NotificationService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,17 +17,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class ReopenTicketAction implements TicketAction {
+public class HumanReviewAction implements TicketAction {
 
     private final SupportTicketRepository supportTicketRepository;
     private final AuditService auditService;
-    private final NotificationService notificationService;
 
     @Override
     public boolean canHandle(
         NextAction actionType
     ) {
-        return NextAction.REOPEN_TICKET.equals(actionType);
+        return NextAction.HUMAN_REVIEW.equals(actionType);
     }
 
     @Override
@@ -38,50 +36,48 @@ public class ReopenTicketAction implements TicketAction {
         RouterResponse routerResponse
     ) {
         log.info(
-            "ReopenTicketAction({}) SupportTicket(id:{},status:{},reopenCount:{})",
+            "HumanReviewAction({}) SupportTicket(id:{},status:{}) RouterResponse(queue:{},confidence:{},category:{})",
             OperationalLogContext.PHASE_START,
             supportTicket.getId(),
             supportTicket.getStatus(),
-            supportTicket.getReopenCount()
+            routerResponse.getQueue(),
+            routerResponse.getConfidence(),
+            routerResponse.getCategory()
         );
 
-        supportTicket.setStatus(TicketStatus.RECEIVED);
-        supportTicket.setResolvedAt(null);
-        supportTicket.setClosedAt(null);
-        supportTicket.incrementReopenCount();
+        supportTicket.setStatus(TicketStatus.TRIAGING);
+        supportTicket.setAssignedQueue(routerResponse.getQueue());
+        supportTicket.setRequiresHumanReview(true);
         supportTicket.updateLastActivity();
+
         supportTicketRepository.save(supportTicket);
 
         log.info(
-            "ReopenTicketAction({}) SupportTicket(id:{},status:{},reopenCount:{})",
+            "HumanReviewAction({}) SupportTicket(id:{},status:{},queue:{})",
             OperationalLogContext.PHASE_PERSIST,
             supportTicket.getId(),
             supportTicket.getStatus(),
-            supportTicket.getReopenCount()
+            supportTicket.getAssignedQueue()
         );
 
         auditService.recordEvent(
-            AuditEventType.TICKET_REOPENED,
+            AuditEventType.POLICY_GATE_TRIGGERED,
             supportTicket.getId(),
             null,
-            "Ticket reopened by system action",
+            String.format(
+                "Routed to human review: confidence=%s, category=%s",
+                routerResponse.getConfidence(),
+                routerResponse.getCategory()
+            ),
             null
         );
 
-        notificationService.createNotification(
-            supportTicket.getCustomer().getId(),
-            com.dsi.support.agenticrouter.enums.NotificationType.TICKET_REOPENED,
-            "Ticket Reopened: " + supportTicket.getFormattedTicketNo(),
-            "Your ticket has been reopened and will be processed.",
-            supportTicket.getId()
-        );
-
         log.info(
-            "ReopenTicketAction({}) SupportTicket(id:{},status:{},reopenCount:{})",
+            "HumanReviewAction({}) SupportTicket(id:{},status:{},queue:{})",
             OperationalLogContext.PHASE_COMPLETE,
             supportTicket.getId(),
             supportTicket.getStatus(),
-            supportTicket.getReopenCount()
+            supportTicket.getAssignedQueue()
         );
     }
 }

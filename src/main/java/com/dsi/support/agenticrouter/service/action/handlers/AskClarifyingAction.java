@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.service.action.actions;
+package com.dsi.support.agenticrouter.service.action.handlers;
 
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
@@ -18,12 +18,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindException;
 
-import java.time.Instant;
-
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class AutoReplyAction implements TicketAction {
+public class AskClarifyingAction implements TicketAction {
 
     private final TicketMessageRepository messageRepository;
     private final NotificationService notificationService;
@@ -34,7 +32,7 @@ public class AutoReplyAction implements TicketAction {
     public boolean canHandle(
         NextAction actionType
     ) {
-        return NextAction.AUTO_REPLY.equals(actionType);
+        return NextAction.ASK_CLARIFYING.equals(actionType);
     }
 
     @Override
@@ -44,56 +42,48 @@ public class AutoReplyAction implements TicketAction {
         RouterResponse routerResponse
     ) throws BindException {
         log.info(
-            "AutoReplyAction({}) SupportTicket(id:{},status:{}) RouterResponse(confidence:{},draftReplyLength:{})",
+            "AskClarifyingAction({}) SupportTicket(id:{},status:{}) RouterResponse(questionLength:{},confidence:{})",
             OperationalLogContext.PHASE_START,
             supportTicket.getId(),
             supportTicket.getStatus(),
-            routerResponse.getConfidence(),
-            StringUtils.length(routerResponse.getDraftReply())
+            StringUtils.length(routerResponse.getClarifyingQuestion()),
+            routerResponse.getConfidence()
         );
 
-        if (StringUtils.isBlank(routerResponse.getDraftReply())) {
-            log.warn(
-                "AutoReplyAction({}) SupportTicket(id:{},status:{}) Outcome(reason:{})",
-                OperationalLogContext.PHASE_FAIL,
-                supportTicket.getId(),
-                supportTicket.getStatus(),
-                "missing_draft_reply"
-            );
-
+        if (StringUtils.isBlank(routerResponse.getClarifyingQuestion())) {
             throw BindValidation.fieldError(
                 "routerResponse",
-                "draftReply",
-                "Draft reply is required"
+                "clarifyingQuestion",
+                "Clarifying question is required"
             );
         }
 
-        TicketMessage ticketMessage = TicketMessage.builder()
-                                                   .ticket(supportTicket)
-                                                   .messageKind(MessageKind.AUTO_REPLY)
-                                                   .content(routerResponse.getDraftReply())
-                                                   .visibleToCustomer(true)
-                                                   .build();
-        messageRepository.save(ticketMessage);
+        TicketMessage message = TicketMessage.builder()
+                                             .ticket(supportTicket)
+                                             .messageKind(MessageKind.CLARIFYING_QUESTION)
+                                             .content(routerResponse.getClarifyingQuestion())
+                                             .visibleToCustomer(true)
+                                             .build();
+        messageRepository.save(message);
 
-        supportTicket.setStatus(TicketStatus.RESOLVED);
-        supportTicket.setResolvedAt(Instant.now());
+        supportTicket.recordClarifyingQuestion(routerResponse.getClarifyingQuestion());
+        supportTicket.setStatus(TicketStatus.WAITING_CUSTOMER);
         supportTicket.updateLastActivity();
         supportTicketRepository.save(supportTicket);
 
         log.info(
-            "AutoReplyAction({}) SupportTicket(id:{},status:{}) Outcome(messageKind:{})",
+            "AskClarifyingAction({}) SupportTicket(id:{},status:{}) Outcome(questionCount:{})",
             OperationalLogContext.PHASE_PERSIST,
             supportTicket.getId(),
             supportTicket.getStatus(),
-            MessageKind.AUTO_REPLY
+            supportTicket.getQuestionCount()
         );
 
         notificationService.createNotification(
             supportTicket.getCustomer().getId(),
-            NotificationType.STATUS_CHANGE,
-            "Ticket Resolved: " + supportTicket.getFormattedTicketNo(),
-            "Your ticket has been automatically resolved. If you need further assistance, please reply.",
+            NotificationType.NEW_MESSAGE,
+            "Clarification Needed: " + supportTicket.getFormattedTicketNo(),
+            "We need more information to help with your ticket.",
             supportTicket.getId()
         );
 
@@ -101,12 +91,12 @@ public class AutoReplyAction implements TicketAction {
             AuditEventType.MESSAGE_POSTED,
             supportTicket.getId(),
             null,
-            "System sent auto-reply and resolved ticket",
+            "System posted clarifying question",
             null
         );
 
         log.info(
-            "AutoReplyAction({}) SupportTicket(id:{},status:{})",
+            "AskClarifyingAction({}) SupportTicket(id:{},status:{})",
             OperationalLogContext.PHASE_COMPLETE,
             supportTicket.getId(),
             supportTicket.getStatus()

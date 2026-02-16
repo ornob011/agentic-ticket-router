@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.service.action.actions;
+package com.dsi.support.agenticrouter.service.action.handlers;
 
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
@@ -14,10 +14,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class HumanReviewAction implements TicketAction {
+public class AssignQueueAction implements TicketAction {
 
     private final SupportTicketRepository supportTicketRepository;
     private final AuditService auditService;
@@ -26,7 +28,7 @@ public class HumanReviewAction implements TicketAction {
     public boolean canHandle(
         NextAction actionType
     ) {
-        return NextAction.HUMAN_REVIEW.equals(actionType);
+        return NextAction.ASSIGN_QUEUE.equals(actionType);
     }
 
     @Override
@@ -36,24 +38,26 @@ public class HumanReviewAction implements TicketAction {
         RouterResponse routerResponse
     ) {
         log.info(
-            "HumanReviewAction({}) SupportTicket(id:{},status:{}) RouterResponse(queue:{},confidence:{},category:{})",
+            "AssignQueueAction({}) SupportTicket(id:{},status:{}) RouterResponse(queue:{},confidence:{})",
             OperationalLogContext.PHASE_START,
             supportTicket.getId(),
             supportTicket.getStatus(),
             routerResponse.getQueue(),
-            routerResponse.getConfidence(),
-            routerResponse.getCategory()
+            routerResponse.getConfidence()
         );
 
-        supportTicket.setStatus(TicketStatus.TRIAGING);
         supportTicket.setAssignedQueue(routerResponse.getQueue());
-        supportTicket.setRequiresHumanReview(true);
+        supportTicket.setStatus(TicketStatus.ASSIGNED);
         supportTicket.updateLastActivity();
+
+        if (supportTicket.getFirstAssignedAt() == null) {
+            supportTicket.setFirstAssignedAt(Instant.now());
+        }
 
         supportTicketRepository.save(supportTicket);
 
         log.info(
-            "HumanReviewAction({}) SupportTicket(id:{},status:{},queue:{})",
+            "AssignQueueAction({}) SupportTicket(id:{},status:{},queue:{})",
             OperationalLogContext.PHASE_PERSIST,
             supportTicket.getId(),
             supportTicket.getStatus(),
@@ -61,19 +65,19 @@ public class HumanReviewAction implements TicketAction {
         );
 
         auditService.recordEvent(
-            AuditEventType.POLICY_GATE_TRIGGERED,
+            AuditEventType.QUEUE_ASSIGNED,
             supportTicket.getId(),
             null,
             String.format(
-                "Routed to human review: confidence=%s, category=%s",
-                routerResponse.getConfidence(),
-                routerResponse.getCategory()
+                "Ticket assigned to queue: %s (confidence: %s)",
+                routerResponse.getQueue(),
+                routerResponse.getConfidence()
             ),
             null
         );
 
         log.info(
-            "HumanReviewAction({}) SupportTicket(id:{},status:{},queue:{})",
+            "AssignQueueAction({}) SupportTicket(id:{},status:{},queue:{})",
             OperationalLogContext.PHASE_COMPLETE,
             supportTicket.getId(),
             supportTicket.getStatus(),

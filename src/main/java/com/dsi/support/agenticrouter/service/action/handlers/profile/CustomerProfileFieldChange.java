@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.service.action.actions.profile;
+package com.dsi.support.agenticrouter.service.action.handlers.profile;
 
 public record CustomerProfileFieldChange(
     String field,

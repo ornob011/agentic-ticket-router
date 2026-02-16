@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.service.action.actions.profile;
+package com.dsi.support.agenticrouter.service.action.handlers.profile;
 
 import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import org.apache.commons.lang3.StringUtils;

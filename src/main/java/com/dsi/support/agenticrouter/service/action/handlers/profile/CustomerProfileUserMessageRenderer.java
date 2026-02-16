@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.service.action.actions.profile;
+package com.dsi.support.agenticrouter.service.action.handlers.profile;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;

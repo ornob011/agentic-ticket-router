@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.service.action.actions;
+package com.dsi.support.agenticrouter.service.action.handlers;
 
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.CustomerProfile;
@@ -9,9 +9,9 @@ import com.dsi.support.agenticrouter.repository.CustomerProfileRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
-import com.dsi.support.agenticrouter.service.action.actions.profile.CustomerProfileUpdateOutcome;
-import com.dsi.support.agenticrouter.service.action.actions.profile.CustomerProfileUpdateProcessor;
-import com.dsi.support.agenticrouter.service.action.actions.profile.CustomerProfileUserMessageRenderer;
+import com.dsi.support.agenticrouter.service.action.handlers.profile.CustomerProfileUpdateOutcome;
+import com.dsi.support.agenticrouter.service.action.handlers.profile.CustomerProfileUpdateProcessor;
+import com.dsi.support.agenticrouter.service.action.handlers.profile.CustomerProfileUserMessageRenderer;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
 import com.dsi.support.agenticrouter.util.BindValidation;
