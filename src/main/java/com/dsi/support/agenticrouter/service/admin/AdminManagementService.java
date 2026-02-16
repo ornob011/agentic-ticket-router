@@ -9,6 +9,7 @@ import com.dsi.support.agenticrouter.repository.AgentQueueMembershipRepository;
 import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.AuditEventRepository;
 import com.dsi.support.agenticrouter.service.common.AuditEventItemMapper;
+import com.dsi.support.agenticrouter.util.EnumDisplayNameResolver;
 import com.dsi.support.agenticrouter.util.PageResponseUtils;
 import com.dsi.support.agenticrouter.util.PaginationUtils;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ public class AdminManagementService {
                                                                                            .userId(membership.getUser().getId())
                                                                                            .username(membership.getUser().getUsername())
                                                                                            .queue(membership.getQueue())
+                                                                                           .queueLabel(EnumDisplayNameResolver.resolve(membership.getQueue()))
                                                                                            .build())
                                              .toList();
     }

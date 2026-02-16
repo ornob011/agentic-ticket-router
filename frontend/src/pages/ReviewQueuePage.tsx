@@ -13,14 +13,14 @@ import { useNavigate } from "react-router-dom";
 import { ClipboardCheck, Clock, Inbox, Search } from "lucide-react";
 
 type ReviewTicketCardProps = Readonly<{
-  ticket: ReviewQueueLoaderData["content"][0];
+  ticket: ReviewQueueLoaderData["tickets"]["content"][0];
 }>;
 
 function ReviewTicketCard({ ticket }: ReviewTicketCardProps) {
   const navigate = useNavigate();
   const statusLabel = ticket.statusLabel || formatLabel(ticket.status);
   const priorityLabel = ticket.priorityLabel || formatLabel(ticket.priority);
-  const queueLabel = ticket.queueLabel || formatLabel(ticket.queue);
+  const queueLabel = ticket.queueLabel || ticket.queue || "-";
   const priorityBorderClass = getTicketPriorityBorderClass(ticket.priority);
 
   return (
@@ -89,7 +89,11 @@ export default function ReviewQueuePage() {
     return () => clearInterval(interval);
   }, [revalidator]);
 
-  const tickets = data?.content ?? [];
+  const queueNameByCode = useMemo(
+    () => new Map((data.metadata.queues ?? []).map((option) => [option.code, option.name])),
+    [data.metadata.queues]
+  );
+  const tickets = data?.tickets.content ?? [];
   const statusOptions = useMemo(
     () =>
       Array.from(new Set(tickets.map((ticket) => ticket.status).filter((status): status is string => Boolean(status)))).sort(),
@@ -103,9 +107,8 @@ export default function ReviewQueuePage() {
     [tickets]
   );
   const queueOptions = useMemo(
-    () =>
-      Array.from(new Set(tickets.map((ticket) => ticket.queue).filter((queueCode): queueCode is string => Boolean(queueCode)))).sort(),
-    [tickets]
+    () => (data.metadata.queues ?? []).map((option) => option.code),
+    [data.metadata.queues]
   );
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredTickets = useMemo(
@@ -131,7 +134,7 @@ export default function ReviewQueuePage() {
     [tickets, statusFilter, priorityFilter, queueFilter, normalizedSearch]
   );
   const hasFilters = Boolean(normalizedSearch) || statusFilter !== "ALL" || priorityFilter !== "ALL" || queueFilter !== "ALL";
-  const showEmptyState = data !== undefined && filteredTickets.length === 0;
+  const showEmptyState = filteredTickets.length === 0;
 
   const renderReviewList = () => {
     if (showEmptyState) {
@@ -207,7 +210,7 @@ export default function ReviewQueuePage() {
               <SelectItem value="ALL">All Queues</SelectItem>
               {queueOptions.map((queueCode) => (
                 <SelectItem key={queueCode} value={queueCode}>
-                  {formatLabel(queueCode)}
+                  {queueNameByCode.get(queueCode) || queueCode}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -222,7 +225,7 @@ export default function ReviewQueuePage() {
             <span className="font-medium text-amber-700">{filteredTickets.length}</span>
             <span className="text-amber-600">shown</span>
             <span className="text-amber-600">of</span>
-            <span className="font-medium text-amber-700">{data.totalElements}</span>
+            <span className="font-medium text-amber-700">{data.tickets.totalElements}</span>
             <span className="text-amber-600">tickets awaiting review</span>
           </div>
         </div>
