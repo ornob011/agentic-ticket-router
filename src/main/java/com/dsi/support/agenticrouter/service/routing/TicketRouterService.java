@@ -23,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Collections;
-import java.util.concurrent.TimeoutException;
 
 @Service
 @RequiredArgsConstructor
@@ -188,14 +187,11 @@ public class TicketRouterService {
     private ParseStatus classifyParseStatus(
         Throwable throwable
     ) {
-        Throwable cause = throwable;
-        while (cause != null) {
-            if (cause instanceof TimeoutException) {
-                return ParseStatus.TIMEOUT;
-            }
-            cause = cause.getCause();
+        if (ParseStatus.isTimeout(throwable)) {
+            return ParseStatus.TIMEOUT;
         }
 
         return ParseStatus.MODEL_ERROR;
     }
+
 }
