@@ -12,6 +12,7 @@ import org.springframework.validation.BindException;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,7 +46,7 @@ public class ActionRegistry {
             routerResponse.getNextAction()
         );
 
-        if (ticketAction == null) {
+        if (Objects.isNull(ticketAction)) {
             throw new IllegalStateException("No handler for action: " + routerResponse.getNextAction());
         }
 
@@ -90,10 +91,10 @@ public class ActionRegistry {
                                                              .sorted()
                                                              .collect(Collectors.joining(", "));
                 throw new IllegalStateException(
-                    "Multiple handlers configured for action "
-                    + nextAction
-                    + ": "
-                    + conflictingHandlers
+                    String.format("Multiple handlers configured for action %s: %s",
+                        nextAction,
+                        conflictingHandlers
+                    )
                 );
             }
 
