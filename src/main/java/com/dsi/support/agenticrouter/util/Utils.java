@@ -2,7 +2,6 @@ package com.dsi.support.agenticrouter.util;
 
 import com.dsi.support.agenticrouter.entity.AppUser;
 import com.dsi.support.agenticrouter.security.CustomUserDetails;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.MessageSource;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -93,62 +92,6 @@ public class Utils {
         );
     }
 
-    public static void setSuccessMessageCode(
-        HttpServletRequest request,
-        MessageSource messageSource,
-        String msgCode
-    ) {
-        request.getSession().setAttribute(
-            Constants.FLUSH_SUCCESS_MSG_CODE,
-            getMessageFromMessageSource(messageSource, msgCode)
-        );
-    }
-
-    public static void setInfoMessageCode(
-        HttpServletRequest request,
-        MessageSource messageSource,
-        String msgCode
-    ) {
-        request.getSession().setAttribute(
-            Constants.FLUSH_INFO_MSG_CODE,
-            getMessageFromMessageSource(messageSource, msgCode)
-        );
-    }
-
-    public static void setErrorMessageCode(
-        HttpServletRequest request,
-        MessageSource messageSource,
-        String msgCode
-    ) {
-        request.getSession().setAttribute(
-            Constants.FLUSH_ERROR_MSG_CODE,
-            getMessageFromMessageSource(messageSource, msgCode)
-        );
-    }
-
-    public static void setErrorMessageCode(
-        HttpServletRequest request,
-        MessageSource messageSource,
-        String msgCode,
-        Object[] args
-    ) {
-        request.getSession().setAttribute(
-            Constants.FLUSH_ERROR_MSG_CODE,
-            getMessageFromMessageSource(messageSource, msgCode, args)
-        );
-    }
-
-    public static void setWarnMessageCode(
-        HttpServletRequest request,
-        MessageSource messageSource,
-        String msgCode
-    ) {
-        request.getSession().setAttribute(
-            Constants.FLUSH_WARNING_MSG_CODE,
-            getMessageFromMessageSource(messageSource, msgCode)
-        );
-    }
-
     public static List<String> getErrorStrList(
         MessageSource messageSource,
         BindingResult bindingResult
@@ -160,16 +103,5 @@ public class Utils {
                               .toList();
         return errors;
     }
-
-    public static String getViewWithPrefix(
-        String viewName
-    ) {
-        return String.format(
-            "%s%s",
-            Constants.VIEW_PREFIX,
-            viewName
-        );
-    }
-
 
 }
