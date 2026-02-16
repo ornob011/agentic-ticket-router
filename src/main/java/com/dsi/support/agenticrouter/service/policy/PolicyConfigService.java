@@ -33,8 +33,8 @@ public class PolicyConfigService {
     private final AppUserRepository appUserRepository;
 
     @Transactional(readOnly = true)
-    public List<PolicyConfig> getAllActivePolicies() {
-        List<PolicyConfig> policies = policyConfigRepository.findAllByActiveTrueOrderByConfigKey();
+    public List<PolicyConfig> getAllPolicies() {
+        List<PolicyConfig> policies = policyConfigRepository.findAllByOrderByConfigKey();
 
         log.debug(
             "PolicyConfigList({}) Outcome(policyCount:{})",
@@ -86,19 +86,65 @@ public class PolicyConfigService {
             policyConfigValue
         );
 
-        PolicyConfig policyConfig = policyConfigRepository.findByConfigKeyAndActiveTrue(policyConfigKey)
-                                                          .orElseThrow(
-                                                              DataNotFoundException.supplier(
-                                                                  PolicyConfig.class,
-                                                                  policyConfigKey
-                                                              )
-                                                          );
+        PolicyConfig policyConfig = findPolicyConfig(
+            policyConfigKey
+        );
 
         policyConfig.setConfigValue(policyConfigValue);
         policyConfigRepository.save(policyConfig);
 
         log.info(
             "PolicyConfigUpdate({}) PolicyConfig(key:{}) Outcome(updatedValue:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            policyConfig.getConfigKey(),
+            policyConfig.getConfigValue()
+        );
+    }
+
+    @Transactional
+    public void updatePolicyActiveStatus(
+        PolicyConfigKey policyConfigKey,
+        boolean active
+    ) {
+        PolicyConfig policyConfig = findPolicyConfig(
+            policyConfigKey
+        );
+
+        policyConfig.setActive(active);
+        policyConfigRepository.save(policyConfig);
+
+        log.info(
+            "PolicyConfigStatusUpdate({}) PolicyConfig(key:{}) Outcome(active:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            policyConfig.getConfigKey(),
+            policyConfig.isActive()
+        );
+    }
+
+    @Transactional
+    public void resetPolicyToDefault(
+        PolicyConfigKey policyConfigKey
+    ) throws BindException {
+        PolicyConfig policyConfig = findPolicyConfig(
+            policyConfigKey
+        );
+
+        if (Objects.isNull(policyConfig.getDefaultValue())) {
+            throw BindValidation.fieldError(
+                "policyResetRequest",
+                "configKey",
+                "Default value is not configured for " + policyConfigKey
+            );
+        }
+
+        policyConfig.setConfigValue(
+            policyConfig.getDefaultValue()
+        );
+
+        policyConfigRepository.save(policyConfig);
+
+        log.info(
+            "PolicyConfigReset({}) PolicyConfig(key:{}) Outcome(value:{})",
             OperationalLogContext.PHASE_COMPLETE,
             policyConfig.getConfigKey(),
             policyConfig.getConfigValue()
@@ -192,6 +238,18 @@ public class PolicyConfigService {
                 policyConfigKey + " must be non-negative."
             );
         }
+    }
+
+    private PolicyConfig findPolicyConfig(
+        PolicyConfigKey policyConfigKey
+    ) {
+        return policyConfigRepository.findByConfigKey(policyConfigKey)
+                                     .orElseThrow(
+                                         DataNotFoundException.supplier(
+                                             PolicyConfig.class,
+                                             policyConfigKey
+                                         )
+                                     );
     }
 
     @Transactional(readOnly = true)

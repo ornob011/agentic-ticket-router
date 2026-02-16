@@ -9,9 +9,15 @@ import java.util.Optional;
 
 public interface PolicyConfigRepository extends JpaRepository<PolicyConfig, Long> {
 
+    Optional<PolicyConfig> findByConfigKey(
+        PolicyConfigKey policyConfigKey
+    );
+
     Optional<PolicyConfig> findByConfigKeyAndActiveTrue(
         PolicyConfigKey policyConfigKey
     );
+
+    List<PolicyConfig> findAllByOrderByConfigKey();
 
     List<PolicyConfig> findAllByActiveTrueOrderByConfigKey();
 }

@@ -416,7 +416,12 @@ public final class ApiDtos {
     public record PolicyInfo(
         Long id,
         String configKey,
+        String configKeyLabel,
+        String description,
         BigDecimal configValue,
+        BigDecimal defaultValue,
+        BigDecimal minValue,
+        BigDecimal maxValue,
         boolean active
     ) {
     }
@@ -424,6 +429,12 @@ public final class ApiDtos {
     public record PolicyUpdateRequest(
         @NotBlank String configKey,
         @NotNull BigDecimal configValue
+    ) {
+    }
+
+    public record PolicyStatusUpdateRequest(
+        @NotBlank String configKey,
+        @NotNull Boolean active
     ) {
     }
 

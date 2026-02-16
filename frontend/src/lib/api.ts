@@ -292,7 +292,12 @@ export type ModelInfo = {
 export type PolicyInfo = {
   id: number;
   configKey: string;
+  configKeyLabel: string;
+  description: string | null;
   configValue: number;
+  defaultValue: number | null;
+  minValue: number | null;
+  maxValue: number | null;
   active: boolean;
 };
 

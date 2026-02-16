@@ -50,6 +50,24 @@ public class AdminApiController {
         );
     }
 
+    @PatchMapping("/policy-config/status")
+    public void updatePolicyStatus(
+        @Valid @RequestBody ApiDtos.PolicyStatusUpdateRequest request
+    ) {
+        adminPortalService.updatePolicyStatus(
+            request
+        );
+    }
+
+    @PostMapping("/policy-config/{configKey}/reset")
+    public void resetPolicyConfig(
+        @PathVariable String configKey
+    ) throws BindException {
+        adminPortalService.resetPolicyConfig(
+            configKey
+        );
+    }
+
     @GetMapping("/users")
     public List<ApiDtos.UserInfo> users() {
         return adminPortalService.users();

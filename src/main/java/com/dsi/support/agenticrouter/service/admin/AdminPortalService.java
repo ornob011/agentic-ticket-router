@@ -55,12 +55,17 @@ public class AdminPortalService {
 
     @Transactional(readOnly = true)
     public List<ApiDtos.PolicyInfo> policyConfig() {
-        return policyConfigService.getAllActivePolicies()
+        return policyConfigService.getAllPolicies()
                                   .stream()
                                   .map(policy -> ApiDtos.PolicyInfo.builder()
                                                                    .id(policy.getId())
                                                                    .configKey(policy.getConfigKey().name())
+                                                                   .configKeyLabel(policy.getConfigKey().getDescription())
+                                                                   .description(policy.getDescription())
                                                                    .configValue(policy.getConfigValue())
+                                                                   .defaultValue(policy.getDefaultValue())
+                                                                   .minValue(policy.getMinValue())
+                                                                   .maxValue(policy.getMaxValue())
                                                                    .active(policy.isActive())
                                                                    .build())
                                   .toList();
@@ -75,6 +80,29 @@ public class AdminPortalService {
                 StringNormalizationUtils.upperTrimmedOrEmpty(request.configKey())
             ),
             request.configValue()
+        );
+    }
+
+    @Transactional
+    public void updatePolicyStatus(
+        ApiDtos.PolicyStatusUpdateRequest request
+    ) {
+        policyConfigService.updatePolicyActiveStatus(
+            PolicyConfigKey.valueOf(
+                StringNormalizationUtils.upperTrimmedOrEmpty(request.configKey())
+            ),
+            request.active()
+        );
+    }
+
+    @Transactional
+    public void resetPolicyConfig(
+        String configKey
+    ) throws BindException {
+        policyConfigService.resetPolicyToDefault(
+            PolicyConfigKey.valueOf(
+                StringNormalizationUtils.upperTrimmedOrEmpty(configKey)
+            )
         );
     }
 
