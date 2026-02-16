@@ -52,13 +52,13 @@ public class NotificationCommandService {
 
         String normalizedTitle = StringNormalizationUtils.trimToNull(title);
         String normalizedBody = StringNormalizationUtils.trimToNull(body);
-        NotificationType normalizedType = type == null ? NotificationType.STATUS_CHANGE : type;
+        NotificationType normalizedType = Objects.requireNonNullElse(type, NotificationType.STATUS_CHANGE);
 
-        if (normalizedTitle == null) {
+        if (Objects.isNull(normalizedTitle)) {
             normalizedTitle = "Ticket Update";
         }
 
-        if (normalizedBody == null) {
+        if (Objects.isNull(normalizedBody)) {
             normalizedBody = "There has been an update to your ticket.";
         }
 
@@ -147,7 +147,7 @@ public class NotificationCommandService {
                 "NotificationMarkRead({}) Notification(id:{},read:{}) Actor(userId:{}) Outcome(reason:{})",
                 OperationalLogContext.PHASE_SKIP,
                 notification.getId(),
-                notification.isRead(),
+                true,
                 userId,
                 "already_read"
             );
