@@ -1,23 +1,34 @@
 import { useLoaderData, useRevalidator } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { AxiosError } from "axios";
 import type { AdminPoliciesLoaderData } from "@/router";
 import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/api-error";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Settings, Check, X, RotateCcw } from "lucide-react";
+import { Settings, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 type PolicyActionType = "save" | "toggle" | "reset";
 
-type ProblemDetailError = {
-  detail?: string;
-  fieldErrors?: Record<string, string>;
-  globalErrors?: string[];
-};
+function getActionLabel(action: PolicyActionType): string {
+  const labels: Record<PolicyActionType, string> = {
+    save: "Saving...",
+    toggle: "Updating...",
+    reset: "Resetting...",
+  };
+  return labels[action];
+}
+
+function getToggleToastMessage(configKey: string, isActive: boolean): string {
+  return `${configKey} ${isActive ? "activated" : "deactivated"}`;
+}
+
+function getToggleButtonLabel(isActive: boolean): string {
+  return isActive ? "Deactivate" : "Activate";
+}
 
 export default function AdminPoliciesPage() {
   const data = useLoaderData<AdminPoliciesLoaderData>();
@@ -37,19 +48,15 @@ export default function AdminPoliciesPage() {
     );
   }, [policies]);
 
-  const errorMessage = (rawError: unknown, fallbackMessage: string) => {
-    if (!(rawError instanceof AxiosError)) {
-      return fallbackMessage;
-    }
+  const isPolicyLoading = (configKey: string): boolean => {
+    return actionState?.key === configKey;
+  };
 
-    const payload = rawError.response?.data as ProblemDetailError | undefined;
-    if (!payload) {
-      return fallbackMessage;
+  const getPolicyAction = (configKey: string): PolicyActionType | null => {
+    if (actionState?.key === configKey) {
+      return actionState.action;
     }
-
-    const firstFieldError = payload.fieldErrors ? Object.values(payload.fieldErrors)[0] : null;
-    const firstGlobalError = payload.globalErrors?.[0];
-    return firstFieldError || firstGlobalError || payload.detail || fallbackMessage;
+    return null;
   };
 
   const onUpdatePolicy = async (configKey: string, value: string) => {
@@ -70,18 +77,15 @@ export default function AdminPoliciesPage() {
       });
       await revalidator.revalidate();
       toast.success(`${configKey} updated`);
-    } catch (rawError) {
-      toast.error(errorMessage(rawError, "Failed to update policy"));
-      console.error("Failed to update policy:", rawError);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+      console.error("Failed to update policy:", error);
     } finally {
       setActionState(null);
     }
   };
 
-  const onUpdatePolicyStatus = async (
-    configKey: string,
-    active: boolean
-  ) => {
+  const onUpdatePolicyStatus = async (configKey: string, active: boolean) => {
     setActionState({
       key: configKey,
       action: "toggle",
@@ -92,10 +96,10 @@ export default function AdminPoliciesPage() {
         active,
       });
       await revalidator.revalidate();
-      toast.success(`${configKey} ${active ? "activated" : "deactivated"}`);
-    } catch (rawError) {
-      toast.error(errorMessage(rawError, "Failed to update policy status"));
-      console.error("Failed to update policy status:", rawError);
+      toast.success(getToggleToastMessage(configKey, active));
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+      console.error("Failed to update policy status:", error);
     } finally {
       setActionState(null);
     }
@@ -111,9 +115,9 @@ export default function AdminPoliciesPage() {
       await api.post(`/admin/policy-config/${configKey}/reset`);
       await revalidator.revalidate();
       toast.success(`${configKey} reset to default`);
-    } catch (rawError) {
-      toast.error(errorMessage(rawError, "Failed to reset policy"));
-      console.error("Failed to reset policy:", rawError);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+      console.error("Failed to reset policy:", error);
     } finally {
       setActionState(null);
     }
@@ -135,117 +139,98 @@ export default function AdminPoliciesPage() {
           <CardDescription>Configuration values that control routing behavior</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          {policies.length > 0 && (
+          {policies.length === 0 ? (
+            <div className="p-6 text-sm text-muted-foreground">No policies configured.</div>
+          ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Policy Config Key</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead>Policy</TableHead>
                   <TableHead>Value</TableHead>
+                  <TableHead>Constraints</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {policies.map((policy) => {
-                  let activityVariant: "success" | "secondary" = "secondary";
-                  let activityLabel = "Inactive";
-                  let ActivityIcon = X;
-
-                  if (policy.active) {
-                    activityVariant = "success";
-                    activityLabel = "Active";
-                    ActivityIcon = Check;
-                  }
+                  const isLoading = isPolicyLoading(policy.configKey);
+                  const currentAction = getPolicyAction(policy.configKey);
+                  const hasDefaultValue = policy.defaultValue !== null;
+                  const currentValue = values[policy.configKey] ?? String(policy.configValue);
+                  const hasChanges = currentValue !== String(policy.configValue);
 
                   return (
-                    <TableRow key={policy.id}>
+                    <TableRow key={policy.id} className={!policy.active ? "opacity-50" : undefined}>
                       <TableCell>
-                        <div className="space-y-1">
-                          <span className="font-mono text-sm">{policy.configKey}</span>
-                          <div className="text-xs text-muted-foreground">{policy.configKeyLabel}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-xl">
-                        <span className="text-sm text-muted-foreground">
-                          {policy.description || policy.configKeyLabel}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="number"
-                              value={values[policy.configKey] ?? String(policy.configValue)}
-                              onChange={(event) => {
-                                setValues((prev) => ({
-                                  ...prev,
-                                  [policy.configKey]: event.target.value,
-                                }));
-                              }}
-                              className="w-40"
-                            />
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Min: {policy.minValue ?? "-"} | Max: {policy.maxValue ?? "-"} | Default: {policy.defaultValue ?? "-"}
-                          </div>
+                        <div className="space-y-0.5">
+                          <p className="font-mono text-sm font-medium">{policy.configKey}</p>
+                          <p className="text-xs text-muted-foreground">{policy.configKeyLabel}</p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={activityVariant}>
-                          <ActivityIcon className="mr-1 h-3 w-3" />
-                          {activityLabel}
+                        <Input
+                          type="number"
+                          value={currentValue}
+                          onChange={(event) => {
+                            setValues((prev) => ({
+                              ...prev,
+                              [policy.configKey]: event.target.value,
+                            }));
+                          }}
+                          className="w-28 font-mono"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs text-muted-foreground">
+                          <span className="font-medium">Min:</span> {policy.minValue ?? "-"}
+                          {" / "}
+                          <span className="font-medium">Max:</span> {policy.maxValue ?? "-"}
+                          {" / "}
+                          <span className="font-medium">Default:</span> {policy.defaultValue ?? "-"}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={policy.active ? "success" : "secondary"}>
+                          {policy.active ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex items-center justify-end gap-2">
                           <Button
                             type="button"
                             size="sm"
                             variant="outline"
-                            disabled={actionState?.key === policy.configKey}
-                            onClick={() =>
-                              void onUpdatePolicy(
-                                policy.configKey,
-                                values[policy.configKey] ?? String(policy.configValue)
-                              )
-                            }
+                            disabled={isLoading || !hasChanges}
+                            onClick={() => void onUpdatePolicy(policy.configKey, currentValue)}
                           >
-                            {actionState?.key === policy.configKey && actionState.action === "save"
-                              ? "Saving..."
-                              : "Save"}
+                            {currentAction === "save" ? getActionLabel("save") : "Save"}
                           </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            disabled={
-                              actionState?.key === policy.configKey ||
-                              policy.defaultValue === null
-                            }
-                            onClick={() => void onResetPolicy(policy.configKey)}
-                          >
-                            {actionState?.key === policy.configKey && actionState.action === "reset" ? (
-                              "Resetting..."
-                            ) : (
-                              <>
-                                <RotateCcw className="mr-1 h-3.5 w-3.5" />
-                                Reset
-                              </>
-                            )}
-                          </Button>
+                          {hasDefaultValue && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              disabled={isLoading}
+                              onClick={() => void onResetPolicy(policy.configKey)}
+                            >
+                              {currentAction === "reset" ? (
+                                getActionLabel("reset")
+                              ) : (
+                                <RotateCcw className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
                           <Button
                             type="button"
                             size="sm"
                             variant={policy.active ? "destructive" : "default"}
-                            disabled={actionState?.key === policy.configKey}
+                            disabled={isLoading}
                             onClick={() => void onUpdatePolicyStatus(policy.configKey, !policy.active)}
                           >
-                            {actionState?.key === policy.configKey && actionState.action === "toggle"
-                              ? "Updating..."
-                              : policy.active
-                                ? "Deactivate"
-                                : "Activate"}
+                            {currentAction === "toggle"
+                              ? getActionLabel("toggle")
+                              : getToggleButtonLabel(policy.active)}
                           </Button>
                         </div>
                       </TableCell>
