@@ -13,9 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.ui.Model;
-
-import java.util.List;
 
 @Service
 @Transactional
@@ -29,28 +26,6 @@ public class SignupService {
     private final CustomerTierRepository customerTierRepository;
     private final LanguageRepository languageRepository;
     private final PasswordHashService passwordHashService;
-
-    public void loadDataForCustomerSignup(
-        Model model
-    ) {
-        List<Country> countries = countryRepository.findByActiveTrueOrderByNameAsc();
-
-        List<CustomerTier> customerTiers = customerTierRepository.findByActiveTrueOrderByDisplayNameAsc();
-
-        List<Language> languages = languageRepository.findAllByOrderByNameAsc();
-
-        model.addAttribute("countries", countries);
-        model.addAttribute("tiers", customerTiers);
-        model.addAttribute("languages", languages);
-
-        log.debug(
-            "SignupReferenceDataLoad({}) Outcome(countryCount:{},tierCount:{},languageCount:{})",
-            OperationalLogContext.PHASE_COMPLETE,
-            countries.size(),
-            customerTiers.size(),
-            languages.size()
-        );
-    }
 
     public void signupCustomer(
         SignupDto signupDto
