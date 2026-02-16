@@ -94,18 +94,6 @@ public class AuditService {
     }
 
     @Transactional(readOnly = true)
-    public List<AuditEvent> getTicketAuditTrail(
-        Long ticketId
-    ) {
-        Objects.requireNonNull(ticketId, "ticketId");
-
-        return auditEventRepository.findByTicket_IdAndEventTypeInOrderByCreatedAtAsc(
-            ticketId,
-            AuditEventType.getCustomerVisible()
-        );
-    }
-
-    @Transactional(readOnly = true)
     public List<AuditEventRepository.AuditEventView> getTicketAuditTrailView(
         Long ticketId
     ) {
@@ -144,20 +132,6 @@ public class AuditService {
             null,
             description,
             null
-        );
-    }
-
-    @Transactional(readOnly = true)
-    public boolean hasEventType(
-        Long ticketId,
-        AuditEventType eventType
-    ) {
-        Objects.requireNonNull(ticketId, "ticketId");
-        Objects.requireNonNull(eventType, "eventType");
-
-        return auditEventRepository.existsByTicket_IdAndEventType(
-            ticketId,
-            eventType
         );
     }
 
