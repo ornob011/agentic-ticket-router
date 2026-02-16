@@ -1,5 +1,6 @@
 package com.dsi.support.agenticrouter.security;
 
+import com.dsi.support.agenticrouter.entity.AgentQueueMembership;
 import com.dsi.support.agenticrouter.entity.AppUser;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.TicketQueryScope;
@@ -230,7 +231,7 @@ public class TicketAccessPolicyService {
 
         return agentQueueMembershipRepository.findByUserId(actor.getId())
                                              .stream()
-                                             .map(membership -> membership.getQueue())
+                                             .map(AgentQueueMembership::getQueue)
                                              .distinct()
                                              .sorted()
                                              .toList();
