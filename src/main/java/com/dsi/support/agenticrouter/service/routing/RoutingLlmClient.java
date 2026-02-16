@@ -43,6 +43,17 @@ public class RoutingLlmClient implements RoutingModelClient {
     public JsonNode requestRoutingDecision(
         RouterRequest routerRequest
     ) {
+        log.debug(
+            "RoutingModelCall({}) RouterRequest(ticketId:{},ticketNo:{}) Outcome(subjectLength:{},conversationLength:{},analysisLength:{},relevantArticleCount:{})",
+            OperationalLogContext.PHASE_START,
+            routerRequest.getTicketId(),
+            routerRequest.getTicketNo(),
+            StringUtils.length(routerRequest.getSubject()),
+            StringUtils.length(routerRequest.getConversationHistory()),
+            StringUtils.length(routerRequest.getAnalysis()),
+            CollectionUtils.size(routerRequest.getRelevantArticles())
+        );
+
         String categoryValues = Arrays.stream(TicketCategory.values())
                                       .map(Enum::name)
                                       .collect(Collectors.joining(" | "));
