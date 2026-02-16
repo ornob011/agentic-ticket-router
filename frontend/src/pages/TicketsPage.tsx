@@ -18,7 +18,7 @@ function TicketCard({ ticket }: TicketCardProps) {
   const navigate = useNavigate();
   const statusLabel = ticket.statusLabel || formatLabel(ticket.status);
   const priorityLabel = ticket.priorityLabel || formatLabel(ticket.priority);
-  const queueLabel = ticket.queueLabel || formatLabel(ticket.queue);
+  const queueLabel = ticket.queueLabel;
   const priorityBorderClass = getTicketPriorityBorderClass(ticket.priority);
 
   return (

@@ -326,8 +326,7 @@ export default function TicketDetailPage() {
 
   const categoryLabel = data.category ? formatLabel(data.category) : "-";
   const resolvedCategoryLabel = data.categoryLabel || categoryLabel;
-  const queueLabel = data.queue ? formatLabel(data.queue) : "-";
-  const resolvedQueueLabel = data.queueLabel || queueLabel;
+  const resolvedQueueLabel = data.queueLabel;
   const priorityLabel = data.priorityLabel || formatLabel(data.priority);
   const statusLabel = data.statusLabel || formatLabel(data.status);
   const canChangeStatus = data.permissions.canChangeStatus;
