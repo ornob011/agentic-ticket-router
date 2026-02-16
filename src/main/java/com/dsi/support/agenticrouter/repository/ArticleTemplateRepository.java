@@ -32,23 +32,6 @@ public interface ArticleTemplateRepository extends JpaRepository<ArticleTemplate
             SELECT DISTINCT template
             FROM ArticleTemplate template
             JOIN template.applicableCategories category
-            JOIN template.applicablePriorities priority
-            WHERE template.active = true
-              AND category = :category
-              AND priority = :priority
-              AND SIZE(template.applicableCategories) = 1
-              AND SIZE(template.applicablePriorities) = 1
-            ORDER BY template.name ASC
-        """)
-    List<ArticleTemplate> findByCategoryAndPriorityWithExactMatch(
-        @Param("category") TicketCategory category,
-        @Param("priority") TicketPriority priority
-    );
-
-    @Query("""
-            SELECT DISTINCT template
-            FROM ArticleTemplate template
-            JOIN template.applicableCategories category
             WHERE template.active = true
               AND category = :category
             ORDER BY template.name ASC

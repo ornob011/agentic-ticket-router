@@ -14,8 +14,6 @@ import java.util.Set;
 
 public interface AuditEventRepository extends JpaRepository<AuditEvent, Long> {
 
-    List<AuditEvent> findByTicket_IdOrderByCreatedAtAsc(Long ticketId);
-
     List<AuditEvent> findByTicket_IdAndEventTypeInOrderByCreatedAtAsc(
         @Param("ticketId") Long ticketId,
         @Param("eventTypes") Set<AuditEventType> eventTypes
@@ -48,24 +46,6 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, Long> {
     List<AuditEventView> findTicketAuditTrailView(
         @Param("ticketId") Long ticketId,
         @Param("eventTypes") Set<AuditEventType> eventTypes
-    );
-
-    @Query("""
-        SELECT ae FROM AuditEvent ae
-        WHERE (:ticketId IS NULL OR ae.ticket.id = :ticketId)
-        AND (:eventType IS NULL OR ae.eventType = :eventType)
-        AND (:performedById IS NULL OR ae.performedBy.id = :performedById)
-        AND ae.createdAt >= COALESCE(:startDate, ae.createdAt)
-        AND ae.createdAt <= COALESCE(:endDate, ae.createdAt)
-        ORDER BY ae.createdAt DESC
-        """)
-    Page<AuditEvent> findByFilters(
-        @Param("ticketId") Long ticketId,
-        @Param("eventType") AuditEventType eventType,
-        @Param("performedById") Long performedById,
-        @Param("startDate") Instant startDate,
-        @Param("endDate") Instant endDate,
-        Pageable pageable
     );
 
     @Query(

@@ -5,7 +5,6 @@ import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,7 +18,6 @@ import java.util.Set;
 
 public interface SupportTicketRepository extends JpaRepository<SupportTicket, Long> {
 
-    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
     Optional<SupportTicket> findTicketDetailById(
         Long id
     );
@@ -30,11 +28,6 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
 
     List<SupportTicket> findTop5ByAssignedAgentIdOrderByLastActivityAtDesc(
         Long assignedAgentId
-    );
-
-    List<SupportTicket> findByLastActivityAtBeforeAndStatusIn(
-        Instant before,
-        List<TicketStatus> statuses
     );
 
     List<SupportTicket> findByStatusInAndLastActivityAtBefore(
@@ -159,29 +152,22 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         @Param("customerId") Long customerId
     );
 
-    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
     Page<SupportTicket> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
     Page<SupportTicket> findByCustomerIdAndStatusOrderByCreatedAtDesc(
         Long customerId,
         TicketStatus status,
         Pageable pageable
     );
 
-    boolean existsByIdAndCustomerId(Long id, Long customerId);
-
-    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
     Page<SupportTicket> findByAssignedAgentIdOrderByLastActivityAtDesc(Long assignedAgentId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
     Page<SupportTicket> findByAssignedAgentIdAndStatusOrderByLastActivityAtDesc(
         Long assignedAgentId,
         TicketStatus status,
         Pageable pageable
     );
 
-    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
     @Query("""
             select supportTicket
             from SupportTicket supportTicket
@@ -199,27 +185,6 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         Pageable pageable
     );
 
-    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
-    @Query("""
-        SELECT supportTicket
-        FROM SupportTicket supportTicket
-        WHERE supportTicket.assignedAgent.id IS NULL
-          AND supportTicket.assignedQueue = :queue
-          AND supportTicket.status IN :statuses
-        ORDER BY supportTicket.currentPriority DESC, supportTicket.createdAt ASC
-        """)
-    Page<SupportTicket> findUnassignedTicketsInQueue(
-        @Param("queue") TicketQueue queue,
-        @Param("statuses") List<TicketStatus> statuses,
-        Pageable pageable
-    );
-
-    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
-    Page<SupportTicket> findByRequiresHumanReviewTrue(
-        Pageable pageable
-    );
-
-    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
     Page<SupportTicket> findByRequiresHumanReviewTrueAndStatusOrderByLastActivityAtDesc(
         TicketStatus status,
         Pageable pageable
