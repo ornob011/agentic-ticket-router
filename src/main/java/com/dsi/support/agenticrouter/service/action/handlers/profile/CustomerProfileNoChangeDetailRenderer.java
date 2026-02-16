@@ -61,9 +61,7 @@ public class CustomerProfileNoChangeDetailRenderer {
             CustomerProfileActionParams.KEY_PREFERRED_LANGUAGE_CODE,
             new Comparison(
                 requested,
-                Objects.isNull(currentProfile.getPreferredLanguage())
-                    ? null
-                    : currentProfile.getPreferredLanguage().getCode()
+                currentProfile.getPreferredLanguage().getCode()
             )
         ));
 
