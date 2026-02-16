@@ -158,7 +158,7 @@ public class TemplateService {
                 continue;
             }
 
-            selectedTemplate = safeTemplates.get(0);
+            selectedTemplate = safeTemplates.getFirst();
             break;
         }
 

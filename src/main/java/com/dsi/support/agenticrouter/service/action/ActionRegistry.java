@@ -99,7 +99,7 @@ public class ActionRegistry {
 
             handlers.put(
                 nextAction,
-                matchingHandlers.get(0)
+                matchingHandlers.getFirst()
             );
         }
 

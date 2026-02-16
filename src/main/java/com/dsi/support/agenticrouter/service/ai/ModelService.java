@@ -140,7 +140,7 @@ public class ModelService {
             );
         }
 
-        ModelRegistry resolvedActiveModel = activeModels.get(0);
+        ModelRegistry resolvedActiveModel = activeModels.getFirst();
         if (activeModels.size() > 1) {
             String activeModelTags = activeModels.stream()
                                                  .map(ModelRegistry::getModelTag)
