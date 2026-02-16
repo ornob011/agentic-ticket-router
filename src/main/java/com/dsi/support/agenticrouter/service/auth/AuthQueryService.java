@@ -34,17 +34,17 @@ public class AuthQueryService {
         List<ApiDtos.LookupOption> tiers = customerTierRepository.findByActiveTrueOrderByDisplayNameAsc()
                                                                  .stream()
                                                                  .map(tier -> ApiDtos.LookupOption.builder()
-                                                                                                 .code(tier.getCode())
-                                                                                                 .name(tier.getDisplayName())
-                                                                                                 .build())
+                                                                                                  .code(tier.getCode())
+                                                                                                  .name(tier.getDisplayName())
+                                                                                                  .build())
                                                                  .toList();
 
         List<ApiDtos.LookupOption> languages = languageRepository.findAllByOrderByNameAsc()
                                                                  .stream()
                                                                  .map(language -> ApiDtos.LookupOption.builder()
-                                                                                                     .code(language.getCode())
-                                                                                                     .name(language.getName())
-                                                                                                     .build())
+                                                                                                      .code(language.getCode())
+                                                                                                      .name(language.getName())
+                                                                                                      .build())
                                                                  .toList();
 
         return ApiDtos.SignupOptionsResponse.builder()

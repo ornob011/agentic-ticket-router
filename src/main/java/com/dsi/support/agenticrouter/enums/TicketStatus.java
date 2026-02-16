@@ -76,6 +76,10 @@ public enum TicketStatus {
         this.description = description;
     }
 
+    public static Set<TicketStatus> queueInboxDefaults() {
+        return QUEUE_INBOX_DEFAULTS;
+    }
+
     public boolean isTerminalState() {
         return TERMINAL.contains(this);
     }
@@ -94,9 +98,5 @@ public enum TicketStatus {
 
     public boolean isClosedForReplies() {
         return REQUIRES_CATEGORY_MISMATCH_CHECK.contains(this);
-    }
-
-    public static Set<TicketStatus> queueInboxDefaults() {
-        return QUEUE_INBOX_DEFAULTS;
     }
 }

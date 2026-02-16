@@ -11,7 +11,6 @@ import com.dsi.support.agenticrouter.repository.UserSettingsRepository;
 import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -182,9 +181,9 @@ public class ProfileCommandService {
         );
 
         CustomerProfile customerProfile = existingProfile.orElseGet(() -> CustomerProfile.builder()
-                                                                                          .user(appUser)
-                                                                                          .notificationsEnabled(true)
-                                                                                          .build());
+                                                                                         .user(appUser)
+                                                                                         .notificationsEnabled(true)
+                                                                                         .build());
         customerProfile.setCompanyName(payload.companyName());
         customerProfile.setPhoneNumber(payload.phoneNumber());
         customerProfile.setAddress(payload.address());

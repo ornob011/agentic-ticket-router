@@ -14,19 +14,6 @@ import java.util.Set;
 
 public interface AuditEventRepository extends JpaRepository<AuditEvent, Long> {
 
-    interface AuditEventView {
-
-        Long getId();
-
-        AuditEventType getEventType();
-
-        String getDescription();
-
-        String getPerformedByName();
-
-        Instant getCreatedAt();
-    }
-
     List<AuditEvent> findByTicket_IdOrderByCreatedAtAsc(Long ticketId);
 
     List<AuditEvent> findByTicket_IdAndEventTypeInOrderByCreatedAtAsc(
@@ -116,4 +103,17 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, Long> {
         @Param("endDate") Instant endDate,
         Pageable pageable
     );
+
+    interface AuditEventView {
+
+        Long getId();
+
+        AuditEventType getEventType();
+
+        String getDescription();
+
+        String getPerformedByName();
+
+        Instant getCreatedAt();
+    }
 }

@@ -6,11 +6,57 @@ import java.util.Set;
 
 public final class AppRoutePolicy {
 
+    private static final EnumSet<WebRoute> PUBLIC_WEB_ROUTES = EnumSet.of(
+        WebRoute.ROOT,
+        WebRoute.APP,
+        WebRoute.APP_SLASH,
+        WebRoute.APP_INDEX,
+        WebRoute.LOGIN,
+        WebRoute.SIGNUP,
+        WebRoute.FAVICON,
+        WebRoute.ASSETS,
+        WebRoute.APP_ASSETS
+    );
+    private static final EnumSet<WebRoute> SPA_ENTRY_ROUTES = EnumSet.of(
+        WebRoute.APP,
+        WebRoute.APP_SLASH,
+        WebRoute.LOGIN,
+        WebRoute.SIGNUP,
+        WebRoute.DASHBOARD,
+        WebRoute.SETTINGS
+    );
+    private static final EnumSet<ScopeRoute> SPA_SCOPE_ROUTES = EnumSet.of(
+        ScopeRoute.TICKETS,
+        ScopeRoute.AGENT,
+        ScopeRoute.SUPERVISOR,
+        ScopeRoute.ADMIN
+    );
+
     private AppRoutePolicy() {
     }
 
-    public interface RoutePath {
-        String path();
+    public static String[] publicAppEndpoints() {
+        return PUBLIC_WEB_ROUTES.stream()
+                                .map(WebRoute::path)
+                                .toArray(String[]::new);
+    }
+
+    public static String[] publicApiEndpoints() {
+        return Arrays.stream(ApiRoute.values())
+                     .map(ApiRoute::path)
+                     .toArray(String[]::new);
+    }
+
+    public static Set<WebRoute> spaEntryRoutes() {
+        return EnumSet.copyOf(SPA_ENTRY_ROUTES);
+    }
+
+    public static Set<ScopeRoute> spaScopeRoutes() {
+        return EnumSet.copyOf(SPA_SCOPE_ROUTES);
+    }
+
+    public static String appIndexForwardViewName() {
+        return "forward:" + WebRoute.APP_INDEX.path();
     }
 
     public enum WebRoute implements RoutePath {
@@ -71,55 +117,7 @@ public final class AppRoutePolicy {
         }
     }
 
-    private static final EnumSet<WebRoute> PUBLIC_WEB_ROUTES = EnumSet.of(
-        WebRoute.ROOT,
-        WebRoute.APP,
-        WebRoute.APP_SLASH,
-        WebRoute.APP_INDEX,
-        WebRoute.LOGIN,
-        WebRoute.SIGNUP,
-        WebRoute.FAVICON,
-        WebRoute.ASSETS,
-        WebRoute.APP_ASSETS
-    );
-
-    private static final EnumSet<WebRoute> SPA_ENTRY_ROUTES = EnumSet.of(
-        WebRoute.APP,
-        WebRoute.APP_SLASH,
-        WebRoute.LOGIN,
-        WebRoute.SIGNUP,
-        WebRoute.DASHBOARD,
-        WebRoute.SETTINGS
-    );
-
-    private static final EnumSet<ScopeRoute> SPA_SCOPE_ROUTES = EnumSet.of(
-        ScopeRoute.TICKETS,
-        ScopeRoute.AGENT,
-        ScopeRoute.SUPERVISOR,
-        ScopeRoute.ADMIN
-    );
-
-    public static String[] publicAppEndpoints() {
-        return PUBLIC_WEB_ROUTES.stream()
-                                .map(WebRoute::path)
-                                .toArray(String[]::new);
-    }
-
-    public static String[] publicApiEndpoints() {
-        return Arrays.stream(ApiRoute.values())
-                     .map(ApiRoute::path)
-                     .toArray(String[]::new);
-    }
-
-    public static Set<WebRoute> spaEntryRoutes() {
-        return EnumSet.copyOf(SPA_ENTRY_ROUTES);
-    }
-
-    public static Set<ScopeRoute> spaScopeRoutes() {
-        return EnumSet.copyOf(SPA_SCOPE_ROUTES);
-    }
-
-    public static String appIndexForwardViewName() {
-        return "forward:" + WebRoute.APP_INDEX.path();
+    public interface RoutePath {
+        String path();
     }
 }

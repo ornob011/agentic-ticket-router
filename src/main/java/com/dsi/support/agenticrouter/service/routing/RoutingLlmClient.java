@@ -33,12 +33,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class RoutingLlmClient implements RoutingModelClient {
 
+    private static final ResponseTextCleaner RESPONSE_TEXT_CLEANER = new MarkdownCodeBlockCleaner();
     private final ChatModel chatModel;
     private final PromptService promptService;
     private final ObjectMapper objectMapper;
     private final ChatClientFactory chatClientFactory;
-
-    private static final ResponseTextCleaner RESPONSE_TEXT_CLEANER = new MarkdownCodeBlockCleaner();
 
     @Override
     public JsonNode requestRoutingDecision(

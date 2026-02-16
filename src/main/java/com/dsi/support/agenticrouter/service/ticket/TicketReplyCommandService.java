@@ -4,7 +4,6 @@ import com.dsi.support.agenticrouter.entity.AppUser;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.entity.TicketMessage;
 import com.dsi.support.agenticrouter.enums.MessageKind;
-import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.event.CategoryDetectionEvent;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;

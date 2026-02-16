@@ -15,6 +15,21 @@ public class AnalysisCategoryParser {
 
     private static final Pattern TRAILING_CATEGORY_PATTERN = buildTrailingCategoryPattern();
 
+    private static Pattern buildTrailingCategoryPattern() {
+        String categoryTokenAlternation = Arrays.stream(TicketCategory.values())
+                                                .map(Enum::name)
+                                                .sorted((first, second) -> Integer.compare(
+                                                    second.length(),
+                                                    first.length()
+                                                ))
+                                                .map(Pattern::quote)
+                                                .collect(Collectors.joining("|"));
+
+        return Pattern.compile(
+            String.format("(?im)(%s)\\s*$", categoryTokenAlternation)
+        );
+    }
+
     public TicketCategory parseFromModelResponse(
         String responseText
     ) {
@@ -36,21 +51,6 @@ public class AnalysisCategoryParser {
             TicketCategory.class,
             categoryToken,
             TicketCategory.OTHER
-        );
-    }
-
-    private static Pattern buildTrailingCategoryPattern() {
-        String categoryTokenAlternation = Arrays.stream(TicketCategory.values())
-                                                .map(Enum::name)
-                                                .sorted((first, second) -> Integer.compare(
-                                                    second.length(),
-                                                    first.length()
-                                                ))
-                                                .map(Pattern::quote)
-                                                .collect(Collectors.joining("|"));
-
-        return Pattern.compile(
-            String.format("(?im)(%s)\\s*$", categoryTokenAlternation)
         );
     }
 }

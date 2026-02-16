@@ -122,13 +122,6 @@ public class UseTemplateAction implements TicketAction {
         );
     }
 
-    private static final class ActionParamKey {
-        private static final String TEMPLATE_ID = "template_id";
-
-        private ActionParamKey() {
-        }
-    }
-
     private enum TemplateVariableKey {
         CUSTOMER_NAME("customer_name"),
         TICKET_NO("ticket_no");
@@ -143,6 +136,13 @@ public class UseTemplateAction implements TicketAction {
 
         public String key() {
             return key;
+        }
+    }
+
+    private static final class ActionParamKey {
+        private static final String TEMPLATE_ID = "template_id";
+
+        private ActionParamKey() {
         }
     }
 
