@@ -3,6 +3,9 @@ package com.dsi.support.agenticrouter.util;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.MapBindingResult;
+
+import java.util.HashMap;
 
 public final class BindValidation {
 
@@ -15,8 +18,8 @@ public final class BindValidation {
         String fieldName,
         String message
     ) {
-        BeanPropertyBindingResult bindingResult = bindingResult(
-            new Object(),
+        MapBindingResult bindingResult = new MapBindingResult(
+            new HashMap<>(),
             objectName
         );
 
