@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.entity;
+package com.dsi.support.agenticrouter.model;
 
 import lombok.*;
 

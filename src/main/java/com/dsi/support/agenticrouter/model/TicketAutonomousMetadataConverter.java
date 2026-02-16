@@ -1,4 +1,4 @@
-package com.dsi.support.agenticrouter.entity;
+package com.dsi.support.agenticrouter.model;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;

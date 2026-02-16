@@ -2,7 +2,7 @@ package com.dsi.support.agenticrouter.service.ticket;
 
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
-import com.dsi.support.agenticrouter.entity.TicketAutonomousMetadata;
+import com.dsi.support.agenticrouter.model.TicketAutonomousMetadata;
 import com.dsi.support.agenticrouter.enums.NextAction;
 import com.dsi.support.agenticrouter.enums.PolicyConfigKey;
 import com.dsi.support.agenticrouter.service.policy.PolicyValueLookupService;

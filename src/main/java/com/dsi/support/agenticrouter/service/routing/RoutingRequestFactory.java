@@ -5,7 +5,7 @@ import com.dsi.support.agenticrouter.dto.RouterRequest;
 import com.dsi.support.agenticrouter.dto.TicketAnalysisRequest;
 import com.dsi.support.agenticrouter.dto.TicketAnalysisResult;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
-import com.dsi.support.agenticrouter.entity.TicketAutonomousMetadata;
+import com.dsi.support.agenticrouter.model.TicketAutonomousMetadata;
 import com.dsi.support.agenticrouter.entity.TicketMessage;
 import com.dsi.support.agenticrouter.enums.VectorStoreMetadataKey;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
