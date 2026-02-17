@@ -13,7 +13,17 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <RouterProvider router={router} />
-        <Toaster richColors position="top-right" />
+        <Toaster
+          richColors
+          position="top-right"
+          closeButton
+          toastOptions={{
+            classNames: {
+              closeButton:
+                "!bg-white/80 !border !border-gray-300 !rounded-full !w-5 !h-5 !opacity-100 !right-[-6px] !top-[-6px] !shadow-sm hover:!bg-white hover:!border-gray-400 !transition-colors",
+            },
+          }}
+        />
       </TooltipProvider>
     </QueryClientProvider>
   </React.StrictMode>
