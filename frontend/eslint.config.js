@@ -33,5 +33,79 @@ export default tseslint.config(
       "@typescript-eslint/only-throw-error": "off",
       "@typescript-eslint/no-explicit-any": "error",
     },
+  },
+  {
+    files: ["src/pages/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/lib/api"],
+              message: "Pages must not depend on low-level api clients. Use app/services, loaders, or feature hooks.",
+              allowTypeImports: true,
+            },
+            {
+              group: ["@/lib/api-loader", "axios"],
+              message: "Pages must not call API transport directly.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/widgets/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/app/*", "@/pages/*", "@/lib/loaders/*", "@/lib/api-loader", "axios"],
+              message: "Widgets are presentation layer only and must not depend on app/page/loader/transport layers.",
+            },
+            {
+              group: ["@/router", "@/lib/api"],
+              message: "Use type-only imports from router/api in widgets.",
+              allowTypeImports: true,
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/app/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/pages/*", "@/widgets/*", "@/components/*"],
+              message: "App layer must remain UI-agnostic.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/lib/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/pages/*", "@/widgets/*"],
+              message: "Lib layer must not depend on page/widget layers.",
+            },
+          ],
+        },
+      ],
+    },
   }
 );
