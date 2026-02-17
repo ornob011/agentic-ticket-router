@@ -8,6 +8,7 @@ import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.service.ai.ChatClientFactory;
 import com.dsi.support.agenticrouter.service.ai.PromptService;
+import com.dsi.support.agenticrouter.service.ai.TokenCountService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -38,19 +39,27 @@ public class RoutingLlmClient implements RoutingModelClient {
     private final PromptService promptService;
     private final ObjectMapper objectMapper;
     private final ChatClientFactory chatClientFactory;
+    private final TokenCountService tokenCountService;
 
     @Override
     public JsonNode requestRoutingDecision(
         RouterRequest routerRequest
     ) {
+        String latestCustomerMessage = getLatestCustomerMessage(
+            routerRequest
+        );
+
         log.debug(
-            "RoutingModelCall({}) RouterRequest(ticketId:{},ticketNo:{}) Outcome(subjectLength:{},conversationLength:{},analysisLength:{},relevantArticleCount:{})",
+            "RoutingModelCall({}) RouterRequest(ticketId:{},ticketNo:{}) Outcome(subjectLength:{},conversationLength:{},analysisLength:{},subjectTokensEst:{},conversationTokensEst:{},analysisTokensEst:{},relevantArticleCount:{})",
             OperationalLogContext.PHASE_START,
             routerRequest.getTicketId(),
             routerRequest.getTicketNo(),
             StringUtils.length(routerRequest.getSubject()),
             StringUtils.length(routerRequest.getConversationHistory()),
             StringUtils.length(routerRequest.getAnalysis()),
+            tokenCountService.countTokens(routerRequest.getSubject()),
+            tokenCountService.countTokens(routerRequest.getConversationHistory()),
+            tokenCountService.countTokens(routerRequest.getAnalysis()),
             CollectionUtils.size(routerRequest.getRelevantArticles())
         );
 
@@ -72,9 +81,6 @@ public class RoutingLlmClient implements RoutingModelClient {
 
         String relevantArticles = formatRelevantArticles(
             routerRequest.getRelevantArticles()
-        );
-        String latestCustomerMessage = getLatestCustomerMessage(
-            routerRequest
         );
 
         ChatClient chatClient = chatClientFactory.create(
@@ -135,11 +141,12 @@ public class RoutingLlmClient implements RoutingModelClient {
                                         .content();
 
         log.debug(
-            "RoutingModelCall({}) RouterRequest(ticketId:{},ticketNo:{}) Outcome(responseLength:{})",
+            "RoutingModelCall({}) RouterRequest(ticketId:{},ticketNo:{}) Outcome(responseLength:{},responseTokensEst:{})",
             OperationalLogContext.PHASE_COMPLETE,
             routerRequest.getTicketId(),
             routerRequest.getTicketNo(),
-            StringUtils.length(responseText)
+            StringUtils.length(responseText),
+            tokenCountService.countTokens(responseText)
         );
 
         Objects.requireNonNull(responseText);
@@ -201,4 +208,5 @@ public class RoutingLlmClient implements RoutingModelClient {
                        ))
                        .collect(Collectors.joining("\n"));
     }
+
 }
