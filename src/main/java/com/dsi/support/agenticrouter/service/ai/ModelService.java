@@ -6,12 +6,14 @@ import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.ModelRegistryRepository;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @Transactional
@@ -24,16 +26,8 @@ public class ModelService {
 
     @Transactional(readOnly = true)
     public String getActiveModelTag() {
-        String activeModelTag = modelRegistryRepository.findByActiveTrue()
-                                                       .stream()
-                                                       .findFirst()
-                                                       .map(ModelRegistry::getModelTag)
-                                                       .orElseThrow(
-                                                           DataNotFoundException.supplier(
-                                                               ModelRegistry.class,
-                                                               "active model"
-                                                           )
-                                                       );
+        ModelRegistry activeModel = requireSingleActiveModel();
+        String activeModelTag = activeModel.getModelTag();
 
         log.debug(
             "ModelLookup({}) ModelRegistry(tag:{},active:{})",
@@ -47,15 +41,7 @@ public class ModelService {
 
     @Transactional(readOnly = true)
     public ModelRegistry getActiveModel() {
-        ModelRegistry activeModel = modelRegistryRepository.findByActiveTrue()
-                                                           .stream()
-                                                           .findFirst()
-                                                           .orElseThrow(
-                                                               DataNotFoundException.supplier(
-                                                                   ModelRegistry.class,
-                                                                   "active model"
-                                                               )
-                                                           );
+        ModelRegistry activeModel = requireSingleActiveModel();
 
         log.info(
             "ModelLookup({}) ModelRegistry(id:{},tag:{},active:{})",
@@ -70,7 +56,7 @@ public class ModelService {
 
     @Transactional(readOnly = true)
     public List<ModelRegistry> getAllModels() {
-        List<ModelRegistry> models = modelRegistryRepository.findAll();
+        List<ModelRegistry> models = modelRegistryRepository.findAllByOrderByCreatedAtAsc();
 
         log.debug(
             "ModelList({}) Outcome(modelCount:{})",
@@ -92,6 +78,11 @@ public class ModelService {
             activatorId
         );
 
+        String normalizedModelTag = StringNormalizationUtils.trimToNull(modelTag);
+        if (normalizedModelTag == null) {
+            throw new IllegalArgumentException("modelTag is required");
+        }
+
         AppUser activator = appUserRepository.findById(activatorId)
                                              .orElseThrow(
                                                  DataNotFoundException.supplier(
@@ -100,8 +91,20 @@ public class ModelService {
                                                  )
                                              );
 
+        ModelRegistry modelToActivate = modelRegistryRepository.findByModelTag(normalizedModelTag)
+                                                               .orElseThrow(
+                                                                   DataNotFoundException.supplier(
+                                                                       ModelRegistry.class,
+                                                                       normalizedModelTag
+                                                                   )
+                                                               );
+
         modelRegistryRepository.findByActiveTrue()
                                .forEach(model -> {
+                                   if (model.getId().equals(modelToActivate.getId())) {
+                                       return;
+                                   }
+
                                    model.deactivate();
                                    modelRegistryRepository.save(model);
                                    log.debug(
@@ -112,14 +115,6 @@ public class ModelService {
                                        model.isActive()
                                    );
                                });
-
-        ModelRegistry modelToActivate = modelRegistryRepository.findByModelTag(modelTag)
-                                                               .orElseThrow(
-                                                                   DataNotFoundException.supplier(
-                                                                       ModelRegistry.class,
-                                                                       modelTag
-                                                                   )
-                                                               );
 
         modelToActivate.activate(activator);
         modelRegistryRepository.save(modelToActivate);
@@ -133,5 +128,31 @@ public class ModelService {
             activator.getId(),
             activator.getRole()
         );
+    }
+
+    private ModelRegistry requireSingleActiveModel() {
+        List<ModelRegistry> activeModels = modelRegistryRepository.findByActiveTrue();
+
+        if (activeModels.isEmpty()) {
+            throw new DataNotFoundException(
+                ModelRegistry.class,
+                "active model"
+            );
+        }
+
+        ModelRegistry resolvedActiveModel = activeModels.getFirst();
+        if (activeModels.size() > 1) {
+            String activeModelTags = activeModels.stream()
+                                                 .map(ModelRegistry::getModelTag)
+                                                 .filter(Objects::nonNull)
+                                                 .sorted()
+                                                 .toList()
+                                                 .toString();
+            throw new IllegalStateException(
+                "Multiple active models configured: " + activeModelTags
+            );
+        }
+
+        return resolvedActiveModel;
     }
 }

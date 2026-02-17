@@ -48,6 +48,16 @@ public enum TicketStatus {
             TRIAGING
         );
 
+    private static final Set<TicketStatus> QUEUE_INBOX_DEFAULTS =
+        EnumSet.of(
+            RECEIVED,
+            TRIAGING,
+            WAITING_CUSTOMER,
+            ASSIGNED,
+            IN_PROGRESS,
+            ESCALATED
+        );
+
     private static final Set<TicketStatus> REQUIRES_CATEGORY_MISMATCH_CHECK =
         EnumSet.of(
             CLOSED,
@@ -64,6 +74,10 @@ public enum TicketStatus {
     ) {
         this.displayName = displayName;
         this.description = description;
+    }
+
+    public static Set<TicketStatus> queueInboxDefaults() {
+        return QUEUE_INBOX_DEFAULTS;
     }
 
     public boolean isTerminalState() {

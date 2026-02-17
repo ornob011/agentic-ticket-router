@@ -1,12 +1,11 @@
 package com.dsi.support.agenticrouter.service.ticket;
 
 import com.dsi.support.agenticrouter.dto.RouterResponse;
-import com.dsi.support.agenticrouter.entity.PolicyConfig;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
-import com.dsi.support.agenticrouter.entity.TicketAutonomousMetadata;
 import com.dsi.support.agenticrouter.enums.NextAction;
 import com.dsi.support.agenticrouter.enums.PolicyConfigKey;
-import com.dsi.support.agenticrouter.service.policy.PolicyConfigService;
+import com.dsi.support.agenticrouter.model.TicketAutonomousMetadata;
+import com.dsi.support.agenticrouter.service.policy.PolicyValueLookupService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,33 +20,28 @@ import java.util.Objects;
 @Slf4j
 public class AutonomousProgressService {
 
-    private static final int DEFAULT_MAX_ACTIONS = 5;
-    private static final int DEFAULT_MAX_QUESTIONS = 3;
-
-    private final PolicyConfigService policyConfigService;
+    private final PolicyValueLookupService policyValueLookupService;
 
     private int getMaxAutonomousActions() {
-        PolicyConfig policyConfig = policyConfigService.getConfigValue(
+        int maxAutonomousActions = policyValueLookupService.getRequiredIntValue(
             PolicyConfigKey.MAX_AUTONOMOUS_ACTIONS
         );
 
-        if (Objects.nonNull(policyConfig) && Objects.nonNull(policyConfig.getConfigValue())) {
-            return policyConfig.getConfigValue().intValue();
-        }
-
-        return DEFAULT_MAX_ACTIONS;
+        return Math.max(
+            maxAutonomousActions,
+            1
+        );
     }
 
     private int getMaxQuestions() {
-        PolicyConfig policyConfig = policyConfigService.getConfigValue(
+        int maxQuestions = policyValueLookupService.getRequiredIntValue(
             PolicyConfigKey.MAX_QUESTIONS_PER_TICKET
         );
 
-        if (Objects.nonNull(policyConfig) && Objects.nonNull(policyConfig.getConfigValue())) {
-            return policyConfig.getConfigValue().intValue();
-        }
-
-        return DEFAULT_MAX_QUESTIONS;
+        return Math.max(
+            maxQuestions,
+            1
+        );
     }
 
     @Transactional
@@ -85,7 +79,9 @@ public class AutonomousProgressService {
     public boolean shouldContinueAutonomous(
         SupportTicket supportTicket
     ) {
-        TicketAutonomousMetadata autonomousMetadata = supportTicket.getAutonomousMetadata();
+        TicketAutonomousMetadata autonomousMetadata = metadataOrDefault(
+            supportTicket
+        );
         boolean shouldContinue = autonomousMetadata.shouldContinue(
             getMaxAutonomousActions(),
             getMaxQuestions()
@@ -115,7 +111,9 @@ public class AutonomousProgressService {
     private boolean hasLoopDetected(
         SupportTicket supportTicket
     ) {
-        TicketAutonomousMetadata autonomousMetadata = supportTicket.getAutonomousMetadata();
+        TicketAutonomousMetadata autonomousMetadata = metadataOrDefault(
+            supportTicket
+        );
 
         return autonomousMetadata.getRecentQuestions().size() >= 3
                && autonomousMetadata.getRecentQuestions()
@@ -133,7 +131,9 @@ public class AutonomousProgressService {
     public String getEscalationReason(
         SupportTicket supportTicket
     ) {
-        TicketAutonomousMetadata autonomousMetadata = supportTicket.getAutonomousMetadata();
+        TicketAutonomousMetadata autonomousMetadata = metadataOrDefault(
+            supportTicket
+        );
 
         if (autonomousMetadata.isHasFrustrationDetected()) {
             return "Customer frustration detected - escalating to human";
@@ -152,5 +152,14 @@ public class AutonomousProgressService {
         }
 
         return "Autonomous limit reached - escalating to human";
+    }
+
+    private TicketAutonomousMetadata metadataOrDefault(
+        SupportTicket supportTicket
+    ) {
+        return Objects.requireNonNullElseGet(
+            supportTicket.getAutonomousMetadata(),
+            () -> TicketAutonomousMetadata.builder().build()
+        );
     }
 }

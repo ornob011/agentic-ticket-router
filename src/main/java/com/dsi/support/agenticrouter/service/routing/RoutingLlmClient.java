@@ -6,8 +6,10 @@ import com.dsi.support.agenticrouter.enums.NextAction;
 import com.dsi.support.agenticrouter.enums.TicketCategory;
 import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
+import com.dsi.support.agenticrouter.service.ai.ChatClientFactory;
 import com.dsi.support.agenticrouter.service.ai.PromptService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,16 +33,27 @@ import java.util.stream.Collectors;
 @Slf4j
 public class RoutingLlmClient implements RoutingModelClient {
 
+    private static final ResponseTextCleaner RESPONSE_TEXT_CLEANER = new MarkdownCodeBlockCleaner();
     private final ChatModel chatModel;
     private final PromptService promptService;
     private final ObjectMapper objectMapper;
-
-    private static final ResponseTextCleaner RESPONSE_TEXT_CLEANER = new MarkdownCodeBlockCleaner();
+    private final ChatClientFactory chatClientFactory;
 
     @Override
     public JsonNode requestRoutingDecision(
         RouterRequest routerRequest
     ) {
+        log.debug(
+            "RoutingModelCall({}) RouterRequest(ticketId:{},ticketNo:{}) Outcome(subjectLength:{},conversationLength:{},analysisLength:{},relevantArticleCount:{})",
+            OperationalLogContext.PHASE_START,
+            routerRequest.getTicketId(),
+            routerRequest.getTicketNo(),
+            StringUtils.length(routerRequest.getSubject()),
+            StringUtils.length(routerRequest.getConversationHistory()),
+            StringUtils.length(routerRequest.getAnalysis()),
+            CollectionUtils.size(routerRequest.getRelevantArticles())
+        );
+
         String categoryValues = Arrays.stream(TicketCategory.values())
                                       .map(Enum::name)
                                       .collect(Collectors.joining(" | "));
@@ -64,8 +77,9 @@ public class RoutingLlmClient implements RoutingModelClient {
             routerRequest
         );
 
-        ChatClient chatClient = ChatClient.builder(chatModel)
-                                          .build();
+        ChatClient chatClient = chatClientFactory.create(
+            chatModel
+        );
 
         String responseText = chatClient.prompt()
                                         .system(promptService.getSystemPrompt())
@@ -146,7 +160,7 @@ public class RoutingLlmClient implements RoutingModelClient {
         String[] historyLines = StringUtils.splitPreserveAllTokens(conversationHistory, '\n');
 
         if (historyLines == null || historyLines.length == 0) {
-            return StringUtils.trimToEmpty(routerRequest.getInitialMessage());
+            return StringNormalizationUtils.trimToEmpty(routerRequest.getInitialMessage());
         }
 
         List<String> lines = Arrays.stream(historyLines).toList();
@@ -157,7 +171,7 @@ public class RoutingLlmClient implements RoutingModelClient {
                 continue;
             }
 
-            String extracted = StringUtils.trimToEmpty(
+            String extracted = StringNormalizationUtils.trimToEmpty(
                 StringUtils.substringAfter(line, "CUSTOMER_MESSAGE:")
             );
 
@@ -166,7 +180,7 @@ public class RoutingLlmClient implements RoutingModelClient {
             }
         }
 
-        return StringUtils.trimToEmpty(routerRequest.getInitialMessage());
+        return StringNormalizationUtils.trimToEmpty(routerRequest.getInitialMessage());
     }
 
     private String formatRelevantArticles(

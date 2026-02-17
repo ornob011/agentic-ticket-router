@@ -5,6 +5,7 @@ import com.dsi.support.agenticrouter.enums.UserRole;
 import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.security.CustomUserDetails;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.core.GrantedAuthority;
@@ -35,10 +36,10 @@ public class CustomUserDetailsService implements UserDetailsService {
         log.debug(
             "UserDetailsLoad({}) AppUser(usernameLength:{})",
             OperationalLogContext.PHASE_START,
-            StringUtils.length(StringUtils.trimToEmpty(username))
+            StringUtils.length(StringNormalizationUtils.trimToEmpty(username))
         );
 
-        String normalizedUsername = StringUtils.lowerCase(StringUtils.trimToEmpty(username));
+        String normalizedUsername = StringNormalizationUtils.lowerTrimmedOrEmpty(username);
         if (StringUtils.isBlank(normalizedUsername)) {
             throw new UsernameNotFoundException("Username is required");
         }

@@ -7,14 +7,12 @@ import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.*;
 import com.dsi.support.agenticrouter.service.auth.PasswordHashService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.ui.Model;
-
-import java.util.List;
 
 @Service
 @Transactional
@@ -29,69 +27,35 @@ public class SignupService {
     private final LanguageRepository languageRepository;
     private final PasswordHashService passwordHashService;
 
-    public void loadDataForCustomerSignup(
-        Model model
-    ) {
-        List<Country> countries = countryRepository.findByActiveTrueOrderByNameAsc();
-
-        List<CustomerTier> customerTiers = customerTierRepository.findByActiveTrueOrderByDisplayNameAsc();
-
-        List<Language> languages = languageRepository.findAllByOrderByNameAsc();
-
-        model.addAttribute("countries", countries);
-        model.addAttribute("tiers", customerTiers);
-        model.addAttribute("languages", languages);
-
-        log.debug(
-            "SignupReferenceDataLoad({}) Outcome(countryCount:{},tierCount:{},languageCount:{})",
-            OperationalLogContext.PHASE_COMPLETE,
-            countries.size(),
-            customerTiers.size(),
-            languages.size()
-        );
-    }
-
     public void signupCustomer(
         SignupDto signupDto
     ) {
         log.info(
             "SignupCustomer({}) AppUser(usernameLength:{},emailLength:{})",
             OperationalLogContext.PHASE_START,
-            StringUtils.length(StringUtils.trimToNull(signupDto.getUsername())),
-            StringUtils.length(StringUtils.trimToNull(signupDto.getEmail()))
+            StringUtils.length(StringNormalizationUtils.trimToNull(signupDto.getUsername())),
+            StringUtils.length(StringNormalizationUtils.trimToNull(signupDto.getEmail()))
         );
 
-        String normalizedUsername = signupDto.getUsername()
-                                             .trim()
-                                             .toLowerCase();
+        String normalizedUsername = StringNormalizationUtils.lowerTrimmedOrNull(signupDto.getUsername());
 
-        String normalizedEmail = signupDto.getEmail()
-                                          .trim()
-                                          .toLowerCase();
+        String normalizedEmail = StringNormalizationUtils.lowerTrimmedOrNull(signupDto.getEmail());
 
-        String normalizedFullName = signupDto.getFullName()
-                                             .trim();
+        String normalizedFullName = StringNormalizationUtils.trimToNull(signupDto.getFullName());
 
-        String normalizedCompanyName = signupDto.getCompanyName()
-                                                .trim();
+        String normalizedCompanyName = StringNormalizationUtils.trimToNull(signupDto.getCompanyName());
 
-        String normalizedPhoneNumber = signupDto.getPhoneNumber()
-                                                .trim();
+        String normalizedPhoneNumber = StringNormalizationUtils.trimToNull(signupDto.getPhoneNumber());
 
-        String normalizedAddress = signupDto.getAddress()
-                                            .trim();
+        String normalizedAddress = StringNormalizationUtils.trimToNull(signupDto.getAddress());
 
-        String normalizedCity = signupDto.getCity()
-                                         .trim();
+        String normalizedCity = StringNormalizationUtils.trimToNull(signupDto.getCity());
 
-        String normalizedCountryIso2 = signupDto.getCountryIso2()
-                                                .trim();
+        String normalizedCountryIso2 = StringNormalizationUtils.upperTrimmedOrNull(signupDto.getCountryIso2());
 
-        String normalizedTierCode = signupDto.getCustomerTierCode()
-                                             .trim();
+        String normalizedTierCode = StringNormalizationUtils.trimToNull(signupDto.getCustomerTierCode());
 
-        String normalizedLanguageCode = signupDto.getPreferredLanguageCode()
-                                                 .trim();
+        String normalizedLanguageCode = StringNormalizationUtils.trimToEmpty(signupDto.getPreferredLanguageCode());
 
         Country selectedCountry = countryRepository.findByIso2(normalizedCountryIso2)
                                                    .orElseThrow(

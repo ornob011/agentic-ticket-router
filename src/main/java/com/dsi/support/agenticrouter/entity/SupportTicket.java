@@ -4,6 +4,8 @@ import com.dsi.support.agenticrouter.enums.TicketCategory;
 import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
+import com.dsi.support.agenticrouter.model.TicketAutonomousMetadata;
+import com.dsi.support.agenticrouter.model.TicketAutonomousMetadataConverter;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -177,6 +179,13 @@ public class SupportTicket extends BaseEntity {
     )
     @Builder.Default
     private boolean escalated = false;
+
+    @Column(
+        name = "requires_human_review",
+        nullable = false
+    )
+    @Builder.Default
+    private boolean requiresHumanReview = false;
 
     @Column(
         name = "latest_routing_confidence",

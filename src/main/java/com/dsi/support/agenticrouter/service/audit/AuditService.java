@@ -16,6 +16,7 @@ import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
@@ -93,18 +94,6 @@ public class AuditService {
     }
 
     @Transactional(readOnly = true)
-    public List<AuditEvent> getTicketAuditTrail(
-        Long ticketId
-    ) {
-        Objects.requireNonNull(ticketId, "ticketId");
-
-        return auditEventRepository.findByTicket_IdAndEventTypeInOrderByCreatedAtAsc(
-            ticketId,
-            AuditEventType.getCustomerVisible()
-        );
-    }
-
-    @Transactional(readOnly = true)
     public List<AuditEventRepository.AuditEventView> getTicketAuditTrailView(
         Long ticketId
     ) {
@@ -143,6 +132,23 @@ public class AuditService {
             null,
             description,
             null
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasEventTypeSince(
+        Long ticketId,
+        AuditEventType eventType,
+        Instant since
+    ) {
+        Objects.requireNonNull(ticketId, "ticketId");
+        Objects.requireNonNull(eventType, "eventType");
+        Objects.requireNonNull(since, "since");
+
+        return auditEventRepository.existsByTicket_IdAndEventTypeAndCreatedAtAfter(
+            ticketId,
+            eventType,
+            since
         );
     }
 }

@@ -5,7 +5,6 @@ import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,10 +14,10 @@ import java.time.Instant;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface SupportTicketRepository extends JpaRepository<SupportTicket, Long> {
 
-    @EntityGraph(attributePaths = {"customer", "assignedAgent"})
     Optional<SupportTicket> findTicketDetailById(
         Long id
     );
@@ -29,11 +28,6 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
 
     List<SupportTicket> findTop5ByAssignedAgentIdOrderByLastActivityAtDesc(
         Long assignedAgentId
-    );
-
-    List<SupportTicket> findByLastActivityAtBeforeAndStatusIn(
-        Instant before,
-        List<TicketStatus> statuses
     );
 
     List<SupportTicket> findByStatusInAndLastActivityAtBefore(
@@ -160,40 +154,44 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
 
     Page<SupportTicket> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
 
-    boolean existsByIdAndCustomerId(Long id, Long customerId);
+    Page<SupportTicket> findByCustomerIdAndStatusOrderByCreatedAtDesc(
+        Long customerId,
+        TicketStatus status,
+        Pageable pageable
+    );
 
     Page<SupportTicket> findByAssignedAgentIdOrderByLastActivityAtDesc(Long assignedAgentId, Pageable pageable);
+
+    Page<SupportTicket> findByAssignedAgentIdAndStatusOrderByLastActivityAtDesc(
+        Long assignedAgentId,
+        TicketStatus status,
+        Pageable pageable
+    );
 
     @Query("""
             select supportTicket
             from SupportTicket supportTicket
             where (:queue is null or supportTicket.assignedQueue = :queue)
-              and (:status is null or supportTicket.status = :status)
+              and (
+                    (:status is not null and supportTicket.status = :status)
+                    or (:status is null and supportTicket.status in :defaultStatuses)
+                  )
             order by supportTicket.currentPriority desc, supportTicket.lastActivityAt asc
         """)
     Page<SupportTicket> findQueueTickets(
         @Param("queue") TicketQueue ticketQueue,
         @Param("status") TicketStatus ticketStatus,
+        @Param("defaultStatuses") Set<TicketStatus> defaultStatuses,
         Pageable pageable
     );
 
-    @Query("""
-        SELECT supportTicket
-        FROM SupportTicket supportTicket
-        WHERE supportTicket.assignedAgent.id IS NULL
-          AND supportTicket.assignedQueue = :queue
-          AND supportTicket.status IN :statuses
-        ORDER BY supportTicket.currentPriority DESC, supportTicket.createdAt ASC
-        """)
-    Page<SupportTicket> findUnassignedTicketsInQueue(
-        @Param("queue") TicketQueue queue,
-        @Param("statuses") List<TicketStatus> statuses,
+    Page<SupportTicket> findByRequiresHumanReviewTrueAndStatusOrderByLastActivityAtDesc(
+        TicketStatus status,
         Pageable pageable
     );
 
-    Page<SupportTicket> findByStatusAndAssignedQueueIsNull(
-        @Param("status") TicketStatus status,
-        Pageable pageable
+    long countByRequiresHumanReviewTrueAndStatus(
+        TicketStatus status
     );
 
     @Query("""

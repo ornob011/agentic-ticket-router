@@ -254,11 +254,25 @@ public final class ApiDtos {
         Instant lastActivityAt,
         int reopenCount,
         boolean escalated,
+        boolean requiresHumanReview,
+        TicketPermissions permissions,
         UserMe customer,
         UserMe assignedAgent,
         List<TicketMessageItem> messages,
         List<AuditEventItem> auditEvents,
         List<TicketRoutingItem> routingHistory
+    ) {
+    }
+
+    @Builder
+    public record TicketPermissions(
+        boolean canReply,
+        boolean canChangeStatus,
+        boolean canAssignSelf,
+        boolean canAssignOthers,
+        boolean canOverrideRouting,
+        boolean canResolveEscalation,
+        List<TicketStatus> allowedStatusTransitions
     ) {
     }
 
@@ -294,6 +308,7 @@ public final class ApiDtos {
     @Builder
     public record TicketMetadataResponse(
         List<LookupOption> queues,
+        List<LookupOption> accessibleQueues,
         List<LookupOption> statuses,
         List<LookupOption> priorities
     ) {
@@ -401,7 +416,12 @@ public final class ApiDtos {
     public record PolicyInfo(
         Long id,
         String configKey,
+        String configKeyLabel,
+        String description,
         BigDecimal configValue,
+        BigDecimal defaultValue,
+        BigDecimal minValue,
+        BigDecimal maxValue,
         boolean active
     ) {
     }
@@ -409,6 +429,12 @@ public final class ApiDtos {
     public record PolicyUpdateRequest(
         @NotBlank String configKey,
         @NotNull BigDecimal configValue
+    ) {
+    }
+
+    public record PolicyStatusUpdateRequest(
+        @NotBlank String configKey,
+        @NotNull Boolean active
     ) {
     }
 
@@ -430,6 +456,22 @@ public final class ApiDtos {
         @NotBlank String fullName,
         @NotNull UserRole role,
         @NotBlank String password
+    ) {
+    }
+
+    @Builder
+    public record QueueMembershipInfo(
+        Long id,
+        Long userId,
+        String username,
+        TicketQueue queue,
+        String queueLabel
+    ) {
+    }
+
+    public record QueueMembershipCreateRequest(
+        @NotNull Long userId,
+        @NotNull TicketQueue queue
     ) {
     }
 }

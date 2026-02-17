@@ -1,9 +1,11 @@
-import { useLoaderData, useNavigate, useRevalidator } from "react-router-dom";
+import { useLoaderData, useNavigate, useRevalidator, useRouteLoaderData } from "react-router-dom";
 import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { DashboardLoaderData } from "@/router";
 import { formatLabel, getStatusTone, formatRelativeTime, getPriorityTone, cn } from "@/lib/utils";
 import { getTicketStatusDotClass } from "@/lib/ticket-visuals";
 import { canAccessAgentWorkspace, canAccessSupervisorWorkspace } from "@/lib/role-policy";
+import { api, type TicketMetadataResponse } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,7 +22,9 @@ import {
   MessageSquare,
   Users,
   TrendingUp,
+  ListFilter,
 } from "lucide-react";
+import type { RootLoaderData } from "@/router";
 
 type DashboardStat = {
   label: string;
@@ -115,6 +119,7 @@ function RecentTicketItem({ ticket }: Readonly<{ ticket: DashboardLoaderData["re
 
 export default function DashboardPage() {
   const data = useLoaderData<DashboardLoaderData>();
+  const appData = useRouteLoaderData<RootLoaderData>("app");
   const navigate = useNavigate();
   const revalidator = useRevalidator();
 
@@ -126,10 +131,23 @@ export default function DashboardPage() {
   }, [revalidator]);
 
   const role = data.user.role;
+  const isCustomer = appData?.user?.role === "CUSTOMER";
   const isAgent = canAccessAgentWorkspace(role);
   const isSupervisor = canAccessSupervisorWorkspace(role);
+  const { data: ticketMetadata } = useQuery({
+    queryKey: ["ticket-metadata", "dashboard"],
+    queryFn: async () => {
+      const response = await api.get<TicketMetadataResponse>("/tickets/meta");
+      return response.data;
+    },
+    enabled: isAgent,
+    staleTime: 60_000,
+  });
   const stats = resolveStats(role, data);
   const hasRecentTickets = data.recentTickets.length > 0;
+  const agentQueueTarget = ticketMetadata?.accessibleQueues[0]?.code
+    ? `/app/agent/queues/${ticketMetadata.accessibleQueues[0].code}`
+    : null;
 
   const renderRecentTickets = () => {
     if (!hasRecentTickets) {
@@ -139,11 +157,17 @@ export default function DashboardPage() {
             <Ticket className="h-8 w-8 text-muted-foreground/60" />
           </div>
           <p className="mt-4 font-medium text-foreground">No tickets yet</p>
-          <p className="mt-1 text-sm text-muted-foreground">Create your first ticket to get started</p>
-          <Button className="mt-4" onClick={() => navigate("/app/tickets/new")}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Ticket
-          </Button>
+          {isCustomer ? (
+            <>
+              <p className="mt-1 text-sm text-muted-foreground">Create your first ticket to get started</p>
+              <Button className="mt-4" onClick={() => navigate("/app/tickets/new")}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Ticket
+              </Button>
+            </>
+          ) : (
+            <p className="mt-1 text-sm text-muted-foreground">No recent tickets assigned yet.</p>
+          )}
         </div>
       );
     }
@@ -163,10 +187,12 @@ export default function DashboardPage() {
         title="Dashboard"
         description={`Welcome back, ${data.user.fullName || data.user.username}`}
       >
-        <Button onClick={() => navigate("/app/tickets/new")}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Ticket
-        </Button>
+        {isCustomer && (
+          <Button onClick={() => navigate("/app/tickets/new")}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Ticket
+          </Button>
+        )}
       </PageHeader>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -200,14 +226,16 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              onClick={() => navigate("/app/tickets/new")}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create New Ticket
-            </Button>
+            {isCustomer && (
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => navigate("/app/tickets/new")}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create New Ticket
+              </Button>
+            )}
             <Button
               variant="outline"
               className="w-full justify-start"
@@ -216,11 +244,41 @@ export default function DashboardPage() {
               <Ticket className="mr-2 h-4 w-4" />
               View All Tickets
             </Button>
-            {isAgent && (
+            {role === "AGENT" && (
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() => navigate("/app/agent/queues/GENERAL_Q")}
+                onClick={() => navigate("/app/tickets?status=ASSIGNED")}
+              >
+                <ListFilter className="mr-2 h-4 w-4" />
+                Assigned Tickets
+              </Button>
+            )}
+            {role === "AGENT" && (
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => navigate("/app/tickets?status=IN_PROGRESS")}
+              >
+                <Clock className="mr-2 h-4 w-4" />
+                In Progress
+              </Button>
+            )}
+            {role === "AGENT" && (
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => navigate("/app/tickets?status=RESOLVED")}
+              >
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Resolved
+              </Button>
+            )}
+            {isAgent && agentQueueTarget && (
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => navigate(agentQueueTarget)}
               >
                 <MessageSquare className="mr-2 h-4 w-4" />
                 My Queue

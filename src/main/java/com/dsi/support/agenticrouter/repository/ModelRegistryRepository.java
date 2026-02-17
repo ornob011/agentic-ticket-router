@@ -10,5 +10,7 @@ public interface ModelRegistryRepository extends JpaRepository<ModelRegistry, Lo
 
     List<ModelRegistry> findByActiveTrue();
 
+    List<ModelRegistry> findAllByOrderByCreatedAtAsc();
+
     Optional<ModelRegistry> findByModelTag(String modelTag);
 }

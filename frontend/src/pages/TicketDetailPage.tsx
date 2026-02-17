@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DateSeparator } from "@/components/ui/date-separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft,
   Send,
@@ -255,6 +256,9 @@ export default function TicketDetailPage() {
   const revalidator = useRevalidator();
   const [reply, setReply] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [statusSubmitting, setStatusSubmitting] = useState(false);
+  const [newStatus, setNewStatus] = useState<string>(data.status);
+  const [statusReason, setStatusReason] = useState("");
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -263,9 +267,14 @@ export default function TicketDetailPage() {
     return () => clearInterval(interval);
   }, [revalidator]);
 
+  useEffect(() => {
+    setNewStatus(data.status);
+    setStatusReason("");
+  }, [data.status]);
+
   const onReply = async (event: FormEvent) => {
     event.preventDefault();
-    if (!reply.trim() || submitting) return;
+    if (!reply.trim() || submitting || !data.permissions.canReply) return;
 
     setSubmitting(true);
     try {
@@ -280,6 +289,33 @@ export default function TicketDetailPage() {
     }
   };
 
+  const onStatusChange = async () => {
+    if (statusSubmitting || newStatus === data.status) {
+      return;
+    }
+
+    if (newStatus === "ESCALATED" && !statusReason.trim()) {
+      toast.error("Escalation reason is required.");
+      return;
+    }
+
+    setStatusSubmitting(true);
+    try {
+      await api.patch(`/tickets/${data.id}/status`, {
+        newStatus,
+        reason: statusReason.trim() || undefined,
+      });
+      await revalidator.revalidate();
+      setStatusReason("");
+      toast.success(`Ticket status changed to ${formatLabel(newStatus)}`);
+    } catch (error) {
+      toast.error("Failed to change ticket status");
+      console.error("Failed to change ticket status:", error);
+    } finally {
+      setStatusSubmitting(false);
+    }
+  };
+
   const getReplyButtonLabel = () => {
     if (submitting) {
       return "Sending...";
@@ -290,10 +326,22 @@ export default function TicketDetailPage() {
 
   const categoryLabel = data.category ? formatLabel(data.category) : "-";
   const resolvedCategoryLabel = data.categoryLabel || categoryLabel;
-  const queueLabel = data.queue ? formatLabel(data.queue) : "-";
-  const resolvedQueueLabel = data.queueLabel || queueLabel;
+  const resolvedQueueLabel = data.queueLabel;
   const priorityLabel = data.priorityLabel || formatLabel(data.priority);
   const statusLabel = data.statusLabel || formatLabel(data.status);
+  const canChangeStatus = data.permissions.canChangeStatus;
+  const statusOptions = data.permissions.allowedStatusTransitions;
+
+  const onAssignSelf = async () => {
+    try {
+      await api.patch(`/tickets/${data.id}/assign-self`);
+      await revalidator.revalidate();
+      toast.success("Ticket assigned to you");
+    } catch (error) {
+      toast.error("Failed to assign ticket");
+      console.error("Failed to assign ticket:", error);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -338,9 +386,10 @@ export default function TicketDetailPage() {
                   onChange={(e) => setReply(e.target.value)}
                   rows={3}
                   className="resize-none"
+                  disabled={!data.permissions.canReply}
                 />
                 <div className="flex justify-end">
-                  <Button type="submit" disabled={!reply.trim() || submitting}>
+                  <Button type="submit" disabled={!reply.trim() || submitting || !data.permissions.canReply}>
                     <Send className="h-4 w-4 mr-2" />
                     {getReplyButtonLabel()}
                   </Button>
@@ -348,6 +397,19 @@ export default function TicketDetailPage() {
               </form>
             </CardContent>
           </Card>
+
+          {data.permissions.canAssignSelf && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Work Assignment</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button type="button" onClick={() => void onAssignSelf()}>
+                  Assign To Me
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -374,6 +436,51 @@ export default function TicketDetailPage() {
               </DetailSection>
             </CardContent>
           </Card>
+
+          {canChangeStatus && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Status Control</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Select value={newStatus} onValueChange={setNewStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={data.status}>{formatLabel(data.status)} (Current)</SelectItem>
+                    {statusOptions.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {formatLabel(status)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Textarea
+                  value={statusReason}
+                  onChange={(event) => setStatusReason(event.target.value)}
+                  rows={3}
+                  placeholder={
+                    newStatus === "ESCALATED"
+                      ? "Reason for escalation (required)"
+                      : "Reason for status update (optional)"
+                  }
+                />
+                <Button
+                  type="button"
+                  onClick={() => void onStatusChange()}
+                  disabled={
+                    statusSubmitting
+                    || newStatus === data.status
+                    || (newStatus === "ESCALATED" && !statusReason.trim())
+                  }
+                  className="w-full"
+                >
+                  {statusSubmitting ? "Updating..." : "Update Status"}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {data.customer && (
             <Card>
