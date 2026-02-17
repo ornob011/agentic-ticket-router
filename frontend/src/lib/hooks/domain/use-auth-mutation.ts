@@ -29,7 +29,6 @@ export function useLoginMutation() {
   return useFormMutation({
     mutationFn: (variables: LoginVariables) =>
       login(variables.username, variables.password, variables.rememberMe),
-    onSuccessMessage: "Welcome back!",
     onErrorMessage: (error) => {
       const parsedError = parseApiError(error);
       if (parsedError.status === 401 || parsedError.status === 403) {
