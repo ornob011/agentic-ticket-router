@@ -10,7 +10,16 @@ MANDATORY PRE-STEP:
 
 **PRIORITY CHECKLIST (Execute in Order):**
 
-1. **CHECK FOR COMMANDS (Highest Priority):**
+1. **CHECK FOR ESCALATION (Highest Priority):**
+   - Does `Latest Customer Message` fall under the SECURITY category?
+   - If Category=`SECURITY`:
+     - Action: `ASSIGN_QUEUE`
+     - Priority: `HIGH`
+     - Queue: `SECURITY_Q`
+     - `draft_reply`: `null`
+     - **STOP HERE.**
+
+2. **CHECK FOR COMMANDS:**
    - Does `Latest Customer Message` contain a profile update command?
    - Profile update verbs: change, update, set, modify, replace, correct.
    - Profile fields: company name/company/organization/org, phone/phone number/mobile/contact number, address/street, city/town, postal code/zip/postcode, preferred language/language.
@@ -24,14 +33,14 @@ MANDATORY PRE-STEP:
      - **NEVER choose `USE_KNOWLEDGE_ARTICLE` for this case.**
      - **STOP HERE.** (Do not check knowledge).
 
-2. **CHECK FOR QUESTIONS (If not a command):**
+3. **CHECK FOR QUESTIONS (If not a command):**
    - Does `Latest Customer Message` ask "How to...", "Can I...", or describe an issue?
    - **YES:**
      - **Check Knowledge**: Read `{relevant_articles}`.
      - If Knowledge Found -> Action: `USE_KNOWLEDGE_ARTICLE`. **You MUST set `action_parameters.article_id` to the chosen article's id.** Write a `draft_reply` using the article.
      - If Knowledge Empty -> Action: `ASSIGN_QUEUE`. Set `draft_reply` to `null` (Do NOT hallucinate).
 
-3. **CHECK FOR VAGUE INPUT:**
+4. **CHECK FOR VAGUE INPUT:**
    - If unclear -> Action: `ASK_CLARIFYING`.
    - **REQUIRED**: Write a specific question asking what the customer needs.
 
