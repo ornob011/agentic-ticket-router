@@ -2,6 +2,7 @@ import { useLoaderData, useRevalidator, useRouteLoaderData } from "react-router-
 import type { ReviewQueueLoaderData, RootLoaderData } from "@/router";
 import { canAccessSupervisorWorkspace } from "@/lib/role-policy";
 import { useAssignableAgents, useAssignAgentMutation, usePeriodicRevalidation, useReleaseAgentMutation } from "@/lib/hooks";
+import { useTicketAssigneeSelection } from "@/lib/hooks/use-ticket-assignee-selection";
 import { useQueueMetadataOptions } from "@/lib/hooks/use-queue-metadata-options";
 import { TicketWorklist } from "@/components/ui/ticket-worklist";
 import { ClipboardCheck } from "lucide-react";
@@ -18,8 +19,12 @@ export default function ReviewQueuePage() {
 
   const canAssignOthers = canAccessSupervisorWorkspace(appData?.user?.role);
   const { assignableAgents, reloadAssignableAgents } = useAssignableAgents(canAssignOthers);
-
   const tickets = data?.content ?? [];
+  const { selectedAssignees, setSelectedAssignee } = useTicketAssigneeSelection(
+    tickets,
+    assignableAgents
+  );
+
   const handleAssignAgent = async (ticketId: number, agentId: number) => {
     const agent = assignableAgents.find((a) => a.id === agentId);
     await assignAgentMutation.mutateAsync({
@@ -55,6 +60,8 @@ export default function ReviewQueuePage() {
       showNeedsReviewBadge
       canAssignOthers={canAssignOthers}
       assignableAgents={assignableAgents}
+      selectedAssignees={selectedAssignees}
+      onSelectedAssigneeChange={setSelectedAssignee}
       onAssignAgent={handleAssignAgent}
       onUnassignAgent={handleUnassignAgent}
       isAssignAgentPending={assignAgentMutation.isPending}

@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { QueueLoaderData, RootLoaderData } from "@/router";
 import { canAccessSupervisorWorkspace } from "@/lib/role-policy";
 import { useAssignableAgents, useAssignAgentMutation, usePeriodicRevalidation, useReleaseAgentMutation } from "@/lib/hooks";
+import { useTicketAssigneeSelection } from "@/lib/hooks/use-ticket-assignee-selection";
 import { useQueueMetadataOptions } from "@/lib/hooks/use-queue-metadata-options";
 import { TicketWorklist } from "@/components/ui/ticket-worklist";
 import { Inbox } from "lucide-react";
@@ -20,13 +21,17 @@ export default function QueuePage() {
 
   const canAssignOthers = canAccessSupervisorWorkspace(appData?.user?.role);
   const { assignableAgents, reloadAssignableAgents } = useAssignableAgents(canAssignOthers);
+  const tickets = data?.content ?? [];
+  const { selectedAssignees, setSelectedAssignee } = useTicketAssigneeSelection(
+    tickets,
+    assignableAgents
+  );
 
   const selectedQueueOption = useMemo(
     () => queueMetadataOptions.find((option) => option.code === queue),
     [queueMetadataOptions, queue]
   );
   const queueTitle = queue === "ALL" ? "All Queues" : selectedQueueOption?.name || "Queue";
-  const tickets = data?.content ?? [];
   const handleAssignAgent = async (ticketId: number, agentId: number) => {
     const agent = assignableAgents.find((a) => a.id === agentId);
     await assignAgentMutation.mutateAsync({
@@ -62,6 +67,8 @@ export default function QueuePage() {
       showCustomerName
       canAssignOthers={canAssignOthers}
       assignableAgents={assignableAgents}
+      selectedAssignees={selectedAssignees}
+      onSelectedAssigneeChange={setSelectedAssignee}
       onAssignAgent={handleAssignAgent}
       onUnassignAgent={handleUnassignAgent}
       isAssignAgentPending={assignAgentMutation.isPending}

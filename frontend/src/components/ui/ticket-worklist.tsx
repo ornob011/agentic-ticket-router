@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import type { AssignableAgentOption, LookupOption, TicketSummary } from "@/lib/api";
@@ -40,6 +40,8 @@ type TicketWorklistProps = Readonly<{
   showNeedsReviewBadge?: boolean;
   canAssignOthers?: boolean;
   assignableAgents?: AssignableAgentOption[];
+  selectedAssignees?: Record<number, string>;
+  onSelectedAssigneeChange?: (ticketId: number, agentId: string) => void;
   onAssignAgent?: (ticketId: number, agentId: number) => Promise<void>;
   onUnassignAgent?: (ticketId: number) => Promise<void>;
   isAssignAgentPending?: boolean;
@@ -72,6 +74,8 @@ export function TicketWorklist({
   showNeedsReviewBadge = false,
   canAssignOthers = false,
   assignableAgents = [],
+  selectedAssignees = {},
+  onSelectedAssigneeChange,
   onAssignAgent,
   onUnassignAgent,
   isAssignAgentPending = false,
@@ -81,25 +85,6 @@ export function TicketWorklist({
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [priorityFilter, setPriorityFilter] = useState("ALL");
   const [queueFilter, setQueueFilter] = useState("ALL");
-  const [selectedAssignees, setSelectedAssignees] = useState<Record<number, string>>({});
-
-  useEffect(() => {
-    setSelectedAssignees((prev) => {
-      const next = { ...prev };
-
-      for (const ticket of tickets) {
-        const matchedAgent = ticket.assignedAgentName
-          ? assignableAgents.find(
-              (agent) => (agent.fullName || agent.username) === ticket.assignedAgentName
-            )
-          : null;
-        const nextValue = matchedAgent ? String(matchedAgent.id) : "";
-        next[ticket.id] = nextValue;
-      }
-
-      return next;
-    });
-  }, [tickets, assignableAgents]);
 
   const { statusOptions, priorityOptions, filteredTickets: clientFilteredTickets, hasFilters } = useTicketListFilters({
     tickets,
@@ -138,12 +123,7 @@ export function TicketWorklist({
         canAssignOthers={canAssignOthers}
         assignableAgents={assignableAgents}
         selectedAgentId={selectedAssignees[ticket.id] || ""}
-        onSelectedAgentChange={(agentId) =>
-          setSelectedAssignees((prev) => ({
-            ...prev,
-            [ticket.id]: agentId,
-          }))
-        }
+        onSelectedAgentChange={(agentId) => onSelectedAssigneeChange?.(ticket.id, agentId)}
         onAssignAgent={async () => {
           if (!onAssignAgent) {
             return;
