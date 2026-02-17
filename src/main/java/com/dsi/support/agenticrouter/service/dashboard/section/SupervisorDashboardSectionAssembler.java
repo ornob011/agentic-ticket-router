@@ -1,7 +1,6 @@
 package com.dsi.support.agenticrouter.service.dashboard.section;
 
 import com.dsi.support.agenticrouter.dto.DashboardDto;
-import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.repository.EscalationRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
@@ -45,9 +44,7 @@ public class SupervisorDashboardSectionAssembler {
             slaBreachCutoffInstant
         );
 
-        long humanReviewCount = supportTicketRepository.countByRequiresHumanReviewTrueAndStatus(
-            TicketStatus.TRIAGING
-        );
+        long humanReviewCount = supportTicketRepository.countByRequiresHumanReviewTrue();
 
         List<DashboardDto.EscalationSummary> mostRecentOpenEscalations;
         mostRecentOpenEscalations = escalationRepository.findTop10ByResolvedFalseOrderByCreatedAtDesc()

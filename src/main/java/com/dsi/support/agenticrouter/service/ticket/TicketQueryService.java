@@ -246,8 +246,7 @@ public class TicketQueryService {
                 TicketStatus.queueInboxDefaults(),
                 pageable
             );
-            case REVIEW -> supportTicketRepository.findByRequiresHumanReviewTrueAndStatusOrderByLastActivityAtDesc(
-                TicketStatus.TRIAGING,
+            case REVIEW -> supportTicketRepository.findByRequiresHumanReviewTrueOrderByLastActivityAtDesc(
                 pageable
             );
             case ALL -> supportTicketRepository.findAll(pageable);

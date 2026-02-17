@@ -185,14 +185,15 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         Pageable pageable
     );
 
-    Page<SupportTicket> findByRequiresHumanReviewTrueAndStatusOrderByLastActivityAtDesc(
-        TicketStatus status,
+    Page<SupportTicket> findByRequiresHumanReviewTrueOrderByLastActivityAtDesc(
         Pageable pageable
     );
 
     long countByRequiresHumanReviewTrueAndStatus(
         TicketStatus status
     );
+
+    long countByRequiresHumanReviewTrue();
 
     @Query("""
         SELECT COUNT(ticket)

@@ -86,7 +86,7 @@ public class TicketApiController {
     }
 
     @PostMapping("/{ticketId}/replies")
-    @PreAuthorize("@ticketAuthorizationService.canAccessTicket(#ticketId)")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT') and @ticketAuthorizationService.canAccessTicket(#ticketId)")
     public void addReply(
         @PathVariable Long ticketId,
         @Valid @RequestBody ApiDtos.TicketReplyRequest request
@@ -108,7 +108,7 @@ public class TicketApiController {
     }
 
     @PatchMapping("/{ticketId}/status")
-    @PreAuthorize("hasAnyRole('AGENT','SUPERVISOR','ADMIN')")
+    @PreAuthorize("hasRole('AGENT')")
     public void changeStatus(
         @PathVariable Long ticketId,
         @Valid @RequestBody ApiDtos.TicketStatusRequest request

@@ -143,6 +143,15 @@ export const router = createBrowserRouter([
                 loader: ticketsLoader,
               },
               {
+                path: "agent/tickets",
+                element: (
+                  <Suspense fallback={<PageSkeleton />}>
+                    <TicketsPage />
+                  </Suspense>
+                ),
+                loader: ticketsLoader,
+              },
+              {
                 path: "tickets/new",
                 element: (
                   <Suspense fallback={<PageSkeleton />}>

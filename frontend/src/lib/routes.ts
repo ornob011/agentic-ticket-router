@@ -16,6 +16,10 @@ export const appRoutes = {
     byStatus: (status: string) => `/app/tickets?status=${status}`,
   },
   agent: {
+    tickets: {
+      list: "/app/agent/tickets",
+      byStatus: (status: string) => `/app/agent/tickets?status=${status}`,
+    },
     ticketDetail: (ticketId: string | number) => `/app/agent/tickets/${ticketId}`,
     queues: {
       all: "/app/agent/queues/ALL",

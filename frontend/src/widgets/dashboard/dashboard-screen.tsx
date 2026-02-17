@@ -128,8 +128,12 @@ function RecentTicketItem(props: Readonly<{
 export function DashboardScreen(props: DashboardScreenProps) {
   const { data, isCustomer, isAgent, isSupervisor, agentQueueTarget, onNavigate } = props;
   const role = data.user.role;
+  const isStaff = role === "AGENT" || role === "SUPERVISOR" || role === "ADMIN";
   const stats = resolveStats(role, data);
   const hasRecentTickets = data.recentTickets.length > 0;
+  const ticketsListRoute = isStaff ? appRoutes.agent.tickets.list : appRoutes.tickets.list;
+  const ticketDetailRoute = (ticketId: number) =>
+    isStaff ? appRoutes.agent.ticketDetail(ticketId) : appRoutes.tickets.detail(ticketId);
 
   return (
     <div className="space-y-6">
@@ -158,7 +162,7 @@ export function DashboardScreen(props: DashboardScreenProps) {
               <Ticket className="h-4 w-4 text-primary" />
               Recent Tickets
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => onNavigate(appRoutes.tickets.list)}>
+            <Button variant="ghost" size="sm" onClick={() => onNavigate(ticketsListRoute)}>
               View all
               <ArrowRight className="ml-1 h-3 w-3" />
             </Button>
@@ -188,7 +192,7 @@ export function DashboardScreen(props: DashboardScreenProps) {
                   <RecentTicketItem
                     key={ticket.id}
                     ticket={ticket}
-                    onOpenTicket={(ticketId) => onNavigate(appRoutes.tickets.detail(ticketId))}
+                    onOpenTicket={(ticketId) => onNavigate(ticketDetailRoute(ticketId))}
                   />
                 ))}
               </div>
@@ -217,7 +221,7 @@ export function DashboardScreen(props: DashboardScreenProps) {
             <Button
               variant="outline"
               className="w-full justify-start"
-              onClick={() => onNavigate(appRoutes.tickets.list)}
+              onClick={() => onNavigate(ticketsListRoute)}
             >
               <Ticket className="mr-2 h-4 w-4" />
               View All Tickets
@@ -226,7 +230,7 @@ export function DashboardScreen(props: DashboardScreenProps) {
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() => onNavigate(appRoutes.tickets.byStatus("ASSIGNED"))}
+                onClick={() => onNavigate(appRoutes.agent.tickets.byStatus("ASSIGNED"))}
               >
                 <ListFilter className="mr-2 h-4 w-4" />
                 Assigned Tickets
@@ -236,7 +240,7 @@ export function DashboardScreen(props: DashboardScreenProps) {
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() => onNavigate(appRoutes.tickets.byStatus("IN_PROGRESS"))}
+                onClick={() => onNavigate(appRoutes.agent.tickets.byStatus("IN_PROGRESS"))}
               >
                 <Clock className="mr-2 h-4 w-4" />
                 In Progress
@@ -246,7 +250,7 @@ export function DashboardScreen(props: DashboardScreenProps) {
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() => onNavigate(appRoutes.tickets.byStatus("RESOLVED"))}
+                onClick={() => onNavigate(appRoutes.agent.tickets.byStatus("RESOLVED"))}
               >
                 <CheckCircle className="mr-2 h-4 w-4" />
                 Resolved

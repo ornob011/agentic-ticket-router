@@ -138,10 +138,6 @@ public class TicketStatusCommandService {
             );
         }
 
-        ticketStatusEscalationService.validateEscalationResolvedBeforeStatusChange(
-            supportTicket
-        );
-
         String normalizedBusinessDriver = StringNormalizationUtils.trimToNull(businessDriver);
         if (Objects.isNull(normalizedBusinessDriver)) {
             normalizedBusinessDriver = BUSINESS_DRIVER_UNSPECIFIED;

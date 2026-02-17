@@ -119,9 +119,7 @@ public class TicketAccessPolicyService {
         }
 
         if (actor.isSupervisor() || actor.isAdmin()) {
-            EnumSet<TicketStatus> transitions = EnumSet.allOf(TicketStatus.class);
-            transitions.remove(supportTicket.getStatus());
-            return transitions;
+            return Collections.emptySet();
         }
 
         if (!actor.isAgent()) {
@@ -144,6 +142,11 @@ public class TicketAccessPolicyService {
                 TicketStatus.IN_PROGRESS,
                 TicketStatus.ESCALATED
             );
+            case ESCALATED -> EnumSet.of(
+                TicketStatus.IN_PROGRESS,
+                TicketStatus.WAITING_CUSTOMER,
+                TicketStatus.RESOLVED
+            );
             default -> Collections.emptySet();
         };
     }
@@ -157,7 +160,7 @@ public class TicketAccessPolicyService {
         }
 
         if (actor.isSupervisor() || actor.isAdmin()) {
-            return true;
+            return false;
         }
 
         if (actor.isAgent()) {

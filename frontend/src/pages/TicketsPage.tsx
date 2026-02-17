@@ -17,6 +17,8 @@ export default function TicketsPage() {
   const statusFilter = searchParams.get("status");
   const statusFilterLabel = formatLabel(statusFilter);
   const tickets = data?.content ?? [];
+  const isStaff = appData?.user?.role === "AGENT" || appData?.user?.role === "SUPERVISOR" || appData?.user?.role === "ADMIN";
+  const ticketsListRoute = isStaff ? appRoutes.agent.tickets.list : appRoutes.tickets.list;
 
   usePeriodicRevalidation(revalidator);
 
@@ -63,7 +65,7 @@ export default function TicketsPage() {
       summarySuffixLabel="total tickets"
       summaryActions={
         statusFilter ? (
-          <Button variant="ghost" size="sm" onClick={() => void navigate(appRoutes.tickets.list)}>
+          <Button variant="ghost" size="sm" onClick={() => void navigate(ticketsListRoute)}>
             Clear Filter
           </Button>
         ) : undefined
@@ -73,7 +75,7 @@ export default function TicketsPage() {
       totalElements={data?.totalElements ?? 0}
       queueOptions={[]}
       showFilters={false}
-      navigatePathBuilder={(ticket) => appRoutes.tickets.detail(ticket.id)}
+      navigatePathBuilder={(ticket) => isStaff ? appRoutes.agent.ticketDetail(ticket.id) : appRoutes.tickets.detail(ticket.id)}
     />
   );
 }
