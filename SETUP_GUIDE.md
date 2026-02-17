@@ -49,8 +49,8 @@ Open `sql/ddl/ddl.sql` in IntelliJ → Run against database connection
 - `V004__seed_policy_config.sql`
 - `V005__seed_model_registry.sql`
 - `V006__seed_staff_users.sql`
-- `V007__switch_to_llama3.2.sql` *(optional)*
-- `V008__switch_to_qwen2.5:3b-instruct.sql` *(optional)*
+- `V007__switch_to_llama3.2.sql`
+- `V008__switch_to_qwen2.5:3b-instruct.sql`
 - `V009__seed_global_config.sql`
 - `V010__seed_knowledge_article.sql`
 - `V011__seed_article_template.sql`
@@ -68,8 +68,7 @@ ollama serve
 
 **Option A - Pre-computed (Faster):**
 
--
-Download [V013__seed_vector_store.sql](https://drive.google.com/file/d/1_E5a4Sc-mbDUgGMdeAC-F7bXnBlIIiu4/view?usp=drive_link)
+- Download [V013__seed_vector_store.sql](https://drive.google.com/file/d/1_E5a4Sc-mbDUgGMdeAC-F7bXnBlIIiu4/view?usp=drive_link)
 from Google Drive (~300 MB)
 - Execute `V013__seed_vector_store.sql` in IntelliJ
 
@@ -80,7 +79,7 @@ from Google Drive (~300 MB)
 
 ### 7. Mark Initialized
 
-Execute `V013__set_vector_store_initialized.sql` in IntelliJ
+Execute `V013__set_vector_store_initialized.sql` in IntelliJ if you chose **Option A** to seed the vector store.
 
 ### 8. Run Application
 
@@ -93,7 +92,7 @@ Access at: `http://localhost:8080`
 
 ## Frontend Development
 
-> Output (`src/main/resources/app/`) is gitignored - build locally.
+> Output (`src/main/resources/static/app/`) is gitignored - build locally.
 
 ```bash
 cd frontend
