@@ -11,7 +11,7 @@ import { AlertTriangle, CheckCircle, Clock, Search, User } from "lucide-react";
 
 export type EscalationStatusFilter = "ALL" | "PENDING" | "RESOLVED";
 
-type EscalationsScreenProps = Readonly<{
+export type EscalationsScreenProps = Readonly<{
   escalations: EscalationSummary[];
   totalElements: number;
   searchTerm: string;

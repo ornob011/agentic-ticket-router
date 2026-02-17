@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Settings, Loader2, MoreVertical } from "lucide-react";
 
-type AdminPoliciesScreenProps = Readonly<{
+export type AdminPoliciesScreenProps = Readonly<{
   policies: PolicyInfo[];
   values: Record<string, string>;
   valueErrors: Record<string, string>;

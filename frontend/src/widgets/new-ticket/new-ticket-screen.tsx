@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PageHeader } from "@/components/ui/page-header";
 import { AlertCircle, Send, Sparkles, Lightbulb, Clock, MessageSquare, FileText, Zap } from "lucide-react";
 
-type NewTicketScreenProps = Readonly<{
+export type NewTicketScreenProps = Readonly<{
   subject: string;
   content: string;
   validationError: string;

@@ -41,9 +41,9 @@ export type AdminUsersScreenProps = Readonly<{
   membershipsLoading: boolean;
   membershipLoadingError: string | null;
   membershipAlreadyExists: boolean;
-  createUserPending: boolean;
-  createMembershipPending: boolean;
-  deleteMembershipPending: boolean;
+  isCreateUserPending: boolean;
+  isCreateMembershipPending: boolean;
+  isDeleteMembershipPending: boolean;
   onCreateUser: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   onCreateMembership: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   onDeleteMembership: (membershipId: number) => Promise<void>;
@@ -66,9 +66,9 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
     membershipsLoading,
     membershipLoadingError,
     membershipAlreadyExists,
-    createUserPending,
-    createMembershipPending,
-    deleteMembershipPending,
+    isCreateUserPending,
+    isCreateMembershipPending,
+    isDeleteMembershipPending,
     onCreateUser,
     onCreateMembership,
     onDeleteMembership,
@@ -124,8 +124,8 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
               </SelectContent>
             </Select>
             <div className="flex items-end">
-              <Button type="submit" disabled={createUserPending}>
-                {createUserPending ? "Creating..." : "Create User"}
+              <Button type="submit" disabled={isCreateUserPending}>
+                {isCreateUserPending ? "Creating..." : "Create User"}
               </Button>
             </div>
           </form>
@@ -167,10 +167,10 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
               <Button
                 type="submit"
                 disabled={
-                  createMembershipPending || membershipAlreadyExists || membershipAssignableUsers.length === 0
+                  isCreateMembershipPending || membershipAlreadyExists || membershipAssignableUsers.length === 0
                 }
               >
-                {createMembershipPending ? "Adding..." : "Add Membership"}
+                {isCreateMembershipPending ? "Adding..." : "Add Membership"}
               </Button>
             </div>
           </form>
@@ -229,10 +229,10 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
                       type="button"
                       size="sm"
                       variant="destructive"
-                      disabled={deleteMembershipPending}
+                      disabled={isDeleteMembershipPending}
                       onClick={() => void onDeleteMembership(membership.id)}
                     >
-                      {deleteMembershipPending ? "Removing..." : "Remove"}
+                      {isDeleteMembershipPending ? "Removing..." : "Remove"}
                     </Button>
                   </TableCell>
                 </TableRow>

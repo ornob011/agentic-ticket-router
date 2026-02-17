@@ -185,9 +185,9 @@ export default function AdminUsersPage() {
       membershipsLoading={membershipsLoading}
       membershipLoadingError={membershipLoadingError}
       membershipAlreadyExists={membershipAlreadyExists}
-      createUserPending={createUserMutation.isPending}
-      createMembershipPending={createMembershipMutation.isPending}
-      deleteMembershipPending={deleteMembershipMutation.isPending}
+      isCreateUserPending={createUserMutation.isPending}
+      isCreateMembershipPending={createMembershipMutation.isPending}
+      isDeleteMembershipPending={deleteMembershipMutation.isPending}
       onCreateUser={handleCreateUser}
       onCreateMembership={handleCreateMembership}
       onDeleteMembership={handleDeleteMembership}

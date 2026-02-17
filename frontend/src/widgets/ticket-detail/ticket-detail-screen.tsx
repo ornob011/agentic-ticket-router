@@ -24,21 +24,21 @@ import {
   MessageSquare,
 } from "lucide-react";
 
-type TicketDetailScreenProps = Readonly<{
+export type TicketDetailScreenProps = Readonly<{
   data: TicketDetailLoaderData;
   reply: string;
   onReplyChange: (value: string) => void;
   onReplySubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  replyPending: boolean;
+  isReplyPending: boolean;
   newStatus: string;
   onStatusChange: (value: string) => void;
   statusReason: string;
   onStatusReasonChange: (value: string) => void;
   onUpdateStatus: () => Promise<void>;
-  statusPending: boolean;
+  isStatusPending: boolean;
   validationError: string | null;
   onAssignSelf: () => Promise<void>;
-  assignPending: boolean;
+  isAssignPending: boolean;
   onBack: () => void;
 }>;
 
@@ -250,16 +250,16 @@ export function TicketDetailScreen({
   reply,
   onReplyChange,
   onReplySubmit,
-  replyPending,
+  isReplyPending,
   newStatus,
   onStatusChange,
   statusReason,
   onStatusReasonChange,
   onUpdateStatus,
-  statusPending,
+  isStatusPending,
   validationError,
   onAssignSelf,
-  assignPending,
+  isAssignPending,
   onBack,
 }: TicketDetailScreenProps) {
   const categoryLabel = data.category ? formatLabel(data.category) : "-";
@@ -316,9 +316,9 @@ export function TicketDetailScreen({
                   disabled={!data.permissions.canReply}
                 />
                 <div className="flex justify-end">
-                  <Button type="submit" disabled={!reply.trim() || replyPending || !data.permissions.canReply}>
+                  <Button type="submit" disabled={!reply.trim() || isReplyPending || !data.permissions.canReply}>
                     <Send className="h-4 w-4 mr-2" />
-                    {replyPending ? "Sending..." : "Send Reply"}
+                    {isReplyPending ? "Sending..." : "Send Reply"}
                   </Button>
                 </div>
               </form>
@@ -331,8 +331,8 @@ export function TicketDetailScreen({
                 <CardTitle className="text-base">Work Assignment</CardTitle>
               </CardHeader>
               <CardContent>
-                <Button type="button" disabled={assignPending} onClick={() => void onAssignSelf()}>
-                  {assignPending ? "Assigning..." : "Assign To Me"}
+                <Button type="button" disabled={isAssignPending} onClick={() => void onAssignSelf()}>
+                  {isAssignPending ? "Assigning..." : "Assign To Me"}
                 </Button>
               </CardContent>
             </Card>
@@ -400,13 +400,13 @@ export function TicketDetailScreen({
                   type="button"
                   onClick={() => void onUpdateStatus()}
                   disabled={
-                    statusPending
+                    isStatusPending
                     || newStatus === data.status
                     || (newStatus === "ESCALATED" && !statusReason.trim())
                   }
                   className="w-full"
                 >
-                  {statusPending ? "Updating..." : "Update Status"}
+                  {isStatusPending ? "Updating..." : "Update Status"}
                 </Button>
               </CardContent>
             </Card>

@@ -12,7 +12,7 @@ export type LoginForm = {
   rememberMe: boolean;
 };
 
-type LoginScreenProps = Readonly<{
+export type LoginScreenProps = Readonly<{
   formError: string;
   errors: FieldErrors<LoginForm>;
   rememberMe: boolean;

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Brain, Check, Zap } from "lucide-react";
 
-type AdminModelsScreenProps = Readonly<{
+export type AdminModelsScreenProps = Readonly<{
   models: ModelInfo[];
   activatingModelTag: string | undefined;
   onActivate: (modelTag: string) => Promise<void>;

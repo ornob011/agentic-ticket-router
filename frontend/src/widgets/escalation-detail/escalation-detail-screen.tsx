@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DetailSection } from "@/components/ui/detail-section";
 import { ArrowLeft, AlertTriangle, CheckCircle, Clock, User, Calendar, MessageSquare } from "lucide-react";
 
-type EscalationDetailScreenProps = Readonly<{
+export type EscalationDetailScreenProps = Readonly<{
   escalation: EscalationDetail;
   resolutionNotes: string;
   isResolving: boolean;

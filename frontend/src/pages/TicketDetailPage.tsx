@@ -80,16 +80,16 @@ export default function TicketDetailPage() {
       reply={reply}
       onReplyChange={setReply}
       onReplySubmit={handleReplySubmit}
-      replyPending={replyMutation.isPending}
+      isReplyPending={replyMutation.isPending}
       newStatus={newStatus}
       onStatusChange={setNewStatus}
       statusReason={statusReason}
       onStatusReasonChange={handleStatusReasonChange}
       onUpdateStatus={handleUpdateStatus}
-      statusPending={statusMutation.isPending}
+      isStatusPending={statusMutation.isPending}
       validationError={validationError}
       onAssignSelf={handleAssignSelf}
-      assignPending={assignSelfMutation.isPending}
+      isAssignPending={assignSelfMutation.isPending}
       onBack={() => navigate(-1)}
     />
   );

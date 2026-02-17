@@ -35,7 +35,7 @@ function AuditEventRow({ event }: Readonly<{ event: AuditEventItem }>) {
   );
 }
 
-type AuditLogScreenProps = Readonly<{
+export type AuditLogScreenProps = Readonly<{
   events: AuditEventItem[];
   totalElements: number;
 }>;

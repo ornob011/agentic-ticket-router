@@ -49,7 +49,7 @@ export type PasswordForm = {
   confirmNewPassword: string;
 };
 
-export type AccountSettingsViewProps = Readonly<{
+export type AccountSettingsScreenProps = Readonly<{
   profile: ProfileResponse;
   settings: UserSettingsResponse;
   signupOptions: SignupOptionsResponse | undefined;
@@ -83,7 +83,7 @@ export type AccountSettingsViewProps = Readonly<{
   settingsGlobalError: string | null;
 }>;
 
-export function AccountSettingsScreen(props: AccountSettingsViewProps) {
+export function AccountSettingsScreen(props: AccountSettingsScreenProps) {
   return (
     <div className="space-y-6">
       <div className="gradient-header -mx-6 -mt-6 mb-6 px-6 py-6">
@@ -121,7 +121,7 @@ export function AccountSettingsScreen(props: AccountSettingsViewProps) {
   );
 }
 
-function ProfileTabContent(props: AccountSettingsViewProps) {
+function ProfileTabContent(props: AccountSettingsScreenProps) {
   const {
     profile,
     signupOptions,
@@ -225,11 +225,11 @@ function ProfileTabContent(props: AccountSettingsViewProps) {
 }
 
 function CustomerProfileSection(props: Readonly<{
-  getFieldError: AccountSettingsViewProps["getFieldError"];
-  profileControl: AccountSettingsViewProps["profileControl"];
-  profileErrors: AccountSettingsViewProps["profileErrors"];
-  registerProfile: AccountSettingsViewProps["registerProfile"];
-  signupOptions: AccountSettingsViewProps["signupOptions"];
+  getFieldError: AccountSettingsScreenProps["getFieldError"];
+  profileControl: AccountSettingsScreenProps["profileControl"];
+  profileErrors: AccountSettingsScreenProps["profileErrors"];
+  registerProfile: AccountSettingsScreenProps["registerProfile"];
+  signupOptions: AccountSettingsScreenProps["signupOptions"];
   disabled: boolean;
 }>) {
   const { getFieldError, profileControl, profileErrors, registerProfile, signupOptions, disabled } = props;
@@ -367,7 +367,7 @@ function CustomerProfileSection(props: Readonly<{
   );
 }
 
-function StaffContextCard(props: Readonly<{ profile: AccountSettingsViewProps["profile"] }>) {
+function StaffContextCard(props: Readonly<{ profile: AccountSettingsScreenProps["profile"] }>) {
   const { profile } = props;
   const staffProfile = profile.staffProfile;
   if (!staffProfile) {
@@ -408,7 +408,7 @@ function StaffContextCard(props: Readonly<{ profile: AccountSettingsViewProps["p
   );
 }
 
-function PreferencesTabContent(props: AccountSettingsViewProps) {
+function PreferencesTabContent(props: AccountSettingsScreenProps) {
   const { settings, isAgent, localSettings, settingsSuccess, onSettingsSave, toggleSetting, updateSetting, settingsGlobalError } = props;
 
   return (
@@ -499,7 +499,7 @@ function PreferencesTabContent(props: AccountSettingsViewProps) {
   );
 }
 
-function NotificationsTabContent(props: AccountSettingsViewProps) {
+function NotificationsTabContent(props: AccountSettingsScreenProps) {
   const { settings, isAgent, localSettings, settingsSuccess, onSettingsSave, toggleSetting, settingsGlobalError } = props;
 
   return (
@@ -578,7 +578,7 @@ function NotificationsTabContent(props: AccountSettingsViewProps) {
   );
 }
 
-function SecurityTabContent(props: AccountSettingsViewProps) {
+function SecurityTabContent(props: AccountSettingsScreenProps) {
   const {
     profile,
     passwordSuccess,
@@ -687,7 +687,7 @@ function SecurityTabContent(props: AccountSettingsViewProps) {
   );
 }
 
-function AccountSecurityCard(props: Readonly<{ profile: AccountSettingsViewProps["profile"] }>) {
+function AccountSecurityCard(props: Readonly<{ profile: AccountSettingsScreenProps["profile"] }>) {
   const { profile } = props;
   const staffProfile = profile.staffProfile;
 
