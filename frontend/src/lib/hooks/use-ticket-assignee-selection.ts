@@ -1,7 +1,21 @@
 import { useEffect, useState } from "react";
+import isEqual from "lodash-es/isEqual";
 import type { AssignableAgentOption, TicketSummary } from "@/lib/api";
 
 const EMPTY_ASSIGNABLE_AGENTS: AssignableAgentOption[] = [];
+
+function findAgentByDisplayName(
+  assignableAgents: AssignableAgentOption[],
+  assignedAgentName: string | null
+) {
+  if (!assignedAgentName) {
+    return null;
+  }
+
+  return assignableAgents.find(
+    (agent) => (agent.fullName ?? agent.username) === assignedAgentName
+  ) ?? null;
+}
 
 function buildSelectionMap(
   tickets: TicketSummary[],
@@ -10,36 +24,15 @@ function buildSelectionMap(
   const next: Record<number, string> = {};
 
   for (const ticket of tickets) {
-    const matchedAgent = ticket.assignedAgentName
-      ? assignableAgents.find(
-          (agent) => (agent.fullName ?? agent.username) === ticket.assignedAgentName
-        )
-      : null;
+    const matchedAgent = findAgentByDisplayName(
+      assignableAgents,
+      ticket.assignedAgentName
+    );
 
     next[ticket.id] = matchedAgent ? String(matchedAgent.id) : "";
   }
 
   return next;
-}
-
-function isSameMap(
-  previous: Record<number, string>,
-  next: Record<number, string>
-): boolean {
-  const previousKeys = Object.keys(previous);
-  const nextKeys = Object.keys(next);
-
-  if (previousKeys.length !== nextKeys.length) {
-    return false;
-  }
-
-  for (const key of nextKeys) {
-    if (previous[Number(key)] !== next[Number(key)]) {
-      return false;
-    }
-  }
-
-  return true;
 }
 
 export function useTicketAssigneeSelection(
@@ -55,7 +48,7 @@ export function useTicketAssigneeSelection(
         tickets,
         resolvedAssignableAgents
       );
-      return isSameMap(previous, next) ? previous : next;
+      return isEqual(previous, next) ? previous : next;
     });
   }, [tickets, resolvedAssignableAgents]);
 
