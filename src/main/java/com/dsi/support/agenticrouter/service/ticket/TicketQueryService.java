@@ -8,7 +8,9 @@ import com.dsi.support.agenticrouter.entity.TicketRouting;
 import com.dsi.support.agenticrouter.enums.TicketQueryScope;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
+import com.dsi.support.agenticrouter.enums.UserRole;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
+import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.repository.TicketRoutingRepository;
@@ -25,6 +27,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -33,6 +36,7 @@ import java.util.Objects;
 public class TicketQueryService {
 
     private final SupportTicketRepository supportTicketRepository;
+    private final AppUserRepository appUserRepository;
     private final TicketMessageRepository ticketMessageRepository;
     private final TicketRoutingRepository ticketRoutingRepository;
     private final AuditService auditService;
@@ -197,6 +201,32 @@ public class TicketQueryService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public List<ApiDtos.AssignableAgentOption> assignableAgents() {
+        return appUserRepository.findByRoleAndActiveTrue(UserRole.AGENT)
+                                .stream()
+                                .sorted(
+                                    Comparator.comparing(
+                                                  AppUser::getFullName,
+                                                  Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)
+                                              )
+                                              .thenComparing(
+                                                  AppUser::getUsername,
+                                                  String.CASE_INSENSITIVE_ORDER
+                                              )
+                                )
+                                .map(appUser -> {
+                                    long openTickets = supportTicketRepository.countOpenTicketsByAgentId(appUser.getId());
+                                    return ApiDtos.AssignableAgentOption.builder()
+                                                                        .id(appUser.getId())
+                                                                        .fullName(appUser.getFullName())
+                                                                        .username(appUser.getUsername())
+                                                                        .openTickets(openTickets)
+                                                                        .build();
+                                })
+                                .toList();
+    }
+
     private Page<SupportTicket> resolveTicketsByScope(
         TicketQueryScope scope,
         AppUser user,
@@ -216,8 +246,7 @@ public class TicketQueryService {
                 TicketStatus.queueInboxDefaults(),
                 pageable
             );
-            case REVIEW -> supportTicketRepository.findByRequiresHumanReviewTrueAndStatusOrderByLastActivityAtDesc(
-                TicketStatus.TRIAGING,
+            case REVIEW -> supportTicketRepository.findByRequiresHumanReviewTrueOrderByLastActivityAtDesc(
                 pageable
             );
             case ALL -> supportTicketRepository.findAll(pageable);

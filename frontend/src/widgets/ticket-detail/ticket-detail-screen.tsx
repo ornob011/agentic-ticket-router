@@ -1,18 +1,20 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { TicketDetailLoaderData } from "@/router";
-import type { TicketMessage } from "@/lib/api";
+import type { AssignableAgentOption, TicketMessage } from "@/lib/api";
 import { formatLabel, getStatusTone, formatDateTime, getPriorityTone, cn, getInitials } from "@/lib/utils";
 import { getTicketStatusIconClass } from "@/lib/ticket-visuals";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DateSeparator } from "@/components/ui/date-separator";
 import { DetailSection } from "@/components/ui/detail-section";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AgentSelectWithWorkload } from "@/components/ui/agent-select-with-workload";
 import {
   ArrowLeft,
   Send,
@@ -22,10 +24,14 @@ import {
   AlertCircle,
   CheckCircle,
   MessageSquare,
+  UserCheck,
 } from "lucide-react";
 
 export type TicketDetailScreenProps = Readonly<{
   data: TicketDetailLoaderData;
+  assignableAgents: AssignableAgentOption[];
+  selectedAgentId: string;
+  onSelectedAgentChange: (value: string) => void;
   reply: string;
   onReplyChange: (value: string) => void;
   onReplySubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -38,7 +44,11 @@ export type TicketDetailScreenProps = Readonly<{
   isStatusPending: boolean;
   validationError: string | null;
   onAssignSelf: () => Promise<void>;
-  isAssignPending: boolean;
+  isAssignSelfPending: boolean;
+  onAssignAgent: () => Promise<void>;
+  isAssignAgentPending: boolean;
+  onUnassignAgent: () => Promise<void>;
+  isUnassignPending: boolean;
   onBack: () => void;
 }>;
 
@@ -247,6 +257,9 @@ function StatusBadge({ status, statusLabel }: StatusBadgeProps) {
 
 export function TicketDetailScreen({
   data,
+  assignableAgents,
+  selectedAgentId,
+  onSelectedAgentChange,
   reply,
   onReplyChange,
   onReplySubmit,
@@ -259,9 +272,14 @@ export function TicketDetailScreen({
   isStatusPending,
   validationError,
   onAssignSelf,
-  isAssignPending,
+  isAssignSelfPending,
+  onAssignAgent,
+  isAssignAgentPending,
+  onUnassignAgent,
+  isUnassignPending,
   onBack,
 }: TicketDetailScreenProps) {
+  const [isUnassignDialogOpen, setIsUnassignDialogOpen] = useState(false);
   const categoryLabel = data.category ? formatLabel(data.category) : "-";
   const resolvedCategoryLabel = data.categoryLabel || categoryLabel;
   const resolvedQueueLabel = data.queueLabel;
@@ -280,12 +298,6 @@ export function TicketDetailScreen({
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-sm text-muted-foreground">{data.formattedTicketNo}</span>
             <StatusBadge status={data.status} statusLabel={statusLabel} />
-            {data.escalated && (
-              <Badge variant="destructive" className="gap-1">
-                <AlertCircle className="h-3 w-3" />
-                Escalated
-              </Badge>
-            )}
           </div>
           <h1 className="mt-1 truncate text-xl font-bold text-foreground">{data.subject}</h1>
         </div>
@@ -325,18 +337,119 @@ export function TicketDetailScreen({
             </CardContent>
           </Card>
 
-          {data.permissions.canAssignSelf && (
+          {(data.permissions.canAssignSelf || data.permissions.canAssignOthers) && (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Work Assignment</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <UserCheck className="h-4 w-4 text-primary" />
+                  Assignment
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Button type="button" disabled={isAssignPending} onClick={() => void onAssignSelf()}>
-                  {isAssignPending ? "Assigning..." : "Assign To Me"}
-                </Button>
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  {data.assignedAgent ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <Avatar className="h-9 w-9 bg-green-100">
+                          <AvatarFallback className="bg-green-100 text-green-700">
+                            {getInitials(data.assignedAgent.fullName || data.assignedAgent.username)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-sm">
+                            {data.assignedAgent.fullName || data.assignedAgent.username}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">{data.assignedAgent.email}</p>
+                        </div>
+                      </div>
+                      <Badge variant="success" className="text-xs">Assigned</Badge>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm text-muted-foreground">Unassigned</p>
+                        <p className="text-xs text-muted-foreground">No agent assigned yet</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  {data.permissions.canAssignSelf && !data.assignedAgent && (
+                    <Button
+                      type="button"
+                      disabled={isAssignSelfPending}
+                      onClick={() => void onAssignSelf()}
+                    >
+                      <UserCheck className="h-4 w-4 mr-2" />
+                      {isAssignSelfPending ? "Assigning..." : "Assign to me"}
+                    </Button>
+                  )}
+
+                  {data.permissions.canAssignOthers && (
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <AgentSelectWithWorkload
+                        agents={assignableAgents}
+                        value={selectedAgentId}
+                        onChange={onSelectedAgentChange}
+                        placeholder={data.assignedAgent ? "Choose agent to reassign" : "Choose agent"}
+                        className="sm:flex-1"
+                      />
+                      <Button
+                        type="button"
+                        disabled={!selectedAgentId || isAssignAgentPending}
+                        onClick={() => void onAssignAgent()}
+                      >
+                        {isAssignAgentPending ? "Saving..." : data.assignedAgent ? "Reassign" : "Assign"}
+                      </Button>
+                      {data.assignedAgent && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          disabled={isUnassignPending}
+                          onClick={() => setIsUnassignDialogOpen(true)}
+                        >
+                          {isUnassignPending ? "Unassigning..." : "Unassign"}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
+          <Dialog open={isUnassignDialogOpen} onOpenChange={setIsUnassignDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Unassign Agent?</DialogTitle>
+                <DialogDescription>
+                  This will remove the current assignee from ticket {data.formattedTicketNo}.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsUnassignDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={isUnassignPending}
+                  onClick={async () => {
+                    try {
+                      await onUnassignAgent();
+                      setIsUnassignDialogOpen(false);
+                    } catch {
+                    }
+                  }}
+                >
+                  {isUnassignPending ? "Unassigning..." : "Confirm Unassign"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="space-y-6">
@@ -427,27 +540,6 @@ export function TicketDetailScreen({
                   <div>
                     <p className="font-medium">{data.customer.fullName || data.customer.username}</p>
                     <p className="text-sm text-muted-foreground">{data.customer.email}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {data.assignedAgent && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Assigned Agent</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-green-100 text-green-700">
-                      {getInitials(data.assignedAgent.fullName || data.assignedAgent.username)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">{data.assignedAgent.fullName || data.assignedAgent.username}</p>
-                    <p className="text-sm text-muted-foreground">{data.assignedAgent.email}</p>
                   </div>
                 </div>
               </CardContent>

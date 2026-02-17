@@ -1,4 +1,6 @@
 export { usePeriodicRevalidation } from "./use-periodic-revalidation";
+export { useAssignableAgents } from "./use-assignable-agents";
+export { useTicketAssigneeSelection } from "./use-ticket-assignee-selection";
 export { useApiMutation, useFormMutation } from "./use-api-mutation";
 
 export {
@@ -9,6 +11,8 @@ export {
   useAddReplyMutation,
   useUpdateTicketStatusMutation,
   useAssignSelfMutation,
+  useAssignAgentMutation,
+  useReleaseAgentMutation,
   useResolveEscalationMutation,
   useUpdateProfileMutation,
   useUpdateSettingsMutation,

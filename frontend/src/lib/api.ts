@@ -28,6 +28,13 @@ export type UserMe = {
   roleLabel: string | null;
 };
 
+export type AssignableAgentOption = {
+  id: number;
+  fullName: string | null;
+  username: string;
+  openTickets: number;
+};
+
 export type LookupOption = {
   code: string;
   name: string;

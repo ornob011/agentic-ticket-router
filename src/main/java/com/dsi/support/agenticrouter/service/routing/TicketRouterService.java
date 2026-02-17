@@ -7,6 +7,7 @@ import com.dsi.support.agenticrouter.enums.*;
 import com.dsi.support.agenticrouter.service.ai.LlmOutputService;
 import com.dsi.support.agenticrouter.service.ai.ModelService;
 import com.dsi.support.agenticrouter.service.ai.PromptService;
+import com.dsi.support.agenticrouter.service.ai.TokenCountService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -33,6 +34,7 @@ public class TicketRouterService {
     private final LlmOutputService llmOutputService;
     private final ObjectMapper objectMapper;
     private final PromptService promptService;
+    private final TokenCountService tokenCountService;
     private final RoutingModelClient routingModelClient;
     private final RouterResponseContractValidator routerResponseContractValidator;
 
@@ -51,14 +53,26 @@ public class TicketRouterService {
     ) {
         long startTime = System.currentTimeMillis();
 
+        int subjectTokensEstimate = tokenCountService.countTokens(routerRequest.getSubject());
+
+        int conversationTokensEstimate = tokenCountService.countTokens(routerRequest.getConversationHistory());
+
+        int analysisTokensEstimate = tokenCountService.countTokens(routerRequest.getAnalysis());
+
+        int totalInputTokensEstimate = subjectTokensEstimate + conversationTokensEstimate + analysisTokensEstimate;
+
         log.info(
-            "RoutingDecision({}) SupportTicket(id:{},ticketNo:{}) RouterRequest(subjectLength:{},conversationLength:{},analysisLength:{},relevantArticleCount:{})",
+            "RoutingDecision({}) SupportTicket(id:{},ticketNo:{}) RouterRequest(subjectLength:{},conversationLength:{},analysisLength:{},subjectTokensEst:{},conversationTokensEst:{},analysisTokensEst:{},totalInputTokensEst:{},relevantArticleCount:{})",
             OperationalLogContext.PHASE_START,
             ticketId,
             routerRequest.getTicketNo(),
             StringUtils.length(routerRequest.getSubject()),
             StringUtils.length(routerRequest.getConversationHistory()),
             StringUtils.length(routerRequest.getAnalysis()),
+            subjectTokensEstimate,
+            conversationTokensEstimate,
+            analysisTokensEstimate,
+            totalInputTokensEstimate,
             CollectionUtils.size(routerRequest.getRelevantArticles())
         );
 
@@ -89,8 +103,12 @@ public class TicketRouterService {
             latencyMs
         );
 
+        int outputTokensEstimate = tokenCountService.countTokens(
+            StringUtils.defaultString(routingDecision.toString())
+        );
+
         log.info(
-            "RoutingDecision({}) SupportTicket(id:{}) Model(tag:{}) RouterResponse(category:{},priority:{},queue:{},nextAction:{},confidence:{},latencyMs:{})",
+            "RoutingDecision({}) SupportTicket(id:{}) Model(tag:{}) RouterResponse(category:{},priority:{},queue:{},nextAction:{},confidence:{},latencyMs:{},responseTokensEst:{})",
             OperationalLogContext.PHASE_COMPLETE,
             ticketId,
             activeModel.getModelTag(),
@@ -99,7 +117,8 @@ public class TicketRouterService {
             routerResponse.getQueue(),
             routerResponse.getNextAction(),
             routerResponse.getConfidence(),
-            latencyMs
+            latencyMs,
+            outputTokensEstimate
         );
 
         return routerResponse;
@@ -133,10 +152,13 @@ public class TicketRouterService {
         Throwable throwable
     ) {
         log.error(
-            "RoutingFallback({}) SupportTicket(id:{}) RouterRequest(ticketNo:{}) Outcome(errorType:{},message:{})",
+            "RoutingFallback({}) SupportTicket(id:{}) RouterRequest(ticketNo:{},subjectTokensEst:{},conversationTokensEst:{},analysisTokensEst:{}) Outcome(errorType:{},message:{})",
             OperationalLogContext.PHASE_FAIL,
             ticketId,
             routerRequest.getTicketNo(),
+            tokenCountService.countTokens(routerRequest.getSubject()),
+            tokenCountService.countTokens(routerRequest.getConversationHistory()),
+            tokenCountService.countTokens(routerRequest.getAnalysis()),
             throwable.getClass().getSimpleName(),
             throwable.getMessage(),
             throwable

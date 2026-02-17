@@ -4,6 +4,9 @@ import { useLoaderData, useNavigate, useRevalidator } from "react-router-dom";
 import type { TicketDetailLoaderData } from "@/router";
 import {
   useAddReplyMutation,
+  useAssignableAgents,
+  useAssignAgentMutation,
+  useReleaseAgentMutation,
   useAssignSelfMutation,
   usePeriodicRevalidation,
   useUpdateTicketStatusMutation,
@@ -19,18 +22,36 @@ export default function TicketDetailPage() {
   const [newStatus, setNewStatus] = useState<string>(data.status);
   const [statusReason, setStatusReason] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [selectedAgentId, setSelectedAgentId] = useState("");
 
   usePeriodicRevalidation(revalidator);
 
   const replyMutation = useAddReplyMutation();
   const statusMutation = useUpdateTicketStatusMutation();
   const assignSelfMutation = useAssignSelfMutation();
+  const assignAgentMutation = useAssignAgentMutation();
+  const releaseAgentMutation = useReleaseAgentMutation();
+  const { assignableAgents, reloadAssignableAgents } = useAssignableAgents(data.permissions.canAssignOthers);
 
   useEffect(() => {
     setNewStatus(data.status);
     setStatusReason("");
     setValidationError(null);
   }, [data.status]);
+
+  useEffect(() => {
+    if (!data.permissions.canAssignOthers) {
+      setSelectedAgentId("");
+      return;
+    }
+
+    if (data.assignedAgent?.id) {
+      setSelectedAgentId(String(data.assignedAgent.id));
+      return;
+    }
+
+    setSelectedAgentId("");
+  }, [data.assignedAgent?.id, data.permissions.canAssignOthers]);
 
   const handleReplySubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -74,9 +95,35 @@ export default function TicketDetailPage() {
     await assignSelfMutation.mutateAsync({ ticketId: data.id });
   };
 
+  const handleAssignAgent = async () => {
+    if (!selectedAgentId || assignAgentMutation.isPending) {
+      return;
+    }
+
+    const agent = assignableAgents.find((a) => a.id === Number(selectedAgentId));
+    await assignAgentMutation.mutateAsync({
+      ticketId: data.id,
+      agentId: Number(selectedAgentId),
+      agentName: agent?.fullName || agent?.username,
+    });
+    await reloadAssignableAgents();
+  };
+
+  const handleUnassignAgent = async () => {
+    if (releaseAgentMutation.isPending) {
+      return;
+    }
+
+    await releaseAgentMutation.mutateAsync({ ticketId: data.id });
+    await reloadAssignableAgents();
+  };
+
   return (
     <TicketDetailScreen
       data={data}
+      assignableAgents={assignableAgents}
+      selectedAgentId={selectedAgentId}
+      onSelectedAgentChange={setSelectedAgentId}
       reply={reply}
       onReplyChange={setReply}
       onReplySubmit={handleReplySubmit}
@@ -89,7 +136,11 @@ export default function TicketDetailPage() {
       isStatusPending={statusMutation.isPending}
       validationError={validationError}
       onAssignSelf={handleAssignSelf}
-      isAssignPending={assignSelfMutation.isPending}
+      isAssignSelfPending={assignSelfMutation.isPending}
+      onAssignAgent={handleAssignAgent}
+      isAssignAgentPending={assignAgentMutation.isPending}
+      onUnassignAgent={handleUnassignAgent}
+      isUnassignPending={releaseAgentMutation.isPending}
       onBack={() => navigate(-1)}
     />
   );

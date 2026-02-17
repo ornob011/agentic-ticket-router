@@ -298,6 +298,15 @@ public final class ApiDtos {
     ) {
     }
 
+    @Builder
+    public record AssignableAgentOption(
+        Long id,
+        String fullName,
+        String username,
+        long openTickets
+    ) {
+    }
+
     public record RoutingOverrideRequest(
         @NotNull TicketQueue queue,
         @NotNull TicketPriority priority,

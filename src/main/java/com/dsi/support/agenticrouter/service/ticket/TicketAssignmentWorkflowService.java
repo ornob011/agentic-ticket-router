@@ -26,9 +26,8 @@ public class TicketAssignmentWorkflowService {
 
         supportTicket.updateLastActivity();
 
-        if (supportTicket.getStatus() == TicketStatus.ASSIGNED
-            || supportTicket.getStatus() == TicketStatus.TRIAGING) {
-            supportTicket.setStatus(TicketStatus.IN_PROGRESS);
+        if (shouldTransitionToAssignedOnAssignment(supportTicket.getStatus())) {
+            supportTicket.setStatus(TicketStatus.ASSIGNED);
         }
     }
 
@@ -50,5 +49,13 @@ public class TicketAssignmentWorkflowService {
         return currentStatus == TicketStatus.TRIAGING
                || currentStatus == TicketStatus.IN_PROGRESS
                || currentStatus == TicketStatus.WAITING_CUSTOMER;
+    }
+
+    private boolean shouldTransitionToAssignedOnAssignment(
+        TicketStatus currentStatus
+    ) {
+        return currentStatus == TicketStatus.RECEIVED
+               || currentStatus == TicketStatus.TRIAGING
+               || currentStatus == TicketStatus.ASSIGNED;
     }
 }

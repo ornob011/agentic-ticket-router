@@ -17,6 +17,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/tickets")
 @RequiredArgsConstructor
@@ -77,8 +79,14 @@ public class TicketApiController {
         );
     }
 
+    @GetMapping("/assignable-agents")
+    @PreAuthorize("hasAnyRole('SUPERVISOR','ADMIN')")
+    public List<ApiDtos.AssignableAgentOption> assignableAgents() {
+        return ticketQueryService.assignableAgents();
+    }
+
     @PostMapping("/{ticketId}/replies")
-    @PreAuthorize("@ticketAuthorizationService.canAccessTicket(#ticketId)")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT') and @ticketAuthorizationService.canAccessTicket(#ticketId)")
     public void addReply(
         @PathVariable Long ticketId,
         @Valid @RequestBody ApiDtos.TicketReplyRequest request
@@ -100,7 +108,7 @@ public class TicketApiController {
     }
 
     @PatchMapping("/{ticketId}/status")
-    @PreAuthorize("hasAnyRole('AGENT','SUPERVISOR','ADMIN')")
+    @PreAuthorize("hasRole('AGENT')")
     public void changeStatus(
         @PathVariable Long ticketId,
         @Valid @RequestBody ApiDtos.TicketStatusRequest request
@@ -125,7 +133,7 @@ public class TicketApiController {
     }
 
     @PatchMapping("/{ticketId}/assign-self")
-    @PreAuthorize("hasAnyRole('AGENT','SUPERVISOR','ADMIN')")
+    @PreAuthorize("hasRole('AGENT')")
     public void assignSelf(
         @PathVariable Long ticketId
     ) throws BindException {

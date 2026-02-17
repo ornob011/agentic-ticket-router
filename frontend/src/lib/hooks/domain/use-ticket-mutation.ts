@@ -26,6 +26,16 @@ type AssignSelfVariables = {
   ticketId: number;
 };
 
+type AssignAgentVariables = {
+  ticketId: number;
+  agentId: number;
+  agentName?: string;
+};
+
+type ReleaseAgentVariables = {
+  ticketId: number;
+};
+
 type ResolveEscalationVariables = {
   escalationId: number;
   resolutionNotes: string;
@@ -72,6 +82,26 @@ export function useAssignSelfMutation() {
       api.patch(endpoints.tickets.assignSelf(variables.ticketId)),
     onSuccessMessage: "Ticket assigned to you",
     onErrorMessage: "Failed to assign ticket",
+    revalidate: true,
+  });
+}
+
+export function useAssignAgentMutation() {
+  return useApiMutation({
+    mutationFn: (variables: AssignAgentVariables) =>
+      api.patch(endpoints.tickets.assignAgent(variables.ticketId), { agentId: variables.agentId }),
+    onSuccessMessage: (_, vars) => vars.agentName ? `Assigned to ${vars.agentName}` : "Ticket assignment updated",
+    onErrorMessage: "Failed to assign ticket",
+    revalidate: true,
+  });
+}
+
+export function useReleaseAgentMutation() {
+  return useApiMutation({
+    mutationFn: (variables: ReleaseAgentVariables) =>
+      api.patch(endpoints.tickets.releaseAgent(variables.ticketId)),
+    onSuccessMessage: "Ticket unassigned",
+    onErrorMessage: "Failed to unassign ticket",
     revalidate: true,
   });
 }

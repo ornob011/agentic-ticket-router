@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import type { LookupOption, TicketSummary } from "@/lib/api";
+import type { AssignableAgentOption, LookupOption, TicketSummary } from "@/lib/api";
 import { useTicketListFilters } from "@/lib/hooks/use-ticket-list-filters";
 import { appRoutes } from "@/lib/routes";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,6 +38,14 @@ type TicketWorklistProps = Readonly<{
   showFilters?: boolean;
   showCustomerName?: boolean;
   showNeedsReviewBadge?: boolean;
+  canAssignOthers?: boolean;
+  assignableAgents?: AssignableAgentOption[];
+  selectedAssignees?: Record<number, string>;
+  onSelectedAssigneeChange?: (ticketId: number, agentId: string) => void;
+  onAssignAgent?: (ticketId: number, agentId: number) => Promise<void>;
+  onUnassignAgent?: (ticketId: number) => Promise<void>;
+  isAssignAgentPending?: boolean;
+  isUnassignPending?: boolean;
 }>;
 
 export function TicketWorklist({
@@ -64,6 +72,14 @@ export function TicketWorklist({
   showFilters = true,
   showCustomerName = false,
   showNeedsReviewBadge = false,
+  canAssignOthers = false,
+  assignableAgents = [],
+  selectedAssignees = {},
+  onSelectedAssigneeChange,
+  onAssignAgent,
+  onUnassignAgent,
+  isAssignAgentPending = false,
+  isUnassignPending = false,
 }: TicketWorklistProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -98,12 +114,37 @@ export function TicketWorklist({
     }
 
     return filteredTickets.map((ticket) => (
-        <QueueTicketCard
+      <QueueTicketCard
         key={ticket.id}
         ticket={ticket}
         navigatePath={navigatePathBuilder(ticket)}
         showCustomerName={showCustomerName}
         showNeedsReviewBadge={showNeedsReviewBadge}
+        canAssignOthers={canAssignOthers}
+        assignableAgents={assignableAgents}
+        selectedAgentId={selectedAssignees[ticket.id] || ""}
+        onSelectedAgentChange={(agentId) => onSelectedAssigneeChange?.(ticket.id, agentId)}
+        onAssignAgent={async () => {
+          if (!onAssignAgent) {
+            return;
+          }
+
+          const selectedAgentId = selectedAssignees[ticket.id];
+          if (!selectedAgentId) {
+            return;
+          }
+
+          await onAssignAgent(ticket.id, Number(selectedAgentId));
+        }}
+        onUnassignAgent={
+          onUnassignAgent
+            ? async () => {
+                await onUnassignAgent(ticket.id);
+              }
+            : undefined
+        }
+        isAssignAgentPending={isAssignAgentPending}
+        isUnassignPending={isUnassignPending}
       />
     ));
   };

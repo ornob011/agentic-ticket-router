@@ -185,14 +185,15 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         Pageable pageable
     );
 
-    Page<SupportTicket> findByRequiresHumanReviewTrueAndStatusOrderByLastActivityAtDesc(
-        TicketStatus status,
+    Page<SupportTicket> findByRequiresHumanReviewTrueOrderByLastActivityAtDesc(
         Pageable pageable
     );
 
     long countByRequiresHumanReviewTrueAndStatus(
         TicketStatus status
     );
+
+    long countByRequiresHumanReviewTrue();
 
     @Query("""
         SELECT COUNT(ticket)
@@ -250,6 +251,20 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         AND ticket.status = com.dsi.support.agenticrouter.enums.TicketStatus.TRIAGING
         """)
     long countTriagingTickets(
+        @Param("agentId") Long agentId
+    );
+
+    @Query("""
+        SELECT COUNT(ticket)
+        FROM SupportTicket ticket
+        WHERE ticket.assignedAgent.id = :agentId
+        AND ticket.status IN (
+            com.dsi.support.agenticrouter.enums.TicketStatus.ASSIGNED,
+            com.dsi.support.agenticrouter.enums.TicketStatus.IN_PROGRESS,
+            com.dsi.support.agenticrouter.enums.TicketStatus.ESCALATED
+        )
+        """)
+    long countOpenTicketsByAgentId(
         @Param("agentId") Long agentId
     );
 

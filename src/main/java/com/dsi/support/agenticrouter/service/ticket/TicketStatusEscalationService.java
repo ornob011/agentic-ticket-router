@@ -43,6 +43,17 @@ public class TicketStatusEscalationService {
         String normalizedReason
     ) {
         if (targetStatus != TicketStatus.ESCALATED) {
+            escalationRepository.findByTicketId(supportTicket.getId())
+                                .filter(existingEscalation -> !existingEscalation.isResolved())
+                                .ifPresent(existingEscalation -> existingEscalation.markResolved(
+                                    actor,
+                                    String.format(
+                                        "Auto-resolved via status change to '%s'. Triggered by: %s. Reason: %s.",
+                                        targetStatus.getDisplayName(),
+                                        normalizedBusinessDriver,
+                                        normalizedReason
+                                    )
+                                ));
             supportTicket.setEscalated(false);
             return;
         }
