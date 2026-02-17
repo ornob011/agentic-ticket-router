@@ -1,5 +1,5 @@
 import type { AxiosError, AxiosInstance } from "axios";
-import { toast } from "sonner";
+import { notification } from "@/lib/services/notification.service";
 
 export type ApiError = {
   status: number;
@@ -171,7 +171,7 @@ export function getErrorMessage(error: unknown): string {
 
 export function showApiError(error: unknown, fallbackMessage = "An error occurred"): void {
   const apiError = parseApiError(error);
-  toast.error(apiError.detail || fallbackMessage);
+  notification.error(apiError.detail || fallbackMessage);
 }
 
 export function setupApiInterceptors(instance: AxiosInstance): void {
@@ -185,7 +185,7 @@ export function setupApiInterceptors(instance: AxiosInstance): void {
       }
 
       if (isServerError(apiError)) {
-        toast.error("Server error. Please try again later.");
+        notification.error("Server error. Please try again later.");
       }
 
       return Promise.reject(apiError);

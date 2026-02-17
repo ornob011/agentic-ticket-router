@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusDot } from "@/components/ui/status-dot";
+import { appRoutes } from "@/lib/routes";
 import type { RootLoaderData } from "@/router";
 
 type AppErrorContentProps = {
@@ -33,7 +34,7 @@ export function AppErrorContent({
   return (
     <div className="space-y-6">
       <PageHeader title={title} description={description}>
-        <Button variant="outline" onClick={() => navigate("/app/tickets")}>
+        <Button variant="outline" onClick={() => void navigate(appRoutes.tickets.list)}>
           <Ticket className="mr-2 h-4 w-4" />
           View Tickets
         </Button>
@@ -60,7 +61,7 @@ export function AppErrorContent({
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Go Back
                 </Button>
-                <Button onClick={() => navigate("/app/dashboard")}>
+                <Button onClick={() => void navigate(appRoutes.dashboard)}>
                   <Home className="mr-2 h-4 w-4" />
                   Dashboard
                 </Button>
@@ -87,7 +88,7 @@ export function AppErrorContent({
               <Button
                 variant="outline"
                 className="w-full justify-start"
-                onClick={() => navigate("/app/tickets/new")}
+                onClick={() => void navigate(appRoutes.tickets.create)}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Create New Ticket
@@ -96,7 +97,7 @@ export function AppErrorContent({
             <Button
               variant="outline"
               className="w-full justify-start"
-              onClick={() => navigate("/app/tickets")}
+              onClick={() => void navigate(appRoutes.tickets.list)}
             >
               <Ticket className="mr-2 h-4 w-4" />
               View All Tickets

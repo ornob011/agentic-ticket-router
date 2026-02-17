@@ -18,6 +18,7 @@ import { Menu, LogOut, Settings, HelpCircle, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { formatLabel } from "@/lib/utils";
 import { getRoleBadgeVariant } from "@/lib/role-policy";
+import { appRoutes } from "@/lib/routes";
 
 export function Header() {
   const navigate = useNavigate();
@@ -26,16 +27,16 @@ export function Header() {
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: getMe });
   const roleLabel = me?.roleLabel || formatLabel(me?.role);
   const handleGoSettings = () => {
-    Promise.resolve(navigate("/app/settings")).catch(() => undefined);
+    Promise.resolve(navigate(appRoutes.settings)).catch(() => undefined);
   };
   const handleGoDashboard = () => {
-    Promise.resolve(navigate("/app/dashboard")).catch(() => undefined);
+    Promise.resolve(navigate(appRoutes.dashboard)).catch(() => undefined);
   };
 
   const handleLogout = async () => {
     await logout();
     queryClient.clear();
-    navigate("/app/login", { replace: true });
+    void navigate(appRoutes.login, { replace: true });
   };
 
   const getInitials = (name?: string) => {

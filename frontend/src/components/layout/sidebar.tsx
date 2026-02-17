@@ -1,9 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { getTicketMetadata } from "@/app/tickets";
+import { appRoutes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { api, type TicketMetadataResponse } from "@/lib/api";
 import {
   LayoutDashboard,
   Inbox,
@@ -33,36 +34,36 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["CUSTOMER", "AGENT", "SUPERVISOR", "ADMIN"], activeMode: "exact" },
-  { to: "/app/tickets", label: "My Tickets", icon: Inbox, roles: ["CUSTOMER"], activeMode: "customerTickets" },
-  { to: "/app/tickets/new", label: "New Ticket", icon: ClipboardCheck, roles: ["CUSTOMER"], activeMode: "exact" },
-  { to: "/app/agent/queues/GENERAL_Q", label: "Queue Inbox", icon: Inbox, roles: ["AGENT", "SUPERVISOR", "ADMIN"], activeMode: "section" },
-  { to: "/app/agent/review-queue", label: "Review Queue", icon: ClipboardCheck, roles: ["SUPERVISOR", "ADMIN"], activeMode: "exact" },
-  { to: "/app/supervisor/escalations", label: "Escalations", icon: AlertTriangle, roles: ["SUPERVISOR", "ADMIN"], activeMode: "exact" },
-  { to: "/app/settings", label: "Account", icon: Settings, roles: ["CUSTOMER", "AGENT", "SUPERVISOR", "ADMIN"], activeMode: "section" },
+  { to: appRoutes.dashboard, label: "Dashboard", icon: LayoutDashboard, roles: ["CUSTOMER", "AGENT", "SUPERVISOR", "ADMIN"], activeMode: "exact" },
+  { to: appRoutes.tickets.list, label: "My Tickets", icon: Inbox, roles: ["CUSTOMER"], activeMode: "customerTickets" },
+  { to: appRoutes.tickets.create, label: "New Ticket", icon: ClipboardCheck, roles: ["CUSTOMER"], activeMode: "exact" },
+  { to: appRoutes.agent.queues.general, label: "Queue Inbox", icon: Inbox, roles: ["AGENT", "SUPERVISOR", "ADMIN"], activeMode: "section" },
+  { to: appRoutes.agent.reviewQueue, label: "Review Queue", icon: ClipboardCheck, roles: ["SUPERVISOR", "ADMIN"], activeMode: "exact" },
+  { to: appRoutes.supervisor.escalations, label: "Escalations", icon: AlertTriangle, roles: ["SUPERVISOR", "ADMIN"], activeMode: "exact" },
+  { to: appRoutes.settings, label: "Account", icon: Settings, roles: ["CUSTOMER", "AGENT", "SUPERVISOR", "ADMIN"], activeMode: "section" },
 ];
 
 const adminItems: NavItem[] = [
-  { to: "/app/admin/model-registry", label: "Model Registry", icon: Brain, roles: ["ADMIN"], activeMode: "exact" },
-  { to: "/app/admin/policy-config", label: "Policy Config", icon: Settings, roles: ["ADMIN"], activeMode: "exact" },
-  { to: "/app/admin/users", label: "Users", icon: Users, roles: ["ADMIN"], activeMode: "exact" },
-  { to: "/app/admin/audit-log", label: "Audit Log", icon: FileText, roles: ["ADMIN"], activeMode: "exact" },
+  { to: appRoutes.admin.modelRegistry, label: "Model Registry", icon: Brain, roles: ["ADMIN"], activeMode: "exact" },
+  { to: appRoutes.admin.policyConfig, label: "Policy Config", icon: Settings, roles: ["ADMIN"], activeMode: "exact" },
+  { to: appRoutes.admin.users, label: "Users", icon: Users, roles: ["ADMIN"], activeMode: "exact" },
+  { to: appRoutes.admin.auditLog, label: "Audit Log", icon: FileText, roles: ["ADMIN"], activeMode: "exact" },
 ];
 
 function isCustomerTicketPath(pathname: string): boolean {
-  if (pathname === "/app/tickets") {
+  if (pathname === appRoutes.tickets.list) {
     return true;
   }
 
-  if (pathname === "/app/tickets/new") {
+  if (pathname === appRoutes.tickets.create) {
     return false;
   }
 
-  if (!pathname.startsWith("/app/tickets/")) {
+  if (!pathname.startsWith(`${appRoutes.tickets.list}/`)) {
     return false;
   }
 
-  const suffix = pathname.slice("/app/tickets/".length);
+  const suffix = pathname.slice(`${appRoutes.tickets.list}/`.length);
   if (!suffix) {
     return false;
   }
@@ -85,7 +86,7 @@ function isItemActive(pathname: string, item: NavItem): boolean {
     case "customerTickets":
       return isCustomerTicketPath(pathname);
     case "section":
-      if (item.to.startsWith("/app/agent/queues/") && pathname.startsWith("/app/agent/queues/")) {
+      if (item.to.startsWith(`${appRoutes.root}/agent/queues/`) && pathname.startsWith(`${appRoutes.root}/agent/queues/`)) {
         return true;
       }
       return pathname === item.to || pathname.startsWith(`${item.to}/`);
@@ -130,28 +131,25 @@ export function Sidebar(
 ) {
   const { data: ticketMetadata } = useQuery({
     queryKey: ["ticket-metadata", "sidebar"],
-    queryFn: async () => {
-      const response = await api.get<TicketMetadataResponse>("/tickets/meta");
-      return response.data;
-    },
+    queryFn: getTicketMetadata,
     enabled: role === "AGENT" || role === "SUPERVISOR" || role === "ADMIN",
     staleTime: 60_000,
   });
 
   let queueInboxTarget: string | null = null;
   if (role === "SUPERVISOR" || role === "ADMIN") {
-    queueInboxTarget = "/app/agent/queues/ALL";
+    queueInboxTarget = appRoutes.agent.queues.all;
   } else if (role === "AGENT" && ticketMetadata) {
     const firstQueue = ticketMetadata.accessibleQueues[0];
     if (firstQueue) {
-      queueInboxTarget = `/app/agent/queues/${firstQueue.code}`;
+      queueInboxTarget = appRoutes.agent.queues.byCode(firstQueue.code);
     }
   }
 
   const filteredNavItems = navItems
     .filter((item) => role && item.roles.includes(role))
     .flatMap((item) => {
-      if (item.to !== "/app/agent/queues/GENERAL_Q") {
+      if (item.to !== appRoutes.agent.queues.general) {
         return [item];
       }
 
