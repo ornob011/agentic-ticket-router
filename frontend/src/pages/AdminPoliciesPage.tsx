@@ -113,9 +113,9 @@ export default function AdminPoliciesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Policy</TableHead>
-                    <TableHead>Value</TableHead>
+                    <TableHead className="min-w-[80px]">Value</TableHead>
                     <TableHead className="text-center hidden sm:table-cell">Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-right w-[50px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -149,7 +149,7 @@ export default function AdminPoliciesPage() {
                             </p>
                           </div>
                         </TableCell>
-                        <TableCell className="py-3">
+                        <TableCell className="py-3 min-w-[80px]">
                           <div className="space-y-1">
                             <Input
                               type="number"
@@ -173,7 +173,7 @@ export default function AdminPoliciesPage() {
                             {policy.active ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right py-3">
+                        <TableCell className="text-right py-3 w-[50px]">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
