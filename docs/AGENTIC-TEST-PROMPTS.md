@@ -291,23 +291,13 @@ Test prompts for validating all 14 agentic actions in the ticket routing system.
 
 **Test Sequence for AUTO_ESCALATE:**
 
-| Step | Subject             | Message Body       |
-|------|---------------------|--------------------|
-| 1    | Need assistance     | I need help        |
-| 2    | Re: Clarification   | With something     |
-| 3    | Re: More details    | It's not working   |
-| 4    | Re: Additional info | I already told you |
-| 5    | Re: Please specify  | This is ridiculous |
-
-→ Should trigger AUTO_ESCALATE after max actions
-
-**Alternative Test Scenarios:**
-
 | Scenario                 | Sequence of Replies                                                                                                          |
 |--------------------------|------------------------------------------------------------------------------------------------------------------------------|
 | Circular conversation    | "Help" → "With account" → "It's broken" → "The thing" → "I don't know"                                                       |
 | Frustration detection    | "Help" → "Still need help" → "This is taking too long" → "I've explained this 5 times already!" → "Why isn't this resolved?" |
 | Vague repeated responses | "Issue" → "Problem" → "Not working" → "Still broken" → "Help me"                                                             |
+
+→ Should trigger AUTO_ESCALATE after max actions
 
 ---
 
@@ -405,7 +395,7 @@ Test prompts for validating all 14 agentic actions in the ticket routing system.
 2. Create new ticket with test subject and message body
 3. Observe the action taken by the agentic system
 4. Check ticket status, queue assignment, and any generated messages
-5. For multi-step tests (AUTO_ESCALATE), continue the conversation
+5. For multistep tests (AUTO_ESCALATE), continue the conversation
 
 ### Verification Checklist
 
