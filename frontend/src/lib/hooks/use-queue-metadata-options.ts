@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, type LookupOption } from "@/lib/api";
+import { getTicketMetadata } from "@/app/tickets";
+import type { LookupOption } from "@/lib/api";
 
 export function useQueueMetadataOptions() {
   const [queueMetadataOptions, setQueueMetadataOptions] = useState<LookupOption[]>([]);
@@ -7,8 +8,8 @@ export function useQueueMetadataOptions() {
   useEffect(() => {
     const loadQueueOptions = async () => {
       try {
-        const response = await api.get<{ queues: LookupOption[] }>("/tickets/meta");
-        setQueueMetadataOptions(response.data.queues ?? []);
+        const metadata = await getTicketMetadata();
+        setQueueMetadataOptions(metadata.queues ?? []);
       } catch {
         setQueueMetadataOptions([]);
       }

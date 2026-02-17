@@ -1,8 +1,9 @@
 import { apiGet } from "@/lib/api-loader";
+import { endpoints } from "@/lib/endpoints";
 import type { ModelInfo } from "@/lib/api";
 
 export type AdminModelsLoaderData = ModelInfo[];
 
 export async function adminModelsLoader(): Promise<AdminModelsLoaderData> {
-  return apiGet<ModelInfo[]>("/admin/model-registry");
+  return apiGet<ModelInfo[]>(endpoints.admin.modelRegistry);
 }

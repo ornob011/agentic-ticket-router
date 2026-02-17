@@ -1,4 +1,5 @@
 import { apiGet } from "@/lib/api-loader";
+import { endpoints } from "@/lib/endpoints";
 import type { ProfileResponse, UserSettingsResponse, SignupOptionsResponse } from "@/lib/api";
 
 export type SettingsLoaderData = {
@@ -9,13 +10,13 @@ export type SettingsLoaderData = {
 
 export async function settingsLoader(): Promise<SettingsLoaderData> {
   const [profile, settings] = await Promise.all([
-    apiGet<ProfileResponse>("/auth/profile"),
-    apiGet<UserSettingsResponse>("/auth/settings"),
+    apiGet<ProfileResponse>(endpoints.auth.profile),
+    apiGet<UserSettingsResponse>(endpoints.auth.settings),
   ]);
 
   let signupOptions: SignupOptionsResponse | null = null;
   try {
-    signupOptions = await apiGet<SignupOptionsResponse>("/auth/signup-options");
+    signupOptions = await apiGet<SignupOptionsResponse>(endpoints.auth.signupOptions);
   } catch {
     // Signup options are optional, mainly for customer profiles
   }

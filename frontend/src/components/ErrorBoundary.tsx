@@ -3,6 +3,7 @@ import type { ErrorInfo, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { appRoutes } from "@/lib/routes";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 
 type Props = {
@@ -98,7 +99,7 @@ export function ErrorBoundary(props: Readonly<Props>) {
   const navigate = useNavigate();
 
   const handleGoHome = () => {
-    navigate("/app/dashboard");
+    void navigate(appRoutes.dashboard);
   };
 
   return (

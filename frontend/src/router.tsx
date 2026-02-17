@@ -12,6 +12,7 @@ import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import LoginPage from "@/pages/LoginPage";
 import SignupPage from "@/pages/SignupPage";
 import { Skeleton } from "@/components/ui";
+import { appRoutes } from "@/lib/routes";
 
 import {
   rootLoader,
@@ -80,7 +81,7 @@ function ProtectedRoute() {
   const appData = useRouteLoaderData<RootLoaderData>("app");
 
   if (!appData?.isAuthenticated) {
-    return <Navigate to="/app/login" replace />;
+    return <Navigate to={appRoutes.login} replace />;
   }
 
   return <Outlet />;
@@ -89,7 +90,6 @@ function ProtectedRoute() {
 export const router = createBrowserRouter([
   {
     id: "root",
-    loader: rootLoader,
     element: <Outlet />,
     errorElement: (
       <ErrorBoundary>
@@ -98,15 +98,15 @@ export const router = createBrowserRouter([
     ),
     children: [
       {
-        path: "/app/login",
+        path: appRoutes.login,
         element: <LoginPage />,
       },
       {
-        path: "/app/signup",
+        path: appRoutes.signup,
         element: <SignupPage />,
       },
       {
-        path: "/app",
+        path: appRoutes.root,
         id: "app",
         element: <ProtectedRoute />,
         loader: rootLoader,
@@ -122,7 +122,7 @@ export const router = createBrowserRouter([
             children: [
               {
                 index: true,
-                element: <Navigate to="/app/dashboard" replace />,
+                element: <Navigate to={appRoutes.dashboard} replace />,
               },
               {
                 path: "dashboard",
@@ -275,7 +275,7 @@ export const router = createBrowserRouter([
               },
               {
                 path: "*",
-                element: <Navigate to="/app/404" replace />,
+                element: <Navigate to={appRoutes.errors.notFound} replace />,
               },
             ],
           },
@@ -283,7 +283,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "*",
-        element: <Navigate to="/app/404" replace />,
+        element: <Navigate to={appRoutes.errors.notFound} replace />,
       },
     ],
   },
