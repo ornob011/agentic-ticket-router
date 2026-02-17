@@ -103,11 +103,11 @@ public class TicketAssignmentCommandService {
             );
         }
 
-        if (!agent.canAccessAgentPortal()) {
+        if (!agent.isActive() || !agent.isAgent()) {
             throw BindValidation.fieldError(
                 "assignAgentRequest",
                 "agentId",
-                "Selected user must be an agent, supervisor, or admin."
+                "Selected user must be an active agent."
             );
         }
 

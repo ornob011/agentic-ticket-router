@@ -1,18 +1,25 @@
-import { useLoaderData, useRevalidator, useParams } from "react-router-dom";
+import { useLoaderData, useRevalidator, useParams, useRouteLoaderData } from "react-router-dom";
 import { useMemo } from "react";
-import type { QueueLoaderData } from "@/router";
-import { usePeriodicRevalidation } from "@/lib/hooks/use-periodic-revalidation";
+import type { QueueLoaderData, RootLoaderData } from "@/router";
+import { canAccessSupervisorWorkspace } from "@/lib/role-policy";
+import { useAssignableAgents, useAssignAgentMutation, usePeriodicRevalidation, useReleaseAgentMutation } from "@/lib/hooks";
 import { useQueueMetadataOptions } from "@/lib/hooks/use-queue-metadata-options";
 import { TicketWorklist } from "@/components/ui/ticket-worklist";
 import { Inbox } from "lucide-react";
 
 export default function QueuePage() {
   const data = useLoaderData<QueueLoaderData>();
+  const appData = useRouteLoaderData<RootLoaderData>("app");
   const revalidator = useRevalidator();
   const { queue = "GENERAL_Q" } = useParams();
   const queueMetadataOptions = useQueueMetadataOptions();
+  const assignAgentMutation = useAssignAgentMutation();
+  const releaseAgentMutation = useReleaseAgentMutation();
 
   usePeriodicRevalidation(revalidator);
+
+  const canAssignOthers = canAccessSupervisorWorkspace(appData?.user?.role);
+  const { assignableAgents, reloadAssignableAgents } = useAssignableAgents(canAssignOthers);
 
   const selectedQueueOption = useMemo(
     () => queueMetadataOptions.find((option) => option.code === queue),
@@ -20,6 +27,20 @@ export default function QueuePage() {
   );
   const queueTitle = queue === "ALL" ? "All Queues" : selectedQueueOption?.name || "Queue";
   const tickets = data?.content ?? [];
+  const handleAssignAgent = async (ticketId: number, agentId: number) => {
+    const agent = assignableAgents.find((a) => a.id === agentId);
+    await assignAgentMutation.mutateAsync({
+      ticketId,
+      agentId,
+      agentName: agent?.fullName || agent?.username,
+    });
+    await reloadAssignableAgents();
+  };
+
+  const handleUnassignAgent = async (ticketId: number) => {
+    await releaseAgentMutation.mutateAsync({ ticketId });
+    await reloadAssignableAgents();
+  };
 
   return (
     <TicketWorklist
@@ -39,6 +60,12 @@ export default function QueuePage() {
       totalElements={data?.totalElements ?? 0}
       queueOptions={queueMetadataOptions}
       showCustomerName
+      canAssignOthers={canAssignOthers}
+      assignableAgents={assignableAgents}
+      onAssignAgent={handleAssignAgent}
+      onUnassignAgent={handleUnassignAgent}
+      isAssignAgentPending={assignAgentMutation.isPending}
+      isUnassignPending={releaseAgentMutation.isPending}
     />
   );
 }

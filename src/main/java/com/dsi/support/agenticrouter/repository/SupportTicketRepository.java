@@ -253,6 +253,20 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
         @Param("agentId") Long agentId
     );
 
+    @Query("""
+        SELECT COUNT(ticket)
+        FROM SupportTicket ticket
+        WHERE ticket.assignedAgent.id = :agentId
+        AND ticket.status IN (
+            com.dsi.support.agenticrouter.enums.TicketStatus.ASSIGNED,
+            com.dsi.support.agenticrouter.enums.TicketStatus.IN_PROGRESS,
+            com.dsi.support.agenticrouter.enums.TicketStatus.ESCALATED
+        )
+        """)
+    long countOpenTicketsByAgentId(
+        @Param("agentId") Long agentId
+    );
+
     interface TicketQueueCount {
 
         TicketQueue getQueue();

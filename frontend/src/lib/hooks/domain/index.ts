@@ -9,6 +9,8 @@ export {
   useAddReplyMutation,
   useUpdateTicketStatusMutation,
   useAssignSelfMutation,
+  useAssignAgentMutation,
+  useReleaseAgentMutation,
   useResolveEscalationMutation,
 } from "./use-ticket-mutation";
 

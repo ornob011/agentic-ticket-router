@@ -25,7 +25,10 @@ export const endpoints = {
     detail: (ticketId: string | number) => `/tickets/${ticketId}`,
     replies: (ticketId: string | number) => `/tickets/${ticketId}/replies`,
     status: (ticketId: string | number) => `/tickets/${ticketId}/status`,
+    assignAgent: (ticketId: string | number) => `/tickets/${ticketId}/assign-agent`,
     assignSelf: (ticketId: string | number) => `/tickets/${ticketId}/assign-self`,
+    releaseAgent: (ticketId: string | number) => `/tickets/${ticketId}/release-agent`,
+    assignableAgents: "/tickets/assignable-agents",
     metadata: "/tickets/meta",
   },
   supervisor: {

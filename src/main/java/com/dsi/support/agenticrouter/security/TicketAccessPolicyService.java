@@ -176,16 +176,12 @@ public class TicketAccessPolicyService {
             return false;
         }
 
-        if (!(actor.isAgent() || actor.isSupervisor() || actor.isAdmin())) {
+        if (!actor.isAgent()) {
             return false;
         }
 
         if (Objects.nonNull(supportTicket.getAssignedAgent())) {
             return false;
-        }
-
-        if (actor.isSupervisor() || actor.isAdmin()) {
-            return true;
         }
 
         if (supportTicket.isRequiresHumanReview()) {
