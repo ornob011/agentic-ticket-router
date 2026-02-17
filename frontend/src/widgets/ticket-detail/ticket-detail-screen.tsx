@@ -280,12 +280,6 @@ export function TicketDetailScreen({
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-sm text-muted-foreground">{data.formattedTicketNo}</span>
             <StatusBadge status={data.status} statusLabel={statusLabel} />
-            {data.escalated && (
-              <Badge variant="destructive" className="gap-1">
-                <AlertCircle className="h-3 w-3" />
-                Escalated
-              </Badge>
-            )}
           </div>
           <h1 className="mt-1 truncate text-xl font-bold text-foreground">{data.subject}</h1>
         </div>
