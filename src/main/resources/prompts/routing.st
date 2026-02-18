@@ -73,7 +73,7 @@ MANDATORY PRE-STEP:
       "postal_code": null,
       "preferred_language_code": null
   \},
-  "rationale_tags": ["latest_message"]
+  "rationale_tags": ["tag_1", "tag_2"]
 \}
 
 **CRITICAL OVERRIDES (You MUST apply these):**
@@ -83,3 +83,5 @@ MANDATORY PRE-STEP:
 3. If Action=`ASK_CLARIFYING`, replace "WRITE_QUESTION_HERE_IF_ACTION_IS_ASK_CLARIFYING" with your specific question.
 4. If Action=`ASSIGN_QUEUE`, set `clarifying_question` to null and `draft_reply` to null.
 5. Update `confidence` based on the Calculation Rule (1.0 or 0.7).
+6. `rationale_tags` must be evidence-based from Latest Customer Message, History, and Analysis; do not output fixed defaults.
+7. Use 1 to 3 concise `rationale_tags`, and do not always output "latest_message".

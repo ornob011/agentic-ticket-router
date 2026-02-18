@@ -10,12 +10,17 @@ import com.dsi.support.agenticrouter.repository.EscalationRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.util.EnumDisplayNameResolver;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -51,11 +56,8 @@ public class EscalateAction implements TicketAction {
 
         String reason = StringUtils.defaultIfBlank(
             routerResponse.getInternalNote(),
-            String.format(
-                "Auto-escalated: category=%s, queue=%s, tags=%s",
-                routerResponse.getCategory(),
-                routerResponse.getQueue(),
-                routerResponse.getRationaleTags()
+            buildFallbackReason(
+                routerResponse
             )
         );
 
@@ -103,6 +105,65 @@ public class EscalateAction implements TicketAction {
             supportTicket.getId(),
             supportTicket.getStatus(),
             supportTicket.getAssignedQueue()
+        );
+    }
+
+    private String buildFallbackReason(
+        RouterResponse routerResponse
+    ) {
+        String categoryLabel = StringUtils.defaultIfBlank(
+            EnumDisplayNameResolver.resolve(routerResponse.getCategory()),
+            "Unknown Category"
+        );
+
+        String queueLabel = StringUtils.defaultIfBlank(
+            EnumDisplayNameResolver.resolve(routerResponse.getQueue()),
+            "Unknown Queue"
+        );
+
+        String signals = formatRationaleTags(
+            routerResponse.getRationaleTags()
+        );
+
+        return String.format(
+            "Auto-escalated to %s under %s category. Signals: %s.",
+            queueLabel,
+            categoryLabel,
+            signals
+        );
+    }
+
+    private String formatRationaleTags(
+        List<String> rationaleTags
+    ) {
+        if (CollectionUtils.isEmpty(rationaleTags)) {
+            return "None";
+        }
+
+        String formattedTags = rationaleTags.stream()
+                                            .map(this::humanizeTag)
+                                            .filter(StringUtils::isNotBlank)
+                                            .distinct()
+                                            .collect(Collectors.joining(", "));
+
+        return StringUtils.defaultIfBlank(
+            formattedTags,
+            "None"
+        );
+    }
+
+    private String humanizeTag(
+        String rationaleTag
+    ) {
+        String normalizedTag = StringUtils.defaultString(rationaleTag)
+                                          .replace('_', ' ')
+                                          .replace('-', ' ');
+
+        normalizedTag = StringUtils.normalizeSpace(normalizedTag);
+        normalizedTag = StringUtils.lowerCase(normalizedTag);
+
+        return StringUtils.capitalize(
+            normalizedTag
         );
     }
 }
