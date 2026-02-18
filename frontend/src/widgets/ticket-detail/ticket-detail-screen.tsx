@@ -118,6 +118,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
   const isCustomer = message.authorRole === "CUSTOMER";
   const isAI = message.messageKind === "AI_RESPONSE" || message.authorRole === "SYSTEM";
   const isSystem = message.messageKind === "SYSTEM_NOTE";
+  const staffRoleLabel = message.authorRole ? formatLabel(message.authorRole) : "AI";
 
   if (isSystem) {
     return (
@@ -172,7 +173,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
           <div className="mb-1 flex items-center gap-1.5">
             <span className="text-xs font-medium text-primary">{message.authorName}</span>
             <Badge variant="outline" className="h-4 border-0 bg-primary/10 px-1.5 text-[10px] text-primary">
-              Agent
+              {staffRoleLabel}
             </Badge>
           </div>
           <p className="whitespace-pre-wrap text-sm text-foreground">{message.content}</p>

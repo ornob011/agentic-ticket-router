@@ -36,7 +36,7 @@ public class TicketReplyCommandService {
     private final TicketAccessPolicyService ticketAccessPolicyService;
     private final CustomerReplyLifecycleService customerReplyLifecycleService;
     private final TicketCommandLookupService ticketCommandLookupService;
-    private final AgentReplyWorkflowService agentReplyWorkflowService;
+    private final StaffReplyWorkflowService staffReplyWorkflowService;
 
     public void addCustomerReply(
         Long ticketId,
@@ -234,7 +234,7 @@ public class TicketReplyCommandService {
         ticketMessageRepository.save(ticketMessage);
 
         supportTicket.updateLastActivity();
-        agentReplyWorkflowService.handleAgentReply(
+        staffReplyWorkflowService.handleStaffReply(
             supportTicket,
             agent,
             businessDriver

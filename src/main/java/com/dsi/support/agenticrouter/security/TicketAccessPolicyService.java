@@ -159,13 +159,16 @@ public class TicketAccessPolicyService {
             return false;
         }
 
-        if (actor.isSupervisor() || actor.isAdmin()) {
-            return false;
-        }
-
         if (actor.isAgent()) {
             return Objects.nonNull(supportTicket.getAssignedAgent())
                    && Objects.equals(supportTicket.getAssignedAgent().getId(), actor.getId());
+        }
+
+        if (actor.isSupervisor() || actor.isAdmin()) {
+            return canAccessTicket(
+                supportTicket,
+                actor
+            );
         }
 
         return actor.isCustomer() && Objects.equals(supportTicket.getCustomer().getId(), actor.getId());

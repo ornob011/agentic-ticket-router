@@ -6,15 +6,17 @@ import com.dsi.support.agenticrouter.enums.AuditEventType;
 import com.dsi.support.agenticrouter.enums.NotificationType;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
+import com.dsi.support.agenticrouter.util.EnumDisplayNameResolver;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-public class AgentReplyWorkflowService {
+public class StaffReplyWorkflowService {
 
     private static final String BUSINESS_DRIVER_UNSPECIFIED = "System";
 
@@ -22,7 +24,7 @@ public class AgentReplyWorkflowService {
     private final AuditService auditService;
     private final NotificationService notificationService;
 
-    public void handleAgentReply(
+    public void handleStaffReply(
         SupportTicket supportTicket,
         AppUser agent,
         String businessDriver
@@ -37,12 +39,17 @@ public class AgentReplyWorkflowService {
                                                   .filter(StringUtils::isNotBlank)
                                                   .orElse(BUSINESS_DRIVER_UNSPECIFIED);
 
+        String staffRoleLabel = resolveStaffRoleLabel(
+            agent
+        );
+
         auditService.recordEvent(
             AuditEventType.MESSAGE_POSTED,
             supportTicket.getId(),
             agent.getId(),
             String.format(
-                "Agent replied to customer (%s).",
+                "%s replied to customer (%s).",
+                staffRoleLabel,
                 normalizedBusinessDriver
             ),
             null
@@ -52,8 +59,24 @@ public class AgentReplyWorkflowService {
             supportTicket.getCustomer().getId(),
             NotificationType.NEW_MESSAGE,
             String.format("New Reply: %s", supportTicket.getFormattedTicketNo()),
-            "An agent has replied to your ticket.",
+            String.format(
+                "%s has replied to your ticket.",
+                staffRoleLabel
+            ),
             supportTicket.getId()
         );
     }
+
+    private String resolveStaffRoleLabel(
+        AppUser appUser
+    ) {
+        if (Objects.isNull(appUser) || Objects.isNull(appUser.getRole())) {
+            return "AI";
+        }
+
+        return EnumDisplayNameResolver.resolve(
+            appUser.getRole()
+        );
+    }
+
 }
