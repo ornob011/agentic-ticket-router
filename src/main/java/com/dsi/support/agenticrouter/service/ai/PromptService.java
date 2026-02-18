@@ -26,6 +26,15 @@ public class PromptService {
     @Value("classpath:/prompts/category_detection.st")
     private Resource categoryDetectionPromptResource;
 
+    @Value("classpath:/prompts/agent_planner.st")
+    private Resource agentPlannerPromptResource;
+
+    @Value("classpath:/prompts/agent_repair.st")
+    private Resource agentRepairPromptResource;
+
+    @Value("classpath:/prompts/schemas/router_response.schema.json")
+    private Resource routerResponseSchemaResource;
+
     public Resource getSystemPrompt() {
         return systemPromptResource;
     }
@@ -44,5 +53,17 @@ public class PromptService {
 
     public Resource getCategoryDetectionPrompt() {
         return categoryDetectionPromptResource;
+    }
+
+    public Resource getAgentPlannerPrompt() {
+        return agentPlannerPromptResource;
+    }
+
+    public Resource getAgentRepairPrompt() {
+        return agentRepairPromptResource;
+    }
+
+    public Resource getRouterResponseSchema() {
+        return routerResponseSchemaResource;
     }
 }
