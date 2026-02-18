@@ -9,6 +9,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/supervisor/escalations")
 @RequiredArgsConstructor
@@ -36,6 +38,22 @@ public class SupervisorApiController {
     ) {
         return ticketEscalationService.getEscalationDetail(
             escalationId
+        );
+    }
+
+    @GetMapping("/assignable-supervisors")
+    public List<ApiDtos.AssignableSupervisorOption> assignableSupervisors() {
+        return ticketEscalationService.listAssignableSupervisors();
+    }
+
+    @PatchMapping("/{escalationId}/assign-supervisor")
+    public void assignSupervisor(
+        @PathVariable Long escalationId,
+        @Valid @RequestBody ApiDtos.AssignEscalationSupervisorRequest request
+    ) throws BindException {
+        ticketEscalationService.assignSupervisor(
+            escalationId,
+            request.supervisorId()
         );
     }
 

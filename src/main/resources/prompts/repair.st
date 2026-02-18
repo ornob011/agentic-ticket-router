@@ -35,6 +35,7 @@ STRICT RULES:
 - Return ONLY JSON object, no markdown, no explanations
 - Extract values from the ACTUAL ticket content
 - Do NOT use example-based responses
+- Keep `rationale_tags` evidence-based and do not default to "latest_message" unless it is explicitly justified by the ticket content
 
 NEGATIVE EXAMPLES (DO NOT OUTPUT THESE):
 

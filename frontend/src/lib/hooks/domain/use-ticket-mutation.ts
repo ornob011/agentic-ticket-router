@@ -41,6 +41,12 @@ type ResolveEscalationVariables = {
   resolutionNotes: string;
 };
 
+type AssignEscalationSupervisorVariables = {
+  escalationId: number;
+  supervisorId: number;
+  supervisorName?: string;
+};
+
 export function useCreateTicketMutation() {
   return useApiMutation({
     mutationFn: async (variables: CreateTicketVariables) => {
@@ -114,6 +120,21 @@ export function useResolveEscalationMutation() {
       }),
     onSuccessMessage: "Escalation resolved",
     onErrorMessage: "Failed to resolve escalation",
+    revalidate: true,
+  });
+}
+
+export function useAssignEscalationSupervisorMutation() {
+  return useApiMutation({
+    mutationFn: (variables: AssignEscalationSupervisorVariables) =>
+      api.patch(endpoints.supervisor.assignSupervisor(variables.escalationId), {
+        supervisorId: variables.supervisorId,
+      }),
+    onSuccessMessage: (_, variables) =>
+      variables.supervisorName
+        ? `Assigned supervisor: ${variables.supervisorName}`
+        : "Escalation supervisor updated",
+    onErrorMessage: "Failed to assign escalation supervisor",
     revalidate: true,
   });
 }
