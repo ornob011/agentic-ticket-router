@@ -13,6 +13,8 @@ RULES:
 - Never output unknown enum values.
 - If enum is invalid or missing, replace it with the closest semantically valid value from the provided enum lists while preserving intent and safety.
 - Output must be directly deserializable into RouterResponse.
+- Follow all system-level JSON/type/format constraints.
+- Ensure confidence is a JSON number in [0.0, 1.0].
 
 OUTPUT:
 - JSON only. No markdown.
