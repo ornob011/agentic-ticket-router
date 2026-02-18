@@ -11,7 +11,6 @@ import com.dsi.support.agenticrouter.service.ai.PromptService;
 import com.dsi.support.agenticrouter.service.ai.TokenCountService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +21,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.converter.MarkdownCodeBlockCleaner;
 import org.springframework.ai.converter.ResponseTextCleaner;
+import org.springframework.boot.json.JacksonJsonParser;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
@@ -35,6 +35,8 @@ import java.util.stream.Collectors;
 public class RoutingLlmClient implements RoutingModelClient {
 
     private static final ResponseTextCleaner RESPONSE_TEXT_CLEANER = new MarkdownCodeBlockCleaner();
+    private static final JacksonJsonParser JSON_PARSER = new JacksonJsonParser();
+
     private final ChatModel chatModel;
     private final PromptService promptService;
     private final ObjectMapper objectMapper;
@@ -151,13 +153,11 @@ public class RoutingLlmClient implements RoutingModelClient {
 
         Objects.requireNonNull(responseText);
 
-        try {
-            return objectMapper.readTree(
-                RESPONSE_TEXT_CLEANER.clean(responseText)
-            );
-        } catch (JsonProcessingException exception) {
-            throw new IllegalStateException("Failed to parse router response JSON", exception);
-        }
+        Object parsedJson = JSON_PARSER.parseMap(
+            RESPONSE_TEXT_CLEANER.clean(responseText)
+        );
+
+        return objectMapper.valueToTree(parsedJson);
     }
 
     private String getLatestCustomerMessage(
