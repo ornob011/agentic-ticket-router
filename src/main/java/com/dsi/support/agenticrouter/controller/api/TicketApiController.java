@@ -86,7 +86,7 @@ public class TicketApiController {
     }
 
     @PostMapping("/{ticketId}/replies")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT') and @ticketAuthorizationService.canAccessTicket(#ticketId)")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT', 'SUPERVISOR', 'ADMIN') and @ticketAuthorizationService.canAccessTicket(#ticketId)")
     public void addReply(
         @PathVariable Long ticketId,
         @Valid @RequestBody ApiDtos.TicketReplyRequest request
