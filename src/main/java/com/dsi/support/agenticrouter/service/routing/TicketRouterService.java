@@ -9,7 +9,6 @@ import com.dsi.support.agenticrouter.service.ai.ModelService;
 import com.dsi.support.agenticrouter.service.ai.PromptService;
 import com.dsi.support.agenticrouter.service.ai.TokenCountService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -128,22 +127,19 @@ public class TicketRouterService {
         JsonNode baseRoutingJson,
         Long ticketId
     ) {
-        try {
-            return objectMapper.treeToValue(
-                baseRoutingJson,
-                RouterResponse.class
-            );
-        } catch (JsonProcessingException exception) {
-            log.error(
-                "RoutingDecision({}) SupportTicket(id:{}) Outcome(reason:{})",
-                OperationalLogContext.PHASE_FAIL,
-                ticketId,
-                "response_json_parse_failed",
-                exception
-            );
+        RouterResponse routerResponse = objectMapper.convertValue(
+            baseRoutingJson,
+            RouterResponse.class
+        );
 
-            throw new IllegalStateException("Failed to map router response JSON", exception);
-        }
+        log.debug(
+            "RoutingDecision({}) SupportTicket(id:{}) Outcome(reason:{})",
+            OperationalLogContext.PHASE_DECISION,
+            ticketId,
+            "response_json_mapped"
+        );
+
+        return routerResponse;
     }
 
     public RouterResponse routingFallback(
@@ -184,10 +180,7 @@ public class TicketRouterService {
                                                         .draftReply(null)
                                                         .rationaleTags(
                                                             Collections.singletonList(
-                                                                String.format(
-                                                                    "MODEL_ERROR:%s",
-                                                                    throwable.getMessage()
-                                                                )
+                                                                "MODEL_ERROR"
                                                             )
                                                         )
                                                         .build();
