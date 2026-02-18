@@ -5,6 +5,7 @@ import com.dsi.support.agenticrouter.service.routing.RouterOrchestrator;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.bsc.langgraph4j.GraphStateException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -20,7 +21,7 @@ public class TicketRoutingListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleTicketCreated(
         TicketCreatedEvent event
-    ) throws BindException {
+    ) throws BindException, GraphStateException {
         log.info(
             "TicketCreatedEventHandle({}) SupportTicket(id:{})",
             OperationalLogContext.PHASE_START,
