@@ -7,9 +7,7 @@ import com.dsi.support.agenticrouter.enums.NextAction;
 import com.dsi.support.agenticrouter.enums.TicketCategory;
 import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
-import com.dsi.support.agenticrouter.service.ai.ChatClientFactory;
-import com.dsi.support.agenticrouter.service.ai.PromptService;
-import com.dsi.support.agenticrouter.service.ai.TokenCountService;
+import com.dsi.support.agenticrouter.service.ai.*;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -18,11 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.converter.MarkdownCodeBlockCleaner;
-import org.springframework.ai.converter.ResponseTextCleaner;
-import org.springframework.boot.json.JacksonJsonParser;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
@@ -35,12 +29,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AgentPlannerLlmClient {
 
-    private static final ResponseTextCleaner RESPONSE_TEXT_CLEANER = new MarkdownCodeBlockCleaner();
-    private static final JacksonJsonParser JSON_PARSER = new JacksonJsonParser();
-
     private final ChatModel chatModel;
     private final PromptService promptService;
-    private final ChatClientFactory chatClientFactory;
+    private final LlmPromptCaller llmPromptCaller;
+    private final LlmResponseTextExtractor llmResponseTextExtractor;
+    private final LlmJsonResponseParser llmJsonResponseParser;
     private final ObjectMapper objectMapper;
     private final TokenCountService tokenCountService;
 
@@ -58,28 +51,27 @@ public class AgentPlannerLlmClient {
             routerRequest.getRelevantArticles()
         );
 
-        ChatClient.ChatClientRequestSpec requestSpec = chatClientFactory.create(chatModel)
-                                                                        .prompt()
-                                                                        .system(promptService.getSystemPrompt())
-                                                                        .user(promptUserSpec -> promptUserSpec
-                                                                            .text(promptService.getAgentPlannerPrompt())
-                                                                            .param("category", promptValues.category())
-                                                                            .param("priority", promptValues.priority())
-                                                                            .param("queue", promptValues.queue())
-                                                                            .param("next_action", promptValues.nextAction())
-                                                                            .param("ticket_no", routerRequest.getTicketNo())
-                                                                            .param("subject", routerRequest.getSubject())
-                                                                            .param("customer_name", routerRequest.getCustomerName())
-                                                                            .param("customer_tier", routerRequest.getCustomerTier())
-                                                                            .param("initial_message", routerRequest.getInitialMessage())
-                                                                            .param("conversation_history", routerRequest.getConversationHistory())
-                                                                            .param("analysis", routerRequest.getAnalysis())
-                                                                            .param("latest_customer_message", latestCustomerMessage)
-                                                                            .param("relevant_articles", relevantArticles)
-                                                                        );
-
-        String plannerRawJson = requestSpec.call()
-                                           .content();
+        String plannerRawJson = llmResponseTextExtractor.extractRequiredContent(
+            llmPromptCaller.call(
+                chatModel,
+                promptUserSpec -> promptUserSpec
+                    .text(promptService.getAgentPlannerPrompt())
+                    .param("category", promptValues.category())
+                    .param("priority", promptValues.priority())
+                    .param("queue", promptValues.queue())
+                    .param("next_action", promptValues.nextAction())
+                    .param("ticket_no", routerRequest.getTicketNo())
+                    .param("subject", routerRequest.getSubject())
+                    .param("customer_name", routerRequest.getCustomerName())
+                    .param("customer_tier", routerRequest.getCustomerTier())
+                    .param("initial_message", routerRequest.getInitialMessage())
+                    .param("conversation_history", routerRequest.getConversationHistory())
+                    .param("analysis", routerRequest.getAnalysis())
+                    .param("latest_customer_message", latestCustomerMessage)
+                    .param("relevant_articles", relevantArticles)
+            ),
+            "agent_planner"
+        );
 
         log.info(
             "AgentPlanner({}) SupportTicket(id:{}) Outcome(rawTokensEst:{})",
@@ -88,9 +80,7 @@ public class AgentPlannerLlmClient {
             tokenCountService.countTokens(plannerRawJson)
         );
 
-        return RESPONSE_TEXT_CLEANER.clean(
-            Objects.requireNonNull(plannerRawJson)
-        );
+        return plannerRawJson;
     }
 
     public String repairPlan(
@@ -110,22 +100,21 @@ public class AgentPlannerLlmClient {
             validationError
         );
 
-        ChatClient.ChatClientRequestSpec requestSpec = chatClientFactory.create(chatModel)
-                                                                        .prompt()
-                                                                        .system(promptService.getSystemPrompt())
-                                                                        .user(promptUserSpec -> promptUserSpec
-                                                                            .text(promptService.getAgentRepairPrompt())
-                                                                            .param("planner_raw_json", normalizedPlannerRawJson)
-                                                                            .param("validation_error", normalizedValidationError)
-                                                                            .param("category", promptValues.category())
-                                                                            .param("priority", promptValues.priority())
-                                                                            .param("queue", promptValues.queue())
-                                                                            .param("next_action", promptValues.nextAction())
-                                                                            .param("ticket_no", routerRequest.getTicketNo())
-                                                                        );
-
-        String repairedJson = requestSpec.call()
-                                         .content();
+        String repairedJson = llmResponseTextExtractor.extractRequiredContent(
+            llmPromptCaller.call(
+                chatModel,
+                promptUserSpec -> promptUserSpec
+                    .text(promptService.getAgentRepairPrompt())
+                    .param("planner_raw_json", normalizedPlannerRawJson)
+                    .param("validation_error", normalizedValidationError)
+                    .param("category", promptValues.category())
+                    .param("priority", promptValues.priority())
+                    .param("queue", promptValues.queue())
+                    .param("next_action", promptValues.nextAction())
+                    .param("ticket_no", routerRequest.getTicketNo())
+            ),
+            "agent_planner_repair"
+        );
 
         log.info(
             "AgentPlannerRepair({}) SupportTicket(id:{}) Outcome(repairedTokensEst:{})",
@@ -134,15 +123,13 @@ public class AgentPlannerLlmClient {
             tokenCountService.countTokens(repairedJson)
         );
 
-        return RESPONSE_TEXT_CLEANER.clean(
-            Objects.requireNonNull(repairedJson)
-        );
+        return repairedJson;
     }
 
     public RouterResponse mapUnchecked(
         String candidateJson
     ) {
-        JsonNode jsonNode = parseJsonNode(
+        JsonNode jsonNode = llmJsonResponseParser.parseJsonObjectToNode(
             candidateJson
         );
 
@@ -205,21 +192,6 @@ public class AgentPlannerLlmClient {
                            article.getPriority()
                        ))
                        .collect(Collectors.joining("\n"));
-    }
-
-    private JsonNode parseJsonNode(
-        String rawPlannerJson
-    ) {
-        String normalizedPlannerJson = Objects.requireNonNullElse(
-            rawPlannerJson,
-            "{}"
-        );
-
-        Object parsedJsonObject = JSON_PARSER.parseMap(
-            RESPONSE_TEXT_CLEANER.clean(normalizedPlannerJson)
-        );
-
-        return objectMapper.valueToTree(parsedJsonObject);
     }
 
     private EnumPromptValues enumPromptValues() {

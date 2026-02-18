@@ -9,8 +9,9 @@ import com.dsi.support.agenticrouter.enums.TicketCategory;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
-import com.dsi.support.agenticrouter.service.ai.ChatClientFactory;
 import com.dsi.support.agenticrouter.service.ai.LlmOutputService;
+import com.dsi.support.agenticrouter.service.ai.LlmPromptCaller;
+import com.dsi.support.agenticrouter.service.ai.LlmResponseTextExtractor;
 import com.dsi.support.agenticrouter.service.ai.PromptService;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
@@ -20,8 +21,7 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.ollama.OllamaChatModel;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,13 +36,14 @@ import java.util.stream.Collectors;
 @Slf4j
 public class MessageCategoryService {
 
-    private final OllamaChatModel ollamaChatModel;
+    private final ChatModel chatModel;
     private final LlmOutputService llmOutputService;
     private final AuditService auditService;
     private final PromptService promptService;
     private final SupportTicketRepository supportTicketRepository;
     private final TicketMessageRepository ticketMessageRepository;
-    private final ChatClientFactory chatClientFactory;
+    private final LlmPromptCaller llmPromptCaller;
+    private final LlmResponseTextExtractor llmResponseTextExtractor;
 
     public CategoryDetectionResult detectCategory(
         String content,
@@ -55,10 +56,6 @@ public class MessageCategoryService {
             OperationalLogContext.PHASE_START,
             supportTicketId,
             StringUtils.length(content)
-        );
-
-        ChatClient chatClient = chatClientFactory.create(
-            ollamaChatModel
         );
 
         SupportTicket supportTicket = supportTicketRepository.findById(supportTicketId)
@@ -81,22 +78,24 @@ public class MessageCategoryService {
             ticketMessages
         );
 
-        String responseText = chatClient.prompt()
-                                        .system(promptService.getSystemPrompt())
-                                        .user(userSpec -> userSpec
-                                            .text(promptService.getCategoryDetectionPrompt())
-                                            .param("content", content)
-                                            .param("category", categoryValues)
-                                            .param(
-                                                "current_category",
-                                                Objects.requireNonNullElse(
-                                                    supportTicket.getCurrentCategory(),
-                                                    TicketCategory.OTHER
-                                                ).name()
-                                            )
-                                            .param("conversation_history", conversationHistory))
-                                        .call()
-                                        .content();
+        String responseText = llmResponseTextExtractor.extractRequiredContent(
+            llmPromptCaller.call(
+                chatModel,
+                userSpec -> userSpec
+                    .text(promptService.getCategoryDetectionPrompt())
+                    .param("content", content)
+                    .param("category", categoryValues)
+                    .param(
+                        "current_category",
+                        Objects.requireNonNullElse(
+                            supportTicket.getCurrentCategory(),
+                            TicketCategory.OTHER
+                        ).name()
+                    )
+                    .param("conversation_history", conversationHistory)
+            ),
+            "category_detection"
+        );
 
         long latencyMs = System.currentTimeMillis() - startTime;
 

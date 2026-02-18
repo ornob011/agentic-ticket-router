@@ -2,26 +2,19 @@ package com.dsi.support.agenticrouter.service.agentruntime.planner;
 
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.enums.AgentValidationErrorCode;
+import com.dsi.support.agenticrouter.service.ai.LlmJsonResponseParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SpecVersion;
-import com.networknt.schema.ValidationMessage;
-import com.networknt.schema.ValidatorTypeCode;
+import com.networknt.schema.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.json.JacksonJsonParser;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 public class AgentPlanSchemaValidator {
-
-    private static final JacksonJsonParser JSON_PARSER = new JacksonJsonParser();
 
     private static final Map<String, AgentValidationErrorCode> ERROR_CODE_BY_VALIDATOR_TYPE = Map.of(
         ValidatorTypeCode.REQUIRED.getValue(),
@@ -40,20 +33,22 @@ public class AgentPlanSchemaValidator {
     );
 
     private final ObjectMapper objectMapper;
+    private final LlmJsonResponseParser llmJsonResponseParser;
     private final RouterResponseSchemaProvider routerResponseSchemaProvider;
 
     public AgentPlanValidationResult validate(
         String rawPlannerJson
     ) {
-        JsonNode responseJson = parseJsonNode(
+        JsonNode responseJson = llmJsonResponseParser.parseJsonObjectToNode(
             rawPlannerJson
         );
 
         JsonSchema schema = JsonSchemaFactory.getInstance(
-            SpecVersion.VersionFlag.V202012
-        ).getSchema(
-            routerResponseSchemaProvider.runtimeSchemaJson()
-        );
+                                                 SpecVersion.VersionFlag.V202012
+                                             )
+                                             .getSchema(
+                                                 routerResponseSchemaProvider.runtimeSchemaJson()
+                                             );
 
         Set<ValidationMessage> validationMessages = schema.validate(
             responseJson
@@ -85,19 +80,6 @@ public class AgentPlanSchemaValidator {
             jsonNode,
             RouterResponse.class
         );
-    }
-
-    private JsonNode parseJsonNode(
-        String rawPlannerJson
-    ) {
-        String normalizedPlannerJson = Objects.requireNonNullElse(
-            rawPlannerJson,
-            "{}"
-        );
-
-        Object parsedJsonObject = JSON_PARSER.parseMap(normalizedPlannerJson);
-
-        return objectMapper.valueToTree(parsedJsonObject);
     }
 
     private AgentValidationErrorCode errorCodeFor(
