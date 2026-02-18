@@ -23,6 +23,7 @@ public class AgentSafetyEvaluator {
         RouterResponse safeResponse = policyEngine.applyPolicyGates(
             routerResponse
         );
+
         List<String> policyReasons = new ArrayList<>();
 
         collectOverrideReasons(
@@ -30,9 +31,11 @@ public class AgentSafetyEvaluator {
             safeResponse,
             policyReasons
         );
+
         boolean policyOverridden = !policyReasons.isEmpty();
 
         AgentSafetyDecisionStatus status = AgentSafetyDecisionStatus.ALLOW;
+
         if (Objects.nonNull(safeResponse.getNextAction()) && safeResponse.getNextAction().requiresHumanIntervention()) {
             status = AgentSafetyDecisionStatus.REQUIRES_HUMAN_REVIEW;
             policyReasons.add(AgentPolicyReason.HUMAN_INTERVENTION_REQUIRED.code());
@@ -62,18 +65,21 @@ public class AgentSafetyEvaluator {
             AgentPolicyReason.NEXT_ACTION_OVERRIDDEN,
             policyReasons
         );
+
         addReasonIfChanged(
             sourceResponse.getQueue(),
             safeResponse.getQueue(),
             AgentPolicyReason.QUEUE_OVERRIDDEN,
             policyReasons
         );
+
         addReasonIfChanged(
             sourceResponse.getPriority(),
             safeResponse.getPriority(),
             AgentPolicyReason.PRIORITY_OVERRIDDEN,
             policyReasons
         );
+
         addReasonIfChanged(
             sourceResponse.getCategory(),
             safeResponse.getCategory(),

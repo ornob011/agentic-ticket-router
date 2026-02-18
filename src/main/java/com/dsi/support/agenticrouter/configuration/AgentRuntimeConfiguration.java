@@ -25,7 +25,6 @@ public class AgentRuntimeConfiguration {
 
     private boolean schemaEnforcementEnabled = true;
     private boolean repairEnabled = true;
-    private boolean providerStructuredOutputEnabled = true;
 
     @Min(0)
     private int plannerValidationRetries = 1;

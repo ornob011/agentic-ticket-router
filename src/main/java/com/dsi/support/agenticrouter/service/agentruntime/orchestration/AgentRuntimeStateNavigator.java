@@ -7,7 +7,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 @Component
-public class AgentRuntimeStateCodec {
+public class AgentRuntimeStateNavigator {
 
     public AgentRuntimeStateUpdate initialState() {
         return AgentRuntimeStateUpdate.initial();
@@ -26,8 +26,8 @@ public class AgentRuntimeStateCodec {
         AgentState agentState
     ) {
         return AgentRuntimeStateKey.NEXT_ROUTE.<String>read(
-                                       agentState
-                                   ).map(AgentRuntimeGraphRoute::fromId)
-                                              .orElse(AgentRuntimeGraphRoute.TO_TERMINATE);
+            agentState
+        ).map(AgentRuntimeGraphRoute::fromId)
+         .orElse(AgentRuntimeGraphRoute.TO_TERMINATE);
     }
 }

@@ -44,84 +44,84 @@ public class AgentRuntimeTraceService {
                                                                  )
                                                              );
 
-        AgentRuntimeRun run = AgentRuntimeRun.builder()
-                                             .ticket(supportTicket)
-                                             .correlationId(MDC.get(AgentRuntimeConstants.CORRELATION_ID_MDC_KEY))
-                                             .status(AgentRuntimeRunStatus.RUNNING)
-                                             .startedAt(Instant.now())
-                                             .build();
+        AgentRuntimeRun agentRuntimeRun = AgentRuntimeRun.builder()
+                                                         .ticket(supportTicket)
+                                                         .correlationId(MDC.get(AgentRuntimeConstants.CORRELATION_ID_MDC_KEY))
+                                                         .status(AgentRuntimeRunStatus.RUNNING)
+                                                         .startedAt(Instant.now())
+                                                         .build();
 
-        run = agentRuntimeRunRepository.save(run);
+        agentRuntimeRun = agentRuntimeRunRepository.save(agentRuntimeRun);
 
         log.info(
             "AgentTrace({}) SupportTicket(id:{}) AgentRun(id:{},status:{})",
             OperationalLogContext.PHASE_PERSIST,
             ticketId,
-            run.getId(),
-            run.getStatus()
+            agentRuntimeRun.getId(),
+            agentRuntimeRun.getStatus()
         );
 
-        return run;
+        return agentRuntimeRun;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordStep(
-        AgentRuntimeStepTraceCommand command
+        AgentRuntimeStepTraceCommand stepTraceCommand
     ) {
-        AgentRuntimeRun run = agentRuntimeRunRepository.findById(command.runId())
-                                                       .orElseThrow(
-                                                           DataNotFoundException.supplier(
-                                                               AgentRuntimeRun.class,
-                                                               command.runId()
-                                                           )
-                                                       );
+        AgentRuntimeRun agentRuntimeRun = agentRuntimeRunRepository.findById(stepTraceCommand.runId())
+                                                                   .orElseThrow(
+                                                                       DataNotFoundException.supplier(
+                                                                           AgentRuntimeRun.class,
+                                                                           stepTraceCommand.runId()
+                                                                       )
+                                                                   );
 
-        AgentRuntimeStep step = AgentRuntimeStep.builder()
-                                                .run(run)
-                                                .stepNo(command.stepNo())
-                                                .stepType(command.stepType())
-                                                .plannerOutput(toJson(command.plannerOutput()))
-                                                .validatedResponse(toJson(command.validatedResponse()))
-                                                .safetyDecision(toJson(command.safetyDecision()))
-                                                .toolResult(toJson(command.toolResult()))
-                                                .latencyMs(command.latencyMs())
-                                                .success(command.success())
-                                                .errorCode(command.errorCode())
-                                                .errorMessage(command.errorMessage())
-                                                .build();
+        AgentRuntimeStep agentRuntimeStep = AgentRuntimeStep.builder()
+                                                            .run(agentRuntimeRun)
+                                                            .stepNo(stepTraceCommand.stepNo())
+                                                            .stepType(stepTraceCommand.stepType())
+                                                            .plannerOutput(toJson(stepTraceCommand.plannerOutput()))
+                                                            .validatedResponse(toJson(stepTraceCommand.validatedResponse()))
+                                                            .safetyDecision(toJson(stepTraceCommand.safetyDecision()))
+                                                            .toolResult(toJson(stepTraceCommand.toolResult()))
+                                                            .latencyMs(stepTraceCommand.latencyMs())
+                                                            .success(stepTraceCommand.success())
+                                                            .errorCode(stepTraceCommand.errorCode())
+                                                            .errorMessage(stepTraceCommand.errorMessage())
+                                                            .build();
 
-        agentRuntimeStepRepository.save(step);
+        agentRuntimeStepRepository.save(agentRuntimeStep);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void finishRun(
-        AgentRuntimeRunFinishCommand command
+        AgentRuntimeRunFinishCommand runFinishCommand
     ) {
-        AgentRuntimeRun run = agentRuntimeRunRepository.findById(command.runId())
-                                                       .orElseThrow(
-                                                           DataNotFoundException.supplier(
-                                                               AgentRuntimeRun.class,
-                                                               command.runId()
-                                                           )
-                                                       );
+        AgentRuntimeRun agentRuntimeRun = agentRuntimeRunRepository.findById(runFinishCommand.runId())
+                                                                   .orElseThrow(
+                                                                       DataNotFoundException.supplier(
+                                                                           AgentRuntimeRun.class,
+                                                                           runFinishCommand.runId()
+                                                                       )
+                                                                   );
 
-        run.setStatus(command.status());
-        run.setTerminationReason(command.terminationReason());
-        run.setTotalSteps(command.totalSteps());
-        run.setFallbackUsed(command.fallbackUsed());
-        run.setErrorCode(command.errorCode());
-        run.setErrorMessage(command.errorMessage());
-        run.setEndedAt(Instant.now());
+        agentRuntimeRun.setStatus(runFinishCommand.status());
+        agentRuntimeRun.setTerminationReason(runFinishCommand.terminationReason());
+        agentRuntimeRun.setTotalSteps(runFinishCommand.totalSteps());
+        agentRuntimeRun.setFallbackUsed(runFinishCommand.fallbackUsed());
+        agentRuntimeRun.setErrorCode(runFinishCommand.errorCode());
+        agentRuntimeRun.setErrorMessage(runFinishCommand.errorMessage());
+        agentRuntimeRun.setEndedAt(Instant.now());
 
-        agentRuntimeRunRepository.save(run);
+        agentRuntimeRunRepository.save(agentRuntimeRun);
 
         log.info(
             "AgentTrace({}) AgentRun(id:{},status:{},termination:{},steps:{})",
             OperationalLogContext.PHASE_COMPLETE,
-            run.getId(),
-            run.getStatus(),
-            run.getTerminationReason(),
-            run.getTotalSteps()
+            agentRuntimeRun.getId(),
+            agentRuntimeRun.getStatus(),
+            agentRuntimeRun.getTerminationReason(),
+            agentRuntimeRun.getTotalSteps()
         );
     }
 

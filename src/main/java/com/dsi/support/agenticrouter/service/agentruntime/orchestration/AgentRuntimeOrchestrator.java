@@ -36,18 +36,18 @@ public class AgentRuntimeOrchestrator {
 
     private final AgentPlannerClient agentPlannerClient;
     private final AgentSafetyEvaluator agentSafetyEvaluator;
-    private final AgentTerminationController agentTerminationController;
+    private final AgentRuntimeTerminationPolicy terminationPolicy;
     private final AgentToolExecutor agentToolExecutor;
     private final AgentRuntimeConfiguration agentRuntimeConfiguration;
-    private final AgentRuntimeStateCodec agentRuntimeStateCodec;
+    private final AgentRuntimeStateNavigator stateNavigator;
     private final AgentDecisionValidator agentDecisionValidator;
     private final AgentRuntimeTraceService agentRuntimeTraceService;
 
     public RouterResponse execute(
         SupportTicket supportTicket,
         RouterRequest routerRequest
-    ) throws GraphStateException, BindException {
-        AgentRuntimeRun runtimeRun = agentRuntimeTraceService.startRun(
+    ) throws GraphStateException {
+        AgentRuntimeRun startedRuntimeRun = agentRuntimeTraceService.startRun(
             supportTicket.getId()
         );
 
@@ -55,9 +55,11 @@ public class AgentRuntimeOrchestrator {
             supportTicket.getId(),
             routerRequest
         );
+
         agentGraphState.setRuntimeRunId(
-            runtimeRun.getId()
+            startedRuntimeRun.getId()
         );
+
         StateGraph<AgentState> stateGraph = new StateGraph<>(AgentState::new);
 
         stateGraph.addNode(
@@ -114,14 +116,17 @@ public class AgentRuntimeOrchestrator {
             StateGraph.START,
             AgentRuntimeGraphNode.PLAN.id()
         );
+
         stateGraph.addEdge(
             AgentRuntimeGraphNode.PLAN.id(),
             AgentRuntimeGraphNode.SAFETY.id()
         );
+
         stateGraph.addEdge(
             AgentRuntimeGraphNode.SAFETY.id(),
             AgentRuntimeGraphNode.TOOL_EXECUTION.id()
         );
+
         stateGraph.addEdge(
             AgentRuntimeGraphNode.TOOL_EXECUTION.id(),
             AgentRuntimeGraphNode.REFLECT.id()
@@ -130,7 +135,7 @@ public class AgentRuntimeOrchestrator {
         stateGraph.addConditionalEdges(
             AgentRuntimeGraphNode.REFLECT.id(),
             state -> CompletableFuture.completedFuture(
-                agentRuntimeStateCodec.nextRoute(state).id()
+                stateNavigator.nextRoute(state).id()
             ),
             java.util.Map.of(
                 AgentRuntimeGraphRoute.TO_PLAN.id(),
@@ -146,6 +151,7 @@ public class AgentRuntimeOrchestrator {
         );
 
         CompiledGraph<AgentState> compiledGraph = stateGraph.compile();
+
         compiledGraph.setMaxIterations(
             Math.max(
                 1,
@@ -154,14 +160,16 @@ public class AgentRuntimeOrchestrator {
         );
 
         AgentRuntimeRunStatus runStatus = AgentRuntimeRunStatus.FAILED;
+
         AgentTerminationReason terminationReason = AgentTerminationReason.PLAN_VALIDATION_FAILED;
 
         try {
             compiledGraph.invoke(
-                agentRuntimeStateCodec.initialState().asMap()
+                stateNavigator.initialState().asMap()
             );
 
             runStatus = AgentRuntimeRunStatus.COMPLETED;
+
             terminationReason = Objects.requireNonNullElse(
                 agentGraphState.getTerminationReason(),
                 AgentTerminationReason.GOAL_REACHED
@@ -174,7 +182,7 @@ public class AgentRuntimeOrchestrator {
         } finally {
             agentRuntimeTraceService.finishRun(
                 new AgentRuntimeRunFinishCommand(
-                    runtimeRun.getId(),
+                    startedRuntimeRun.getId(),
                     runStatus,
                     terminationReason,
                     agentGraphState.getStepCount(),
@@ -197,20 +205,27 @@ public class AgentRuntimeOrchestrator {
             routerRequest,
             supportTicket.getId()
         );
+
         RouterResponse plannedResponse = plannerDecision.routerResponse();
+
         agentDecisionValidator.validate(plannedResponse);
+
         agentGraphState.setPlannerRawJson(
             plannerDecision.plannerRawJson()
         );
+
         agentGraphState.setFallbackUsed(
             plannerDecision.fallbackUsed()
         );
+
         agentGraphState.setErrorCode(
             plannerDecision.errorCode()
         );
+
         agentGraphState.setErrorMessage(
             plannerDecision.errorMessage()
         );
+
         agentGraphState.setPlannedResponse(
             plannedResponse
         );
@@ -258,15 +273,19 @@ public class AgentRuntimeOrchestrator {
         AgentSafetyDecision safetyDecision = agentSafetyEvaluator.evaluate(
             agentGraphState.getPlannedResponse()
         );
+
         RouterResponse safeResponse = safetyDecision.response();
+
         agentDecisionValidator.validate(safeResponse);
 
         agentGraphState.setSafetyDecision(
             safetyDecision
         );
+
         agentGraphState.recordDecision(
             safeResponse
         );
+
         agentGraphState.setFinalResponse(
             safeResponse
         );
@@ -321,6 +340,7 @@ public class AgentRuntimeOrchestrator {
                 supportTicket,
                 safeResponse
             );
+
             agentGraphState.setToolExecutionResult(
                 AgentToolExecutionResult.executed()
             );
@@ -375,17 +395,20 @@ public class AgentRuntimeOrchestrator {
             agentGraphState.getFinalResponse(),
             "agentRuntime.safeResponse"
         );
+
         AgentSafetyDecision safetyDecision = Objects.requireNonNull(
             agentGraphState.getSafetyDecision(),
             "agentRuntime.safetyDecision"
         );
 
-        boolean shouldTerminate = agentTerminationController.shouldTerminate(
-            agentGraphState
-        ) || safetyDecision.status().requiresHumanReview()
-                                  || safeResponse.getNextAction().requiresHumanIntervention();
+        boolean isPolicyReached = terminationPolicy.shouldTerminate(agentGraphState);
+        boolean needsReview = safetyDecision.status().requiresHumanReview();
+        boolean actionBlocked = safeResponse.getNextAction().requiresHumanIntervention();
+
+        boolean shouldTerminate = isPolicyReached || needsReview || actionBlocked;
 
         AgentRuntimeGraphRoute nextRoute = AgentRuntimeGraphRoute.TO_PLAN;
+
         if (shouldTerminate) {
             nextRoute = AgentRuntimeGraphRoute.TO_TERMINATE;
         }
@@ -470,7 +493,7 @@ public class AgentRuntimeOrchestrator {
             return AgentTerminationReason.SAFETY_BLOCKED;
         }
 
-        if (agentTerminationController.shouldTerminate(agentGraphState)) {
+        if (terminationPolicy.shouldTerminate(agentGraphState)) {
             return AgentTerminationReason.BUDGET_EXCEEDED;
         }
 

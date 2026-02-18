@@ -24,15 +24,15 @@ public class AgentPlannerClient {
         RouterRequest routerRequest,
         Long ticketId
     ) {
-        String plannerRaw = agentPlannerLlmClient.requestPlan(
+        String plannerRawJson = agentPlannerLlmClient.requestPlan(
             routerRequest,
             ticketId
         );
 
-        String candidate = plannerRaw;
+        String candidateJson = plannerRawJson;
         if (agentRuntimeConfiguration.isRepairEnabled()) {
-            candidate = agentPlannerLlmClient.repairPlan(
-                plannerRaw,
+            candidateJson = agentPlannerLlmClient.repairPlan(
+                plannerRawJson,
                 null,
                 routerRequest,
                 ticketId
@@ -40,7 +40,7 @@ public class AgentPlannerClient {
         }
 
         AgentPlanValidationResult validationResult = agentRuntimeConfiguration.isSchemaEnforcementEnabled()
-            ? agentPlanSchemaValidator.validate(candidate)
+            ? agentPlanSchemaValidator.validate(candidateJson)
             : AgentPlanValidationResult.builder()
                                        .valid(true)
                                        .jsonNode(null)
@@ -61,14 +61,14 @@ public class AgentPlannerClient {
                 validationResult.errorMessage()
             );
 
-            candidate = agentPlannerLlmClient.repairPlan(
-                candidate,
+            candidateJson = agentPlannerLlmClient.repairPlan(
+                candidateJson,
                 validationResult.errorMessage(),
                 routerRequest,
                 ticketId
             );
             validationResult = agentPlanSchemaValidator.validate(
-                candidate
+                candidateJson
             );
             retries++;
         }
@@ -82,7 +82,7 @@ public class AgentPlannerClient {
             );
 
             return new AgentPlannerDecision(
-                plannerRaw,
+                plannerRawJson,
                 agentRuntimeFallbackService.humanReviewFallback(
                     AgentRuntimeConstants.PLANNER_VALIDATION_FAILED_PREFIX + validationResult.errorMessage()
                 ),
@@ -94,14 +94,14 @@ public class AgentPlannerClient {
 
         RouterResponse routerResponse = agentRuntimeConfiguration.isSchemaEnforcementEnabled()
             ? agentPlanSchemaValidator.map(validationResult.jsonNode())
-            : agentPlannerLlmClient.mapUnchecked(candidate);
+            : agentPlannerLlmClient.mapUnchecked(candidateJson);
 
         routerResponseContractValidator.validate(
             routerResponse
         );
 
         return new AgentPlannerDecision(
-            plannerRaw,
+            plannerRawJson,
             routerResponse,
             false,
             null,

@@ -1,6 +1,5 @@
 package com.dsi.support.agenticrouter.service.agentruntime.planner;
 
-import com.dsi.support.agenticrouter.configuration.AgentRuntimeConfiguration;
 import com.dsi.support.agenticrouter.dto.ArticleSearchResult;
 import com.dsi.support.agenticrouter.dto.RouterRequest;
 import com.dsi.support.agenticrouter.dto.RouterResponse;
@@ -11,7 +10,6 @@ import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.service.ai.ChatClientFactory;
 import com.dsi.support.agenticrouter.service.ai.PromptService;
 import com.dsi.support.agenticrouter.service.ai.TokenCountService;
-import com.dsi.support.agenticrouter.util.AgentRuntimeConstants;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -24,17 +22,11 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.converter.MarkdownCodeBlockCleaner;
 import org.springframework.ai.converter.ResponseTextCleaner;
-import org.springframework.ai.ollama.OllamaChatModel;
-import org.springframework.ai.ollama.api.OllamaChatOptions;
-import org.springframework.ai.openai.OpenAiChatModel;
-import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.openai.api.ResponseFormat;
 import org.springframework.boot.json.JacksonJsonParser;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -51,8 +43,6 @@ public class AgentPlannerLlmClient {
     private final ChatClientFactory chatClientFactory;
     private final ObjectMapper objectMapper;
     private final TokenCountService tokenCountService;
-    private final AgentRuntimeConfiguration agentRuntimeConfiguration;
-    private final RouterResponseSchemaProvider routerResponseSchemaProvider;
 
     public String requestPlan(
         RouterRequest routerRequest,
@@ -61,7 +51,9 @@ public class AgentPlannerLlmClient {
         String latestCustomerMessage = getLatestCustomerMessage(
             routerRequest
         );
+
         EnumPromptValues promptValues = enumPromptValues();
+
         String relevantArticles = formatRelevantArticles(
             routerRequest.getRelevantArticles()
         );
@@ -86,10 +78,8 @@ public class AgentPlannerLlmClient {
                                                                             .param("relevant_articles", relevantArticles)
                                                                         );
 
-        String plannerRawJson = applyProviderStructuredOutput(
-            requestSpec
-        ).call()
-         .content();
+        String plannerRawJson = requestSpec.call()
+                                           .content();
 
         log.info(
             "AgentPlanner({}) SupportTicket(id:{}) Outcome(rawTokensEst:{})",
@@ -110,10 +100,12 @@ public class AgentPlannerLlmClient {
         Long ticketId
     ) {
         EnumPromptValues promptValues = enumPromptValues();
+
         String normalizedPlannerRawJson = Objects.requireNonNullElse(
             plannerRawJson,
             StringUtils.EMPTY
         );
+
         String normalizedValidationError = normalizeValidationError(
             validationError
         );
@@ -132,10 +124,8 @@ public class AgentPlannerLlmClient {
                                                                             .param("ticket_no", routerRequest.getTicketNo())
                                                                         );
 
-        String repairedJson = applyProviderStructuredOutput(
-            requestSpec
-        ).call()
-         .content();
+        String repairedJson = requestSpec.call()
+                                         .content();
 
         log.info(
             "AgentPlannerRepair({}) SupportTicket(id:{}) Outcome(repairedTokensEst:{})",
@@ -165,8 +155,14 @@ public class AgentPlannerLlmClient {
     private String getLatestCustomerMessage(
         RouterRequest routerRequest
     ) {
-        String conversationHistory = StringUtils.defaultString(routerRequest.getConversationHistory());
-        String[] historyLines = StringUtils.splitPreserveAllTokens(conversationHistory, '\n');
+        String conversationHistory = StringUtils.defaultString(
+            routerRequest.getConversationHistory()
+        );
+
+        String[] historyLines = StringUtils.splitPreserveAllTokens(
+            conversationHistory,
+            '\n'
+        );
 
         if (Objects.isNull(historyLines) || historyLines.length == 0) {
             return StringNormalizationUtils.trimToEmpty(routerRequest.getInitialMessage());
@@ -211,54 +207,19 @@ public class AgentPlannerLlmClient {
                        .collect(Collectors.joining("\n"));
     }
 
-    private ChatClient.ChatClientRequestSpec applyProviderStructuredOutput(
-        ChatClient.ChatClientRequestSpec requestSpec
-    ) {
-        if (!agentRuntimeConfiguration.isProviderStructuredOutputEnabled()) {
-            return requestSpec;
-        }
-
-        Map<String, Object> runtimeSchema = routerResponseSchemaProvider.runtimeSchemaMap();
-
-        if (chatModel instanceof OpenAiChatModel) {
-            ResponseFormat responseFormat = ResponseFormat.builder()
-                                                          .type(ResponseFormat.Type.JSON_SCHEMA)
-                                                          .jsonSchema(ResponseFormat.JsonSchema.builder()
-                                                                                               .name(AgentRuntimeConstants.ROUTER_RESPONSE_SCHEMA_NAME)
-                                                                                               .schema(runtimeSchema)
-                                                                                               .strict(true)
-                                                                                               .build())
-                                                          .build();
-
-            OpenAiChatOptions options = OpenAiChatOptions.builder()
-                                                         .responseFormat(responseFormat)
-                                                         .temperature(0.0)
-                                                         .build();
-            return requestSpec.options(options);
-        }
-
-        if (chatModel instanceof OllamaChatModel) {
-            OllamaChatOptions options = OllamaChatOptions.builder()
-                                                         .format(runtimeSchema)
-                                                         .temperature(0.0)
-                                                         .build();
-            return requestSpec.options(options);
-        }
-
-        return requestSpec;
-    }
-
     private JsonNode parseJsonNode(
-        String rawJson
+        String rawPlannerJson
     ) {
-        String normalizedJson = Objects.requireNonNullElse(
-            rawJson,
+        String normalizedPlannerJson = Objects.requireNonNullElse(
+            rawPlannerJson,
             "{}"
         );
-        Object parsed = JSON_PARSER.parseMap(
-            RESPONSE_TEXT_CLEANER.clean(normalizedJson)
+
+        Object parsedJsonObject = JSON_PARSER.parseMap(
+            RESPONSE_TEXT_CLEANER.clean(normalizedPlannerJson)
         );
-        return objectMapper.valueToTree(parsed);
+
+        return objectMapper.valueToTree(parsedJsonObject);
     }
 
     private EnumPromptValues enumPromptValues() {

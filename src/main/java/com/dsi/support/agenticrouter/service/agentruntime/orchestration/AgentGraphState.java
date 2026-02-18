@@ -46,19 +46,18 @@ public class AgentGraphState {
     }
 
     public void recordDecision(
-        RouterResponse routerResponse
+        RouterResponse decisionResponse
     ) {
         stepCount++;
         decisions.add(
             AgentStepDecision.builder()
                              .step(stepCount)
-                             .nextAction(Objects.toString(routerResponse.getNextAction(), null))
-                             .queue(Objects.toString(routerResponse.getQueue(), null))
-                             .priority(Objects.toString(routerResponse.getPriority(), null))
-                             .confidence(routerResponse.getConfidence())
-                             .internalNote(routerResponse.getInternalNote())
+                             .nextAction(Objects.toString(decisionResponse.getNextAction(), null))
+                             .queue(Objects.toString(decisionResponse.getQueue(), null))
+                             .priority(Objects.toString(decisionResponse.getPriority(), null))
+                             .confidence(decisionResponse.getConfidence())
+                             .internalNote(decisionResponse.getInternalNote())
                              .build()
         );
     }
-
 }

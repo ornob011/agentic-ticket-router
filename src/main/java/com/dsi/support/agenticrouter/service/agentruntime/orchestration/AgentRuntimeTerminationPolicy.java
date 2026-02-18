@@ -9,7 +9,7 @@ import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
-public class AgentTerminationController {
+public class AgentRuntimeTerminationPolicy {
 
     private final AgentRuntimeConfiguration agentRuntimeConfiguration;
 
@@ -20,9 +20,10 @@ public class AgentTerminationController {
             return true;
         }
 
-        Instant startedAt = agentGraphState.getStartedAt();
+        Instant executionStartedAt = agentGraphState.getStartedAt();
+
         long elapsedMs = Duration.between(
-            startedAt,
+            executionStartedAt,
             Instant.now()
         ).toMillis();
 

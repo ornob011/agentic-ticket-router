@@ -8,10 +8,12 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
+import com.networknt.schema.ValidatorTypeCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.json.JacksonJsonParser;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -21,35 +23,58 @@ public class AgentPlanSchemaValidator {
 
     private static final JacksonJsonParser JSON_PARSER = new JacksonJsonParser();
 
+    private static final Map<String, AgentValidationErrorCode> ERROR_CODE_BY_VALIDATOR_TYPE = Map.of(
+        ValidatorTypeCode.REQUIRED.getValue(),
+        AgentValidationErrorCode.MISSING_FIELD,
+        ValidatorTypeCode.TYPE.getValue(),
+        AgentValidationErrorCode.INVALID_TYPE,
+        ValidatorTypeCode.ENUM.getValue(),
+        AgentValidationErrorCode.INVALID_ENUM
+    );
+
+    private static final Set<String> OUT_OF_RANGE_VALIDATOR_TYPES = Set.of(
+        ValidatorTypeCode.MINIMUM.getValue(),
+        ValidatorTypeCode.MAXIMUM.getValue(),
+        ValidatorTypeCode.EXCLUSIVE_MINIMUM.getValue(),
+        ValidatorTypeCode.EXCLUSIVE_MAXIMUM.getValue()
+    );
+
     private final ObjectMapper objectMapper;
     private final RouterResponseSchemaProvider routerResponseSchemaProvider;
 
     public AgentPlanValidationResult validate(
-        String rawJson
+        String rawPlannerJson
     ) {
-        JsonNode jsonNode = parseJsonNode(
-            rawJson
+        JsonNode responseJson = parseJsonNode(
+            rawPlannerJson
         );
+
         JsonSchema schema = JsonSchemaFactory.getInstance(
             SpecVersion.VersionFlag.V202012
-        ).getSchema(routerResponseSchemaProvider.runtimeSchemaJson());
-        Set<ValidationMessage> validationMessages = schema.validate(jsonNode);
+        ).getSchema(
+            routerResponseSchemaProvider.runtimeSchemaJson()
+        );
+
+        Set<ValidationMessage> validationMessages = schema.validate(
+            responseJson
+        );
 
         if (validationMessages.isEmpty()) {
             return AgentPlanValidationResult.builder()
                                             .valid(true)
                                             .errorCode(null)
                                             .errorMessage(null)
-                                            .jsonNode(jsonNode)
+                                            .jsonNode(responseJson)
                                             .build();
         }
 
-        ValidationMessage firstMessage = validationMessages.iterator().next();
+        ValidationMessage firstValidationMessage = validationMessages.iterator().next();
+
         return AgentPlanValidationResult.builder()
                                         .valid(false)
-                                        .errorCode(errorCodeFor(firstMessage))
-                                        .errorMessage(firstMessage.getMessage())
-                                        .jsonNode(jsonNode)
+                                        .errorCode(errorCodeFor(firstValidationMessage))
+                                        .errorMessage(firstValidationMessage.getMessage())
+                                        .jsonNode(responseJson)
                                         .build();
     }
 
@@ -63,40 +88,30 @@ public class AgentPlanSchemaValidator {
     }
 
     private JsonNode parseJsonNode(
-        String rawJson
+        String rawPlannerJson
     ) {
-        String normalizedJson = Objects.requireNonNullElse(
-            rawJson,
+        String normalizedPlannerJson = Objects.requireNonNullElse(
+            rawPlannerJson,
             "{}"
         );
-        Object parsed = JSON_PARSER.parseMap(normalizedJson);
-        return objectMapper.valueToTree(parsed);
+
+        Object parsedJsonObject = JSON_PARSER.parseMap(normalizedPlannerJson);
+
+        return objectMapper.valueToTree(parsedJsonObject);
     }
 
     private AgentValidationErrorCode errorCodeFor(
         ValidationMessage validationMessage
     ) {
-        String type = validationMessage.getType();
-        if (Objects.equals(type, "required")) {
-            return AgentValidationErrorCode.MISSING_FIELD;
-        }
+        String validatorType = validationMessage.getType();
 
-        if (Objects.equals(type, "type")) {
-            return AgentValidationErrorCode.INVALID_TYPE;
-        }
-
-        if (Objects.equals(type, "enum")) {
-            return AgentValidationErrorCode.INVALID_ENUM;
-        }
-
-        if (Objects.equals(type, "minimum")
-            || Objects.equals(type, "maximum")
-            || Objects.equals(type, "exclusiveMinimum")
-            || Objects.equals(type, "exclusiveMaximum")
-        ) {
+        if (OUT_OF_RANGE_VALIDATOR_TYPES.contains(validatorType)) {
             return AgentValidationErrorCode.OUT_OF_RANGE;
         }
 
-        return AgentValidationErrorCode.INVALID_JSON;
+        return ERROR_CODE_BY_VALIDATOR_TYPE.getOrDefault(
+            validatorType,
+            AgentValidationErrorCode.INVALID_JSON
+        );
     }
 }
