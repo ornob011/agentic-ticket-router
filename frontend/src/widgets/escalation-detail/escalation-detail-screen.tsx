@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import type { EscalationDetail } from "@/lib/api";
+import type { AssignableSupervisorOption, EscalationDetail } from "@/lib/api";
 import { formatDateTime, cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,12 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { DetailSection } from "@/components/ui/detail-section";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, AlertTriangle, CheckCircle, Clock, User, Calendar, MessageSquare } from "lucide-react";
 
 export type EscalationDetailScreenProps = Readonly<{
   escalation: EscalationDetail;
+  assignableSupervisors: AssignableSupervisorOption[];
+  selectedSupervisorId: string;
   resolutionNotes: string;
+  isAssigningSupervisor: boolean;
   isResolving: boolean;
+  onSelectedSupervisorIdChange: (value: string) => void;
+  onAssignSupervisor: () => Promise<void>;
   onResolutionNotesChange: (value: string) => void;
   onResolve: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   onBack: () => void;
@@ -47,8 +53,13 @@ function getEscalationStatusMeta(resolved: boolean) {
 
 export function EscalationDetailScreen({
   escalation,
+  assignableSupervisors,
+  selectedSupervisorId,
   resolutionNotes,
+  isAssigningSupervisor,
   isResolving,
+  onSelectedSupervisorIdChange,
+  onAssignSupervisor,
   onResolutionNotesChange,
   onResolve,
   onBack,
@@ -101,6 +112,41 @@ export function EscalationDetailScreen({
                 <p className="text-sm font-medium">{escalation.assignedSupervisor || "-"}</p>
               </DetailSection>
             </div>
+
+            {!escalation.resolved && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Assign Supervisor</p>
+                    <Select value={selectedSupervisorId} onValueChange={onSelectedSupervisorIdChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose supervisor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {assignableSupervisors.map((supervisor) => (
+                          <SelectItem key={supervisor.id} value={String(supervisor.id)}>
+                            {supervisor.fullName || supervisor.username}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={() => void onAssignSupervisor()}
+                    disabled={!selectedSupervisorId || isAssigningSupervisor}
+                  >
+                    {isAssigningSupervisor
+                      ? "Saving..."
+                      : escalation.assignedSupervisor
+                        ? "Reassign Supervisor"
+                        : "Assign Supervisor"}
+                  </Button>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

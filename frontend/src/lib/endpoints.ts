@@ -34,6 +34,8 @@ export const endpoints = {
   supervisor: {
     escalations: "/supervisor/escalations?page=0&size=50",
     escalationDetail: (escalationId: string | number) => `/supervisor/escalations/${escalationId}`,
+    assignableSupervisors: "/supervisor/escalations/assignable-supervisors",
+    assignSupervisor: (escalationId: string | number) => `/supervisor/escalations/${escalationId}/assign-supervisor`,
     resolveEscalation: (escalationId: string | number) => `/supervisor/escalations/${escalationId}/resolve`,
   },
   admin: {

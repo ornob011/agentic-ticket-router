@@ -269,6 +269,12 @@ export type EscalationDetail = {
   resolvedBy: string | null;
 };
 
+export type AssignableSupervisorOption = {
+  id: number;
+  fullName: string | null;
+  username: string;
+};
+
 export type UserInfo = {
   id: number;
   username: string;

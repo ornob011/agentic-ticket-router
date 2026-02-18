@@ -400,6 +400,19 @@ public final class ApiDtos {
     ) {
     }
 
+    public record AssignEscalationSupervisorRequest(
+        @NotNull Long supervisorId
+    ) {
+    }
+
+    @Builder
+    public record AssignableSupervisorOption(
+        Long id,
+        String fullName,
+        String username
+    ) {
+    }
+
     public record ResolveEscalationRequest(
         @NotBlank String resolutionNotes
     ) {

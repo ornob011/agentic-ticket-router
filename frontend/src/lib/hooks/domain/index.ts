@@ -11,6 +11,7 @@ export {
   useAssignSelfMutation,
   useAssignAgentMutation,
   useReleaseAgentMutation,
+  useAssignEscalationSupervisorMutation,
   useResolveEscalationMutation,
 } from "./use-ticket-mutation";
 

@@ -7,7 +7,9 @@ import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.AuditEventType;
 import com.dsi.support.agenticrouter.enums.EscalationFilterStatus;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
+import com.dsi.support.agenticrouter.enums.UserRole;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
+import com.dsi.support.agenticrouter.repository.AppUserRepository;
 import com.dsi.support.agenticrouter.repository.EscalationRepository;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.security.TicketAccessPolicyService;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindException;
 
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -34,10 +37,83 @@ public class TicketEscalationService {
 
     private final EscalationRepository escalationRepository;
     private final SupportTicketRepository supportTicketRepository;
+    private final AppUserRepository appUserRepository;
     private final TicketAccessPolicyService ticketAccessPolicyService;
     private final AuditService auditService;
     private final TicketCommandLookupService ticketCommandLookupService;
     private final TicketWorkflowUpdateService ticketWorkflowUpdateService;
+
+    public void assignSupervisor(
+        Long escalationId,
+        Long supervisorId
+    ) throws BindException {
+        Objects.requireNonNull(escalationId, "escalationId");
+        Objects.requireNonNull(supervisorId, "supervisorId");
+
+        Escalation escalation = escalationRepository.findById(escalationId)
+                                                    .orElseThrow(
+                                                        DataNotFoundException.supplier(
+                                                            Escalation.class,
+                                                            escalationId
+                                                        )
+                                                    );
+        if (escalation.isResolved()) {
+            throw BindValidation.fieldError(
+                "assignEscalationSupervisorRequest",
+                "escalationId",
+                "Cannot assign supervisor to a resolved escalation."
+            );
+        }
+
+        AppUser actor = ticketCommandLookupService.requireCurrentActor();
+        AppUser targetSupervisor = ticketCommandLookupService.requireUser(
+            supervisorId
+        );
+
+        if (!targetSupervisor.isSupervisor() || !targetSupervisor.isActive()) {
+            throw BindValidation.fieldError(
+                "assignEscalationSupervisorRequest",
+                "supervisorId",
+                "Selected user must be an active supervisor."
+            );
+        }
+
+        AppUser currentAssignee = escalation.getAssignedSupervisor();
+        boolean canAssignUnassigned = Objects.isNull(currentAssignee) && (actor.isSupervisor() || actor.isAdmin());
+        boolean canReassignAssigned = Objects.nonNull(currentAssignee)
+                                    && (actor.isAdmin()
+                                        || Objects.equals(
+                                            currentAssignee.getId(),
+                                            actor.getId()
+                                        ));
+
+        if (!canAssignUnassigned && !canReassignAssigned) {
+            throw BindValidation.fieldError(
+                "assignEscalationSupervisorRequest",
+                "supervisorId",
+                "Actor cannot assign escalation supervisor"
+            );
+        }
+
+        escalation.setAssignedSupervisor(
+            targetSupervisor
+        );
+        escalationRepository.save(escalation);
+
+        auditService.recordEvent(
+            AuditEventType.MANUAL_INTERVENTION,
+            escalation.getTicket().getId(),
+            actor.getId(),
+            String.format(
+                "Escalation supervisor assigned to %s.",
+                StringUtils.defaultIfBlank(
+                    targetSupervisor.getFullName(),
+                    targetSupervisor.getUsername()
+                )
+            ),
+            null
+        );
+    }
 
     public void resolveEscalation(
         Long escalationId,
@@ -202,6 +278,20 @@ public class TicketEscalationService {
                                                : escalation.getResolvedBy().getFullName()
                                        )
                                        .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApiDtos.AssignableSupervisorOption> listAssignableSupervisors() {
+        return appUserRepository.findByRoleAndActiveTrueOrderByFullNameAscUsernameAsc(
+                                    UserRole.SUPERVISOR
+                                )
+                                .stream()
+                                .map(supervisor -> ApiDtos.AssignableSupervisorOption.builder()
+                                                                                     .id(supervisor.getId())
+                                                                                     .fullName(supervisor.getFullName())
+                                                                                     .username(supervisor.getUsername())
+                                                                                     .build())
+                                .toList();
     }
 
     private ApiDtos.EscalationSummary toEscalationSummaryDto(Escalation escalation) {
