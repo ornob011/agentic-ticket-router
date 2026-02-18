@@ -1,8 +1,6 @@
 package com.dsi.support.agenticrouter.service.knowledge;
 
 import com.dsi.support.agenticrouter.entity.ArticleTemplate;
-import com.dsi.support.agenticrouter.enums.TicketCategory;
-import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.ArticleTemplateRepository;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
@@ -12,7 +10,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
