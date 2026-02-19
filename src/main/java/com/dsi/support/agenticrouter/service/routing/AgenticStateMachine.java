@@ -8,6 +8,7 @@ import com.dsi.support.agenticrouter.model.TicketAutonomousMetadata;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.service.action.ActionRegistry;
 import com.dsi.support.agenticrouter.service.ticket.AutonomousProgressService;
+import com.dsi.support.agenticrouter.service.ticket.TicketRoutingPersistenceService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ public class AgenticStateMachine {
     private final ActionRegistry actionRegistry;
     private final AutonomousProgressService autonomousProgressService;
     private final SupportTicketRepository supportTicketRepository;
+    private final TicketRoutingPersistenceService ticketRoutingPersistenceService;
 
     public void executeAction(
         SupportTicket supportTicket,
@@ -63,7 +65,7 @@ public class AgenticStateMachine {
             return;
         }
 
-        applyRoutingDecisions(
+        ticketRoutingPersistenceService.applyRoutingDecision(
             supportTicket,
             routerResponse
         );
@@ -81,56 +83,6 @@ public class AgenticStateMachine {
             OperationalLogContext.queue(supportTicket),
             OperationalLogContext.priority(supportTicket),
             routerResponse.getNextAction()
-        );
-    }
-
-    private void applyRoutingDecisions(
-        SupportTicket supportTicket,
-        RouterResponse routerResponse
-    ) {
-        if (Objects.nonNull(routerResponse.getCategory())) {
-            supportTicket.setCurrentCategory(
-                routerResponse.getCategory()
-            );
-        }
-
-        if (Objects.nonNull(routerResponse.getPriority())) {
-            supportTicket.setCurrentPriority(
-                routerResponse.getPriority()
-            );
-        }
-
-        if (Objects.nonNull(routerResponse.getQueue())) {
-            supportTicket.setAssignedQueue(
-                routerResponse.getQueue()
-            );
-        }
-
-        supportTicket.setLatestRoutingConfidence(routerResponse.getConfidence());
-        supportTicket.setLatestRoutingVersion(supportTicket.getLatestRoutingVersion() + 1);
-
-        supportTicket.addRouting(
-            buildRouting(
-                supportTicket,
-                routerResponse,
-                chooseWithFallback(
-                    routerResponse.getQueue(),
-                    supportTicket.getAssignedQueue(),
-                    TicketQueue.GENERAL_Q
-                )
-            )
-        );
-
-        supportTicketRepository.save(supportTicket);
-
-        log.info(
-            "StateMachineRoutingApply({}) SupportTicket(id:{},status:{},queue:{},priority:{}) RouterResponse(confidence:{})",
-            OperationalLogContext.PHASE_PERSIST,
-            OperationalLogContext.ticketId(supportTicket),
-            OperationalLogContext.status(supportTicket),
-            OperationalLogContext.queue(supportTicket),
-            OperationalLogContext.priority(supportTicket),
-            routerResponse.getConfidence()
         );
     }
 

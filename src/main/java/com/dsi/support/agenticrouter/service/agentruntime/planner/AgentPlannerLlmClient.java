@@ -43,6 +43,12 @@ public class AgentPlannerLlmClient {
         Long ticketId,
         AgentRole actorRole
     ) {
+        log.info(
+            "AgentPlanner({}) SupportTicket(id:{}) Outcome(start)",
+            OperationalLogContext.PHASE_START,
+            ticketId
+        );
+
         String latestCustomerMessage = getLatestCustomerMessage(
             routerRequest
         );

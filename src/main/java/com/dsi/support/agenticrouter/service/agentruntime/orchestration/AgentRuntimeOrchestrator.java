@@ -16,6 +16,7 @@ import com.dsi.support.agenticrouter.service.agentruntime.trace.AgentPlannerTrac
 import com.dsi.support.agenticrouter.service.agentruntime.trace.AgentRuntimeRunFinishCommand;
 import com.dsi.support.agenticrouter.service.agentruntime.trace.AgentRuntimeStepTraceCommand;
 import com.dsi.support.agenticrouter.service.agentruntime.trace.AgentRuntimeTraceService;
+import com.dsi.support.agenticrouter.service.ticket.TicketRoutingPersistenceService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,7 @@ public class AgentRuntimeOrchestrator {
     private final AgentRuntimeStateNavigator stateNavigator;
     private final AgentDecisionValidator agentDecisionValidator;
     private final AgentRuntimeTraceService agentRuntimeTraceService;
+    private final TicketRoutingPersistenceService ticketRoutingPersistenceService;
 
     public RouterResponse execute(
         SupportTicket supportTicket,
@@ -439,6 +441,11 @@ public class AgentRuntimeOrchestrator {
         );
 
         agentGraphState.setFinalResponse(
+            safeResponse
+        );
+
+        ticketRoutingPersistenceService.applyRoutingDecision(
+            supportTicket,
             safeResponse
         );
 
