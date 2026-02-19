@@ -271,18 +271,18 @@ public class RoutingRequestFactory {
         SupportTicket supportTicket
     ) {
         String ticketConversation = ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(
-                                                                supportTicket.getId()
-                                                            )
-                                                            .stream()
-                                                            .map(
-                                                                message -> String.format(
-                                                                    "[%s] %s: %s",
-                                                                    message.getCreatedAt(),
-                                                                    message.getMessageKind(),
-                                                                    message.getContent()
-                                                                )
-                                                            )
-                                                            .collect(Collectors.joining("\n"));
+                                                               supportTicket.getId()
+                                                           )
+                                                           .stream()
+                                                           .map(
+                                                               message -> String.format(
+                                                                   "[%s] %s: %s",
+                                                                   message.getCreatedAt(),
+                                                                   message.getMessageKind(),
+                                                                   message.getContent()
+                                                               )
+                                                           )
+                                                           .collect(Collectors.joining("\n"));
 
         String customerContext = customerContextEnrichmentService.buildCustomerContext(
             supportTicket.getCustomer().getId(),

@@ -1,5 +1,6 @@
 package com.dsi.support.agenticrouter.configuration;
 
+import com.dsi.support.agenticrouter.enums.AgentOrchestrationMode;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import jakarta.validation.constraints.Min;
 import lombok.Getter;
@@ -25,6 +26,7 @@ public class AgentRuntimeConfiguration {
 
     private boolean schemaEnforcementEnabled = true;
     private boolean repairEnabled = true;
+    private AgentOrchestrationMode orchestrationMode = AgentOrchestrationMode.SINGLE_AGENT;
 
     @Min(0)
     private int plannerValidationRetries = 1;

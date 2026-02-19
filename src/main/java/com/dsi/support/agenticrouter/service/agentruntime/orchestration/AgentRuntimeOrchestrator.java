@@ -45,6 +45,7 @@ public class AgentRuntimeOrchestrator {
     private final AgentDecisionValidator agentDecisionValidator;
     private final AgentRuntimeTraceService agentRuntimeTraceService;
     private final TicketRoutingPersistenceService ticketRoutingPersistenceService;
+    private final AgentOrchestrationModeResolver agentOrchestrationModeResolver;
 
     public RouterResponse execute(
         SupportTicket supportTicket,
@@ -311,15 +312,32 @@ public class AgentRuntimeOrchestrator {
     ) {
         AgentPlannerDecision plannerDecision = supervisorDecision;
 
-        boolean shouldDelegateByRole = shouldDelegateToRolePlanner(
+        boolean shouldDelegateByRole = agentOrchestrationModeResolver.shouldDelegate(
             supervisorDecision
         );
 
+        log.info(
+            "AgentRuntime({}) SupportTicket(id:{}) PlanFlow(mode:{}) Outcome(delegate:{})",
+            OperationalLogContext.PHASE_DECISION,
+            supportTicket.getId(),
+            agentOrchestrationModeResolver.mode(),
+            shouldDelegateByRole
+        );
+
         if (shouldDelegateByRole) {
+            log.info(
+                "AgentRuntime({}) SupportTicket(id:{}) PlanDelegate(start) Outcome(supervisorAction:{},targetRole:{})",
+                OperationalLogContext.PHASE_START,
+                supportTicket.getId(),
+                supervisorDecision.routerResponse().getNextAction(),
+                supervisorDecision.targetRole()
+            );
+
             plannerDecision = agentPlannerClient.decideForRole(
                 routerRequest,
                 supportTicket.getId(),
-                supervisorDecision.targetRole()
+                supervisorDecision.targetRole(),
+                supervisorDecision.routerResponse().getNextAction()
             );
 
             applyHandoffState(
@@ -355,22 +373,6 @@ public class AgentRuntimeOrchestrator {
         );
 
         return plannerDecision;
-    }
-
-    private boolean shouldDelegateToRolePlanner(
-        AgentPlannerDecision supervisorDecision
-    ) {
-        boolean handoffRequested = supervisorDecision.handoff();
-
-        boolean fallbackUsed = supervisorDecision.fallbackUsed();
-
-        boolean hasTargetRole = Objects.nonNull(
-            supervisorDecision.targetRole()
-        );
-
-        return handoffRequested
-               && !fallbackUsed
-               && hasTargetRole;
     }
 
     private void applyPlannerState(

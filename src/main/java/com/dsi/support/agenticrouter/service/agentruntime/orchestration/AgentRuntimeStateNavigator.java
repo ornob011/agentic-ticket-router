@@ -25,9 +25,8 @@ public class AgentRuntimeStateNavigator {
     public AgentRuntimeGraphRoute nextRoute(
         AgentState agentState
     ) {
-        return AgentRuntimeStateKey.NEXT_ROUTE.<String>read(
-            agentState
-        ).map(AgentRuntimeGraphRoute::fromId)
-         .orElse(AgentRuntimeGraphRoute.TO_TERMINATE);
+        return AgentRuntimeStateKey.NEXT_ROUTE.<String>read(agentState)
+                                              .map(AgentRuntimeGraphRoute::fromId)
+                                              .orElse(AgentRuntimeGraphRoute.TO_TERMINATE);
     }
 }

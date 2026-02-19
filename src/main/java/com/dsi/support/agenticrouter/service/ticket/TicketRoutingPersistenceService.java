@@ -25,6 +25,33 @@ public class TicketRoutingPersistenceService {
 
     private final SupportTicketRepository supportTicketRepository;
 
+    @SafeVarargs
+    private static <T> T chooseWithFallback(
+        T... candidates
+    ) {
+        for (T candidate : candidates) {
+            if (Objects.nonNull(candidate)) {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static List<String> copyRationaleTagsOrEmpty(
+        List<String> tags
+    ) {
+        return Objects.nonNull(tags) ? new ArrayList<>(tags) : new ArrayList<>();
+    }
+
+    private static TicketCategory normalizeRoutingCategory(
+        TicketCategory category
+    ) {
+        return Objects.nonNull(category)
+            ? category.toRoutingCategory()
+            : TicketCategory.OTHER;
+    }
+
     public void applyRoutingDecision(
         SupportTicket supportTicket,
         RouterResponse routerResponse
@@ -76,10 +103,12 @@ public class TicketRoutingPersistenceService {
         RouterResponse routerResponse,
         TicketQueue resolvedQueue
     ) {
-        TicketCategory category = chooseWithFallback(
-            routerResponse.getCategory(),
-            supportTicket.getCurrentCategory(),
-            TicketCategory.OTHER
+        TicketCategory category = normalizeRoutingCategory(
+            chooseWithFallback(
+                routerResponse.getCategory(),
+                supportTicket.getCurrentCategory(),
+                TicketCategory.OTHER
+            )
         );
 
         TicketPriority priority = chooseWithFallback(
@@ -109,24 +138,5 @@ public class TicketRoutingPersistenceService {
                             .rationaleTags(rationaleTags)
                             .applied(true)
                             .build();
-    }
-
-    @SafeVarargs
-    private static <T> T chooseWithFallback(
-        T... candidates
-    ) {
-        for (T candidate : candidates) {
-            if (Objects.nonNull(candidate)) {
-                return candidate;
-            }
-        }
-
-        return null;
-    }
-
-    private static List<String> copyRationaleTagsOrEmpty(
-        List<String> tags
-    ) {
-        return Objects.nonNull(tags) ? new ArrayList<>(tags) : new ArrayList<>();
     }
 }

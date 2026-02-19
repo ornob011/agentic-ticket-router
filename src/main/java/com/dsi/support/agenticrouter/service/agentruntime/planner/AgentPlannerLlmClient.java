@@ -3,11 +3,8 @@ package com.dsi.support.agenticrouter.service.agentruntime.planner;
 import com.dsi.support.agenticrouter.dto.ArticleSearchResult;
 import com.dsi.support.agenticrouter.dto.RouterRequest;
 import com.dsi.support.agenticrouter.dto.RouterResponse;
-import com.dsi.support.agenticrouter.enums.AgentRole;
-import com.dsi.support.agenticrouter.enums.NextAction;
-import com.dsi.support.agenticrouter.enums.TicketCategory;
-import com.dsi.support.agenticrouter.enums.TicketPriority;
-import com.dsi.support.agenticrouter.enums.TicketQueue;
+import com.dsi.support.agenticrouter.enums.*;
+import com.dsi.support.agenticrouter.service.agentruntime.orchestration.AgentOrchestrationModeResolver;
 import com.dsi.support.agenticrouter.service.ai.*;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
@@ -18,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
@@ -37,16 +35,30 @@ public class AgentPlannerLlmClient {
     private final LlmJsonResponseParser llmJsonResponseParser;
     private final ObjectMapper objectMapper;
     private final TokenCountService tokenCountService;
+    private final AgentOrchestrationModeResolver agentOrchestrationModeResolver;
 
     public String requestPlan(
         RouterRequest routerRequest,
         Long ticketId,
-        AgentRole actorRole
+        AgentRole actorRole,
+        NextAction lockedNextAction
     ) {
+        AgentOrchestrationMode orchestrationMode = agentOrchestrationModeResolver.mode();
+
+        Resource plannerPromptResource = promptService.getPlannerPromptByFlowMode(
+            orchestrationMode
+        );
+
+        String plannerTemplateName = orchestrationMode.plannerTemplateName();
+
         log.info(
-            "AgentPlanner({}) SupportTicket(id:{}) Outcome(start)",
+            "AgentPlanner({}) SupportTicket(id:{}) Planner(mode:{},template:{},role:{},lockedAction:{}) Outcome(start)",
             OperationalLogContext.PHASE_START,
-            ticketId
+            ticketId,
+            orchestrationMode,
+            plannerTemplateName,
+            actorRole,
+            Objects.nonNull(lockedNextAction) ? lockedNextAction : "NONE"
         );
 
         String latestCustomerMessage = getLatestCustomerMessage(
@@ -63,7 +75,7 @@ public class AgentPlannerLlmClient {
             llmPromptCaller.call(
                 chatModel,
                 promptUserSpec -> promptUserSpec
-                    .text(promptService.getAgentPlannerPrompt())
+                    .text(plannerPromptResource)
                     .param("category", promptValues.category())
                     .param("priority", promptValues.priority())
                     .param("queue", promptValues.queue())
@@ -79,14 +91,19 @@ public class AgentPlannerLlmClient {
                     .param("relevant_articles", relevantArticles)
                     .param("agent_role", actorRole.name())
                     .param("agent_role_description", actorRole.getDescription())
+                    .param("locked_next_action", Objects.nonNull(lockedNextAction) ? lockedNextAction.name() : "NONE")
             ),
-            "agent_planner"
+            plannerTemplateName
         );
 
         log.info(
-            "AgentPlanner({}) SupportTicket(id:{}) Outcome(rawTokensEst:{})",
+            "AgentPlanner({}) SupportTicket(id:{}) Planner(mode:{},template:{},role:{},lockedAction:{}) Outcome(rawTokensEst:{})",
             OperationalLogContext.PHASE_COMPLETE,
             ticketId,
+            orchestrationMode,
+            plannerTemplateName,
+            actorRole,
+            Objects.nonNull(lockedNextAction) ? lockedNextAction : "NONE",
             tokenCountService.countTokens(plannerRawJson)
         );
 
@@ -98,8 +115,17 @@ public class AgentPlannerLlmClient {
         String validationError,
         RouterRequest routerRequest,
         Long ticketId,
-        AgentRole actorRole
+        AgentRole actorRole,
+        NextAction lockedNextAction
     ) {
+        AgentOrchestrationMode orchestrationMode = agentOrchestrationModeResolver.mode();
+
+        Resource repairPromptResource = promptService.getPlannerRepairPromptByFlowMode(
+            orchestrationMode
+        );
+
+        String repairTemplateName = orchestrationMode.repairTemplateName();
+
         EnumPromptValues promptValues = enumPromptValues();
 
         String normalizedPlannerRawJson = Objects.requireNonNullElse(
@@ -115,7 +141,7 @@ public class AgentPlannerLlmClient {
             llmPromptCaller.call(
                 chatModel,
                 promptUserSpec -> promptUserSpec
-                    .text(promptService.getAgentRepairPrompt())
+                    .text(repairPromptResource)
                     .param("planner_raw_json", normalizedPlannerRawJson)
                     .param("validation_error", normalizedValidationError)
                     .param("category", promptValues.category())
@@ -124,14 +150,19 @@ public class AgentPlannerLlmClient {
                     .param("next_action", promptValues.nextAction())
                     .param("ticket_no", routerRequest.getTicketNo())
                     .param("agent_role", actorRole.name())
+                    .param("locked_next_action", Objects.nonNull(lockedNextAction) ? lockedNextAction.name() : "NONE")
             ),
-            "agent_planner_repair"
+            repairTemplateName
         );
 
         log.info(
-            "AgentPlannerRepair({}) SupportTicket(id:{}) Outcome(repairedTokensEst:{})",
+            "AgentPlannerRepair({}) SupportTicket(id:{}) Planner(mode:{},template:{},role:{},lockedAction:{}) Outcome(repairedTokensEst:{})",
             OperationalLogContext.PHASE_COMPLETE,
             ticketId,
+            orchestrationMode,
+            repairTemplateName,
+            actorRole,
+            Objects.nonNull(lockedNextAction) ? lockedNextAction : "NONE",
             tokenCountService.countTokens(repairedJson)
         );
 

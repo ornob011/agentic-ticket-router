@@ -36,6 +36,14 @@ public class FeedbackCaptureService {
     private final ApplicationEventPublisher eventPublisher;
     private final AppUserRepository appUserRepository;
 
+    private static String enumName(
+        Enum<?> value
+    ) {
+        return Objects.nonNull(value)
+            ? value.name()
+            : null;
+    }
+
     @Transactional
     public ApiDtos.FeedbackResponse submitFeedback(
         ApiDtos.FeedbackRequest request
@@ -394,14 +402,6 @@ public class FeedbackCaptureService {
         }
 
         return null;
-    }
-
-    private static String enumName(
-        Enum<?> value
-    ) {
-        return Objects.nonNull(value)
-            ? value.name()
-            : null;
     }
 
     private ApiDtos.FeedbackSummary buildFeedbackSummary(

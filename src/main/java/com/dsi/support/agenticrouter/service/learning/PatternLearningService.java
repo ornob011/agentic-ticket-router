@@ -46,7 +46,7 @@ public class PatternLearningService {
         );
 
         ResolutionFeedback feedback = feedbackRepository.findById(feedbackId)
-            .orElseThrow(() -> new IllegalArgumentException("Feedback not found: " + feedbackId));
+                                                        .orElseThrow(() -> new IllegalArgumentException("Feedback not found: " + feedbackId));
 
         processFeedbackByType(feedback);
 
@@ -240,10 +240,10 @@ public class PatternLearningService {
 
     private void recordSuccessForAction(TicketCategory category, NextAction action) {
         patternRepository.findByCategoryAndAction(category, action)
-            .ifPresent(pattern -> {
-                pattern.recordSuccess();
-                patternRepository.save(pattern);
-            });
+                         .ifPresent(pattern -> {
+                             pattern.recordSuccess();
+                             patternRepository.save(pattern);
+                         });
     }
 
     private void recordFailureForAction(TicketCategory category, NextAction action) {
@@ -267,14 +267,14 @@ public class PatternLearningService {
         List<String> keywords = extractKeywords(ticket.getSubject());
 
         return RoutingPattern.builder()
-            .category(category)
-            .keywords(keywords)
-            .successfulAction(action)
-            .successCount(1)
-            .failureCount(0)
-            .confidenceBoost(0.1)
-            .active(true)
-            .build();
+                             .category(category)
+                             .keywords(keywords)
+                             .successfulAction(action)
+                             .successCount(1)
+                             .failureCount(0)
+                             .confidenceBoost(0.1)
+                             .active(true)
+                             .build();
     }
 
     private List<String> extractKeywords(String text) {
@@ -283,16 +283,16 @@ public class PatternLearningService {
         }
 
         String normalizedText = text.toLowerCase()
-            .replaceAll("[^a-z0-9\\s]", " ")
-            .replaceAll("\\s+", " ")
-            .trim();
+                                    .replaceAll("[^a-z0-9\\s]", " ")
+                                    .replaceAll("\\s+", " ")
+                                    .trim();
 
         return Arrays.stream(normalizedText.split(" "))
-            .filter(word -> word.length() >= MIN_KEYWORD_LENGTH)
-            .filter(word -> !isStopWord(word))
-            .distinct()
-            .limit(MAX_KEYWORDS_PER_PATTERN)
-            .toList();
+                     .filter(word -> word.length() >= MIN_KEYWORD_LENGTH)
+                     .filter(word -> !isStopWord(word))
+                     .distinct()
+                     .limit(MAX_KEYWORDS_PER_PATTERN)
+                     .toList();
     }
 
     private boolean isStopWord(String word) {

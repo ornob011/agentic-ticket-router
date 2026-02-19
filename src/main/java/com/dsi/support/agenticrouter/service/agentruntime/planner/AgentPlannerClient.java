@@ -7,6 +7,7 @@ import com.dsi.support.agenticrouter.enums.AgentRole;
 import com.dsi.support.agenticrouter.enums.NextAction;
 import com.dsi.support.agenticrouter.service.routing.RouterResponseContractValidator;
 import com.dsi.support.agenticrouter.util.AgentRuntimeConstants;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,7 +30,8 @@ public class AgentPlannerClient {
         return decideForRole(
             routerRequest,
             ticketId,
-            AgentRole.SUPERVISOR
+            AgentRole.SUPERVISOR,
+            null
         );
     }
 
@@ -38,10 +40,33 @@ public class AgentPlannerClient {
         Long ticketId,
         AgentRole actorRole
     ) {
+        return decideForRole(
+            routerRequest,
+            ticketId,
+            actorRole,
+            null
+        );
+    }
+
+    public AgentPlannerDecision decideForRole(
+        RouterRequest routerRequest,
+        Long ticketId,
+        AgentRole actorRole,
+        NextAction lockedNextAction
+    ) {
+        log.info(
+            "AgentPlannerClient({}) SupportTicket(id:{}) Planner(role:{},lockedAction:{}) Outcome(start)",
+            OperationalLogContext.PHASE_START,
+            ticketId,
+            actorRole,
+            lockedNextAction != null ? lockedNextAction : "NONE"
+        );
+
         String plannerRawJson = agentPlannerLlmClient.requestPlan(
             routerRequest,
             ticketId,
-            actorRole
+            actorRole,
+            lockedNextAction
         );
 
         String candidateJson = plannerRawJson;
@@ -51,7 +76,8 @@ public class AgentPlannerClient {
                 null,
                 routerRequest,
                 ticketId,
-                actorRole
+                actorRole,
+                lockedNextAction
             );
         }
 
@@ -82,7 +108,8 @@ public class AgentPlannerClient {
                 validationResult.errorMessage(),
                 routerRequest,
                 ticketId,
-                actorRole
+                actorRole,
+                lockedNextAction
             );
             validationResult = agentPlanSchemaValidator.validate(
                 candidateJson
@@ -117,6 +144,19 @@ public class AgentPlannerClient {
             ? agentPlanSchemaValidator.map(validationResult.jsonNode())
             : agentPlannerLlmClient.mapUnchecked(candidateJson);
 
+        if (lockedNextAction != null && routerResponse.getNextAction() != lockedNextAction) {
+            log.warn(
+                "AgentPlannerLock(enforce) SupportTicket(id:{}) Outcome(actorRole:{},expectedAction:{},actualAction:{})",
+                ticketId,
+                actorRole,
+                lockedNextAction,
+                routerResponse.getNextAction()
+            );
+            routerResponse.setNextAction(
+                lockedNextAction
+            );
+        }
+
         routerResponseContractValidator.validate(
             routerResponse
         );
@@ -129,7 +169,7 @@ public class AgentPlannerClient {
         boolean handoff = actorRole == AgentRole.SUPERVISOR
                           && targetRole != AgentRole.SUPERVISOR;
 
-        return new AgentPlannerDecision(
+        AgentPlannerDecision plannerDecision = new AgentPlannerDecision(
             plannerRawJson,
             routerResponse,
             actorRole,
@@ -140,6 +180,19 @@ public class AgentPlannerClient {
             null,
             null
         );
+
+        log.info(
+            "AgentPlannerClient({}) SupportTicket(id:{}) Planner(role:{},lockedAction:{}) Outcome(nextAction:{},targetRole:{},handoff:{})",
+            OperationalLogContext.PHASE_COMPLETE,
+            ticketId,
+            actorRole,
+            lockedNextAction != null ? lockedNextAction : "NONE",
+            plannerDecision.routerResponse().getNextAction(),
+            plannerDecision.targetRole(),
+            plannerDecision.handoff()
+        );
+
+        return plannerDecision;
     }
 
     private AgentRole resolveTargetRole(
