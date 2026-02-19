@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Objects;
+import java.util.function.Function;
 
 @Service
 @RequiredArgsConstructor
@@ -80,7 +81,7 @@ public class AgentRuntimeTraceService {
                                                             .run(agentRuntimeRun)
                                                             .stepNo(stepTraceCommand.stepNo())
                                                             .stepType(stepTraceCommand.stepType())
-                                                            .plannerOutput(toJson(stepTraceCommand.plannerOutput()))
+                                                            .plannerOutput(toPlannerOutput(stepTraceCommand))
                                                             .validatedResponse(toJson(stepTraceCommand.validatedResponse()))
                                                             .safetyDecision(toJson(stepTraceCommand.safetyDecision()))
                                                             .toolResult(toJson(stepTraceCommand.toolResult()))
@@ -128,10 +129,92 @@ public class AgentRuntimeTraceService {
     private JsonNode toJson(
         Object value
     ) {
+        return mapOrNull(
+            value,
+            objectMapper::valueToTree
+        );
+    }
+
+    private JsonNode toPlannerOutput(
+        AgentRuntimeStepTraceCommand stepTraceCommand
+    ) {
+        if (isPlannerOutputEmpty(stepTraceCommand)) {
+            return null;
+        }
+
+        PlannerOutputEnvelope envelope = new PlannerOutputEnvelope(
+            stepTraceCommand.plannerOutput(),
+            enumNameOrNull(
+                stepTraceCommand.actorRole()
+            ),
+            enumNameOrNull(
+                stepTraceCommand.targetRole()
+            ),
+            stepTraceCommand.handoff(),
+            stepTraceCommand.handoffReason()
+        );
+
+        return mapOrNull(
+            envelope,
+            objectMapper::valueToTree
+        );
+    }
+
+    private boolean isPlannerOutputEmpty(
+        AgentRuntimeStepTraceCommand stepTraceCommand
+    ) {
+        if (Objects.nonNull(stepTraceCommand.plannerOutput())) {
+            return false;
+        }
+
+        if (Objects.nonNull(stepTraceCommand.actorRole())) {
+            return false;
+        }
+
+        if (Objects.nonNull(stepTraceCommand.targetRole())) {
+            return false;
+        }
+
+        if (stepTraceCommand.handoff()) {
+            return false;
+        }
+
+        if (Objects.nonNull(stepTraceCommand.handoffReason())) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private String enumNameOrNull(
+        Enum<?> value
+    ) {
         if (Objects.isNull(value)) {
             return null;
         }
 
-        return objectMapper.valueToTree(value);
+        return value.name();
+    }
+
+    private <T> JsonNode mapOrNull(
+        T value,
+        Function<T, JsonNode> mapper
+    ) {
+        if (Objects.isNull(value)) {
+            return null;
+        }
+
+        return mapper.apply(
+            value
+        );
+    }
+
+    private record PlannerOutputEnvelope(
+        Object plannerOutput,
+        String actorRole,
+        String targetRole,
+        boolean handoff,
+        String handoffReason
+    ) {
     }
 }

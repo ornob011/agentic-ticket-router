@@ -1,4 +1,5 @@
 Repair planner JSON and return valid JSON only.
+Agent role: {agent_role}
 
 RULES:
 - Keep enum values valid.

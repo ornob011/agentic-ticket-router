@@ -3,6 +3,7 @@ package com.dsi.support.agenticrouter.service.agentruntime.planner;
 import com.dsi.support.agenticrouter.dto.ArticleSearchResult;
 import com.dsi.support.agenticrouter.dto.RouterRequest;
 import com.dsi.support.agenticrouter.dto.RouterResponse;
+import com.dsi.support.agenticrouter.enums.AgentRole;
 import com.dsi.support.agenticrouter.enums.NextAction;
 import com.dsi.support.agenticrouter.enums.TicketCategory;
 import com.dsi.support.agenticrouter.enums.TicketPriority;
@@ -39,7 +40,8 @@ public class AgentPlannerLlmClient {
 
     public String requestPlan(
         RouterRequest routerRequest,
-        Long ticketId
+        Long ticketId,
+        AgentRole actorRole
     ) {
         String latestCustomerMessage = getLatestCustomerMessage(
             routerRequest
@@ -69,6 +71,8 @@ public class AgentPlannerLlmClient {
                     .param("analysis", routerRequest.getAnalysis())
                     .param("latest_customer_message", latestCustomerMessage)
                     .param("relevant_articles", relevantArticles)
+                    .param("agent_role", actorRole.name())
+                    .param("agent_role_description", actorRole.getDescription())
             ),
             "agent_planner"
         );
@@ -87,7 +91,8 @@ public class AgentPlannerLlmClient {
         String plannerRawJson,
         String validationError,
         RouterRequest routerRequest,
-        Long ticketId
+        Long ticketId,
+        AgentRole actorRole
     ) {
         EnumPromptValues promptValues = enumPromptValues();
 
@@ -112,6 +117,7 @@ public class AgentPlannerLlmClient {
                     .param("queue", promptValues.queue())
                     .param("next_action", promptValues.nextAction())
                     .param("ticket_no", routerRequest.getTicketNo())
+                    .param("agent_role", actorRole.name())
             ),
             "agent_planner_repair"
         );

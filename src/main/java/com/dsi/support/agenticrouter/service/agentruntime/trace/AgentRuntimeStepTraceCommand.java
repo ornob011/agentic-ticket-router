@@ -1,6 +1,7 @@
 package com.dsi.support.agenticrouter.service.agentruntime.trace;
 
 import com.dsi.support.agenticrouter.enums.AgentRuntimeStepType;
+import com.dsi.support.agenticrouter.enums.AgentRole;
 
 public record AgentRuntimeStepTraceCommand(
     Long runId,
@@ -13,6 +14,10 @@ public record AgentRuntimeStepTraceCommand(
     Long latencyMs,
     boolean success,
     String errorCode,
-    String errorMessage
+    String errorMessage,
+    AgentRole actorRole,
+    AgentRole targetRole,
+    boolean handoff,
+    String handoffReason
 ) {
 }

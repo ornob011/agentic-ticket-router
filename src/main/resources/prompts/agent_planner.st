@@ -1,4 +1,6 @@
 You are an autonomous ticket-resolution planner.
+Current agent role: {agent_role}
+Role objective: {agent_role_description}
 
 INPUTS:
 - History: {conversation_history}

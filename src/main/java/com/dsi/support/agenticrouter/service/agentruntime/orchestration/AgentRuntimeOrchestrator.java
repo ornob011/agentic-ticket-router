@@ -12,6 +12,7 @@ import com.dsi.support.agenticrouter.service.agentruntime.safety.AgentSafetyDeci
 import com.dsi.support.agenticrouter.service.agentruntime.safety.AgentSafetyEvaluator;
 import com.dsi.support.agenticrouter.service.agentruntime.tooling.AgentToolExecutionResult;
 import com.dsi.support.agenticrouter.service.agentruntime.tooling.AgentToolExecutor;
+import com.dsi.support.agenticrouter.service.agentruntime.trace.AgentPlannerTracePayload;
 import com.dsi.support.agenticrouter.service.agentruntime.trace.AgentRuntimeRunFinishCommand;
 import com.dsi.support.agenticrouter.service.agentruntime.trace.AgentRuntimeStepTraceCommand;
 import com.dsi.support.agenticrouter.service.agentruntime.trace.AgentRuntimeTraceService;
@@ -47,6 +48,13 @@ public class AgentRuntimeOrchestrator {
         SupportTicket supportTicket,
         RouterRequest routerRequest
     ) throws GraphStateException {
+        log.info(
+            "AgentRuntime({}) SupportTicket(id:{},status:{}) Outcome(started)",
+            OperationalLogContext.PHASE_START,
+            supportTicket.getId(),
+            supportTicket.getStatus()
+        );
+
         AgentRuntimeRun startedRuntimeRun = agentRuntimeTraceService.startRun(
             supportTicket.getId()
         );
@@ -191,6 +199,15 @@ public class AgentRuntimeOrchestrator {
                     agentGraphState.getErrorMessage()
                 )
             );
+
+            log.info(
+                "AgentRuntime({}) SupportTicket(id:{},status:{}) Outcome(ended,runStatus:{},terminationReason:{})",
+                OperationalLogContext.PHASE_COMPLETE,
+                supportTicket.getId(),
+                supportTicket.getStatus(),
+                runStatus,
+                terminationReason
+            );
         }
     }
 
@@ -201,14 +218,23 @@ public class AgentRuntimeOrchestrator {
     ) {
         long startedAt = System.currentTimeMillis();
 
-        AgentPlannerDecision plannerDecision = agentPlannerClient.decide(
+        AgentPlannerDecision supervisorDecision = agentPlannerClient.decide(
             routerRequest,
             supportTicket.getId()
         );
 
+        AgentPlannerDecision plannerDecision = resolvePlannerDecision(
+            supportTicket,
+            routerRequest,
+            agentGraphState,
+            supervisorDecision
+        );
+
         RouterResponse plannedResponse = plannerDecision.routerResponse();
 
-        agentDecisionValidator.validate(plannedResponse);
+        agentDecisionValidator.validate(
+            plannedResponse
+        );
 
         agentGraphState.setPlannerRawJson(
             plannerDecision.plannerRawJson()
@@ -231,10 +257,13 @@ public class AgentRuntimeOrchestrator {
         );
 
         log.info(
-            "AgentRuntime({}) SupportTicket(id:{},status:{}) Plan(nextAction:{},queue:{},priority:{},confidence:{})",
+            "AgentRuntime({}) SupportTicket(id:{},status:{}) Plan(actorRole:{},targetRole:{},handoff:{},nextAction:{},queue:{},priority:{},confidence:{})",
             OperationalLogContext.PHASE_DECISION,
             supportTicket.getId(),
             supportTicket.getStatus(),
+            agentGraphState.getActorRole(),
+            agentGraphState.getTargetRole(),
+            agentGraphState.isHandoff(),
             plannedResponse.getNextAction(),
             plannedResponse.getQueue(),
             plannedResponse.getPriority(),
@@ -246,14 +275,22 @@ public class AgentRuntimeOrchestrator {
                 agentGraphState.getRuntimeRunId(),
                 Math.max(agentGraphState.getStepCount(), 1),
                 AgentRuntimeStepType.PLAN,
-                agentGraphState.getPlannerRawJson(),
+                new AgentPlannerTracePayload(
+                    supervisorDecision,
+                    plannerDecision,
+                    agentGraphState.getPlannerRawJson()
+                ),
                 plannedResponse,
                 null,
                 null,
                 System.currentTimeMillis() - startedAt,
                 true,
                 errorCodeName(plannerDecision.errorCode()),
-                plannerDecision.errorMessage()
+                plannerDecision.errorMessage(),
+                agentGraphState.getActorRole(),
+                agentGraphState.getTargetRole(),
+                agentGraphState.isHandoff(),
+                agentGraphState.getHandoffReason()
             )
         );
 
@@ -262,6 +299,119 @@ public class AgentRuntimeOrchestrator {
                                       .terminated(false)
                                       .nextRoute(AgentRuntimeGraphRoute.TO_SAFETY)
                                       .build();
+    }
+
+    private AgentPlannerDecision resolvePlannerDecision(
+        SupportTicket supportTicket,
+        RouterRequest routerRequest,
+        AgentGraphState agentGraphState,
+        AgentPlannerDecision supervisorDecision
+    ) {
+        AgentPlannerDecision plannerDecision = supervisorDecision;
+
+        boolean shouldDelegateByRole = shouldDelegateToRolePlanner(
+            supervisorDecision
+        );
+
+        if (shouldDelegateByRole) {
+            plannerDecision = agentPlannerClient.decideForRole(
+                routerRequest,
+                supportTicket.getId(),
+                supervisorDecision.targetRole()
+            );
+
+            applyHandoffState(
+                agentGraphState,
+                plannerDecision,
+                supervisorDecision
+            );
+
+            log.info(
+                "AgentRuntime({}) SupportTicket(id:{}) PlanDelegate(handoff:{},fallbackUsed:{},targetRole:{}) Outcome(delegated:true)",
+                OperationalLogContext.PHASE_DECISION,
+                supportTicket.getId(),
+                supervisorDecision.handoff(),
+                supervisorDecision.fallbackUsed(),
+                supervisorDecision.targetRole()
+            );
+
+            return plannerDecision;
+        }
+
+        applyPlannerState(
+            agentGraphState,
+            plannerDecision
+        );
+
+        log.info(
+            "AgentRuntime({}) SupportTicket(id:{}) PlanDelegate(handoff:{},fallbackUsed:{},targetRole:{}) Outcome(delegated:false)",
+            OperationalLogContext.PHASE_DECISION,
+            supportTicket.getId(),
+            supervisorDecision.handoff(),
+            supervisorDecision.fallbackUsed(),
+            supervisorDecision.targetRole()
+        );
+
+        return plannerDecision;
+    }
+
+    private boolean shouldDelegateToRolePlanner(
+        AgentPlannerDecision supervisorDecision
+    ) {
+        boolean handoffRequested = supervisorDecision.handoff();
+
+        boolean fallbackUsed = supervisorDecision.fallbackUsed();
+
+        boolean hasTargetRole = Objects.nonNull(
+            supervisorDecision.targetRole()
+        );
+
+        return handoffRequested
+               && !fallbackUsed
+               && hasTargetRole;
+    }
+
+    private void applyPlannerState(
+        AgentGraphState agentGraphState,
+        AgentPlannerDecision plannerDecision
+    ) {
+        agentGraphState.setActorRole(
+            plannerDecision.actorRole()
+        );
+
+        agentGraphState.setTargetRole(
+            plannerDecision.targetRole()
+        );
+
+        agentGraphState.setHandoff(
+            plannerDecision.handoff()
+        );
+
+        agentGraphState.setHandoffReason(
+            plannerDecision.handoffReason()
+        );
+    }
+
+    private void applyHandoffState(
+        AgentGraphState agentGraphState,
+        AgentPlannerDecision plannerDecision,
+        AgentPlannerDecision supervisorDecision
+    ) {
+        agentGraphState.setActorRole(
+            plannerDecision.actorRole()
+        );
+
+        agentGraphState.setTargetRole(
+            plannerDecision.targetRole()
+        );
+
+        agentGraphState.setHandoff(
+            true
+        );
+
+        agentGraphState.setHandoffReason(
+            supervisorDecision.handoffReason()
+        );
     }
 
     private AgentRuntimeStateUpdate runSafetyNode(
@@ -276,7 +426,9 @@ public class AgentRuntimeOrchestrator {
 
         RouterResponse safeResponse = safetyDecision.response();
 
-        agentDecisionValidator.validate(safeResponse);
+        agentDecisionValidator.validate(
+            safeResponse
+        );
 
         agentGraphState.setSafetyDecision(
             safetyDecision
@@ -313,7 +465,11 @@ public class AgentRuntimeOrchestrator {
                 System.currentTimeMillis() - startedAt,
                 true,
                 null,
-                null
+                null,
+                agentGraphState.getActorRole(),
+                agentGraphState.getTargetRole(),
+                agentGraphState.isHandoff(),
+                agentGraphState.getHandoffReason()
             )
         );
 
@@ -374,7 +530,11 @@ public class AgentRuntimeOrchestrator {
                 System.currentTimeMillis() - startedAt,
                 true,
                 null,
-                null
+                null,
+                agentGraphState.getActorRole(),
+                agentGraphState.getTargetRole(),
+                agentGraphState.isHandoff(),
+                agentGraphState.getHandoffReason()
             )
         );
 
@@ -405,7 +565,7 @@ public class AgentRuntimeOrchestrator {
         boolean needsReview = safetyDecision.status().requiresHumanReview();
         boolean actionBlocked = safeResponse.getNextAction().requiresHumanIntervention();
 
-        boolean shouldTerminate = isPolicyReached || needsReview || actionBlocked;
+        boolean shouldTerminate = isPolicyReached || needsReview || actionBlocked || agentGraphState.getStepCount() > 0;
 
         AgentRuntimeGraphRoute nextRoute = AgentRuntimeGraphRoute.TO_PLAN;
 
@@ -444,7 +604,11 @@ public class AgentRuntimeOrchestrator {
                 System.currentTimeMillis() - startedAt,
                 true,
                 null,
-                null
+                null,
+                agentGraphState.getActorRole(),
+                agentGraphState.getTargetRole(),
+                agentGraphState.isHandoff(),
+                agentGraphState.getHandoffReason()
             )
         );
 
@@ -470,7 +634,11 @@ public class AgentRuntimeOrchestrator {
                 0L,
                 true,
                 null,
-                null
+                null,
+                agentGraphState.getActorRole(),
+                agentGraphState.getTargetRole(),
+                agentGraphState.isHandoff(),
+                agentGraphState.getHandoffReason()
             )
         );
 

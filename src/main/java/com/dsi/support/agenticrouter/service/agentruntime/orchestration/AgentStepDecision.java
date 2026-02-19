@@ -14,4 +14,8 @@ public class AgentStepDecision {
     private String priority;
     private BigDecimal confidence;
     private String internalNote;
+    private String actorRole;
+    private String targetRole;
+    private boolean handoff;
+    private String handoffReason;
 }

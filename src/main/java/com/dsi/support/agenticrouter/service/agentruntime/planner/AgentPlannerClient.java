@@ -3,6 +3,8 @@ package com.dsi.support.agenticrouter.service.agentruntime.planner;
 import com.dsi.support.agenticrouter.configuration.AgentRuntimeConfiguration;
 import com.dsi.support.agenticrouter.dto.RouterRequest;
 import com.dsi.support.agenticrouter.dto.RouterResponse;
+import com.dsi.support.agenticrouter.enums.AgentRole;
+import com.dsi.support.agenticrouter.enums.NextAction;
 import com.dsi.support.agenticrouter.service.routing.RouterResponseContractValidator;
 import com.dsi.support.agenticrouter.util.AgentRuntimeConstants;
 import lombok.RequiredArgsConstructor;
@@ -24,9 +26,22 @@ public class AgentPlannerClient {
         RouterRequest routerRequest,
         Long ticketId
     ) {
+        return decideForRole(
+            routerRequest,
+            ticketId,
+            AgentRole.SUPERVISOR
+        );
+    }
+
+    public AgentPlannerDecision decideForRole(
+        RouterRequest routerRequest,
+        Long ticketId,
+        AgentRole actorRole
+    ) {
         String plannerRawJson = agentPlannerLlmClient.requestPlan(
             routerRequest,
-            ticketId
+            ticketId,
+            actorRole
         );
 
         String candidateJson = plannerRawJson;
@@ -35,7 +50,8 @@ public class AgentPlannerClient {
                 plannerRawJson,
                 null,
                 routerRequest,
-                ticketId
+                ticketId,
+                actorRole
             );
         }
 
@@ -65,7 +81,8 @@ public class AgentPlannerClient {
                 candidateJson,
                 validationResult.errorMessage(),
                 routerRequest,
-                ticketId
+                ticketId,
+                actorRole
             );
             validationResult = agentPlanSchemaValidator.validate(
                 candidateJson
@@ -86,6 +103,10 @@ public class AgentPlannerClient {
                 agentRuntimeFallbackService.humanReviewFallback(
                     AgentRuntimeConstants.PLANNER_VALIDATION_FAILED_PREFIX + validationResult.errorMessage()
                 ),
+                actorRole,
+                actorRole,
+                false,
+                null,
                 true,
                 validationResult.errorCode(),
                 validationResult.errorMessage()
@@ -100,12 +121,44 @@ public class AgentPlannerClient {
             routerResponse
         );
 
+        AgentRole targetRole = resolveTargetRole(
+            actorRole,
+            routerResponse
+        );
+
+        boolean handoff = actorRole == AgentRole.SUPERVISOR
+                          && targetRole != AgentRole.SUPERVISOR;
+
         return new AgentPlannerDecision(
             plannerRawJson,
             routerResponse,
+            actorRole,
+            targetRole,
+            handoff,
+            handoff ? AgentRuntimeConstants.HANDOFF_REASON_SUPERVISOR_DELEGATION : null,
             false,
             null,
             null
         );
+    }
+
+    private AgentRole resolveTargetRole(
+        AgentRole actorRole,
+        RouterResponse routerResponse
+    ) {
+        if (actorRole != AgentRole.SUPERVISOR) {
+            return actorRole;
+        }
+
+        NextAction nextAction = routerResponse.getNextAction();
+
+        return switch (nextAction) {
+            case ASK_CLARIFYING -> AgentRole.QA;
+            case HUMAN_REVIEW, ESCALATE, AUTO_ESCALATE -> AgentRole.ESCALATOR;
+            case UPDATE_CUSTOMER_PROFILE, USE_KNOWLEDGE_ARTICLE, USE_TEMPLATE, AUTO_REPLY, AUTO_RESOLVE ->
+                AgentRole.RESOLVER;
+            case ASSIGN_QUEUE, CHANGE_PRIORITY, ADD_INTERNAL_NOTE, TRIGGER_NOTIFICATION, REOPEN_TICKET ->
+                AgentRole.CLASSIFIER;
+        };
     }
 }
