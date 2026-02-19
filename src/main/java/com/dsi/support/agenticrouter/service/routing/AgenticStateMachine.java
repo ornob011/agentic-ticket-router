@@ -2,8 +2,8 @@ package com.dsi.support.agenticrouter.service.routing;
 
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
-import com.dsi.support.agenticrouter.enums.TicketQueue;
-import com.dsi.support.agenticrouter.enums.TicketStatus;
+import com.dsi.support.agenticrouter.entity.TicketRouting;
+import com.dsi.support.agenticrouter.enums.*;
 import com.dsi.support.agenticrouter.model.TicketAutonomousMetadata;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.service.action.ActionRegistry;
@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -104,8 +106,19 @@ public class AgenticStateMachine {
             );
         }
 
-        supportTicket.setLatestRoutingConfidence(
-            routerResponse.getConfidence()
+        supportTicket.setLatestRoutingConfidence(routerResponse.getConfidence());
+        supportTicket.setLatestRoutingVersion(supportTicket.getLatestRoutingVersion() + 1);
+
+        supportTicket.addRouting(
+            buildRouting(
+                supportTicket,
+                routerResponse,
+                chooseWithFallback(
+                    routerResponse.getQueue(),
+                    supportTicket.getAssignedQueue(),
+                    TicketQueue.GENERAL_Q
+                )
+            )
         );
 
         supportTicketRepository.save(supportTicket);
@@ -154,6 +167,19 @@ public class AgenticStateMachine {
         );
 
         supportTicket.setLatestRoutingConfidence(routerResponse.getConfidence());
+        supportTicket.setLatestRoutingVersion(supportTicket.getLatestRoutingVersion() + 1);
+
+        supportTicket.addRouting(
+            buildRouting(
+                supportTicket,
+                routerResponse,
+                chooseWithFallback(
+                    routerResponse.getQueue(),
+                    TicketQueue.GENERAL_Q
+                )
+            )
+        );
+
         supportTicket.setStatus(TicketStatus.ESCALATED);
         supportTicket.setEscalated(true);
         supportTicket.setRequiresHumanReview(false);
@@ -168,5 +194,64 @@ public class AgenticStateMachine {
             OperationalLogContext.queue(supportTicket),
             escalationReason
         );
+    }
+
+    private static TicketRouting buildRouting(
+        SupportTicket supportTicket,
+        RouterResponse routerResponse,
+        TicketQueue resolvedQueue
+    ) {
+        TicketCategory category = chooseWithFallback(
+            routerResponse.getCategory(),
+            supportTicket.getCurrentCategory(),
+            TicketCategory.OTHER
+        );
+
+        TicketPriority priority = chooseWithFallback(
+            routerResponse.getPriority(),
+            supportTicket.getCurrentPriority(),
+            TicketPriority.MEDIUM
+        );
+
+        NextAction nextAction = chooseWithFallback(
+            routerResponse.getNextAction(),
+            NextAction.HUMAN_REVIEW
+        );
+
+        List<String> rationaleTags = copyRationaleTagsOrEmpty(
+            routerResponse.getRationaleTags()
+        );
+
+        return TicketRouting.builder()
+                            .version(supportTicket.getLatestRoutingVersion())
+                            .category(category)
+                            .priority(priority)
+                            .queue(resolvedQueue)
+                            .nextAction(nextAction)
+                            .confidence(routerResponse.getConfidence())
+                            .clarifyingQuestion(routerResponse.getClarifyingQuestion())
+                            .draftReply(routerResponse.getDraftReply())
+                            .rationaleTags(rationaleTags)
+                            .applied(true)
+                            .build();
+    }
+
+    @SafeVarargs
+    private static <T> T chooseWithFallback(
+        T... candidates
+    ) {
+        for (T candidate : candidates) {
+            if (Objects.nonNull(candidate)) {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static List<String> copyRationaleTagsOrEmpty(
+        List<String> tags
+    ) {
+        return Objects.nonNull(tags) ? new ArrayList<>(tags) : new ArrayList<>();
     }
 }
