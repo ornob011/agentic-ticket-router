@@ -1,538 +1,534 @@
 package com.dsi.support.agenticrouter.service.agentruntime.tools;
 
+import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
-import com.dsi.support.agenticrouter.entity.TicketMessage;
 import com.dsi.support.agenticrouter.enums.*;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
-import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
-import com.dsi.support.agenticrouter.service.audit.AuditService;
-import com.dsi.support.agenticrouter.service.notification.NotificationService;
+import com.dsi.support.agenticrouter.service.agentruntime.tooling.RuntimeActionAdapterService;
+import com.dsi.support.agenticrouter.service.knowledge.KnowledgeBaseVectorStore;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.ai.document.Document;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.BindException;
 
-import java.time.Instant;
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class TicketActionTools {
 
-    private final TicketMessageRepository messageRepository;
+    private static final int DEFAULT_HISTORY_LIMIT = 5;
+    private static final int MAX_HISTORY_LIMIT = 10;
+    private static final int DEFAULT_SEARCH_TOP_K = 3;
+    private static final int MAX_SEARCH_TOP_K = 10;
+    private static final double TOOL_SEARCH_SIMILARITY_THRESHOLD = 0.75D;
+
+    private static final String KEY_NOTIFICATION_TYPE = "notification_type";
+    private static final String KEY_TITLE = "title";
+    private static final String KEY_BODY = "body";
+
+    private final RuntimeActionAdapterService runtimeActionAdapterService;
     private final SupportTicketRepository supportTicketRepository;
-    private final NotificationService notificationService;
-    private final AuditService auditService;
+    private final KnowledgeBaseVectorStore knowledgeBaseVectorStore;
 
     @Tool(description = "Assign ticket to a queue for agent handling")
-    @Transactional
     public void assignQueue(
         @ToolParam(description = "The queue code: BILLING_Q, TECH_Q, OPS_Q, SECURITY_Q, ACCOUNT_Q, GENERAL_Q") String queue
-    ) {
-        SupportTicket ticket = ToolExecutionContext.currentTicket();
-        TicketQueue assignedQueue = TicketQueue.valueOf(queue);
+    ) throws BindException {
+        SupportTicket ticket = currentTicket();
 
-        log.info(
-            "ToolExecution(assignQueue)({}) SupportTicket(id:{}) Queue({})",
-            OperationalLogContext.PHASE_START,
-            ticket.getId(),
-            assignedQueue
+        RouterResponse routerResponse = baseResponse(
+            ticket,
+            NextAction.ASSIGN_QUEUE
+        );
+        routerResponse.setQueue(
+            TicketQueue.valueOf(
+                queue
+            )
         );
 
-        ticket.setAssignedQueue(
-            assignedQueue
-        );
-
-        if (ticket.getStatus() == TicketStatus.RECEIVED || ticket.getStatus() == TicketStatus.TRIAGING) {
-            ticket.setStatus(
-                TicketStatus.ASSIGNED
-            );
-        }
-
-        persistTicketActivity(
-            ticket
-        );
-
-        auditService.recordEvent(
-            AuditEventType.QUEUE_ASSIGNED,
-            ticket.getId(),
-            null,
-            "Queue assigned: " + assignedQueue.name(),
-            null
-        );
-
-        log.info(
-            "ToolExecution(assignQueue)({}) SupportTicket(id:{}) Outcome(completed)",
-            OperationalLogContext.PHASE_COMPLETE,
-            ticket.getId()
+        executeAction(
+            ticket,
+            routerResponse
         );
     }
 
     @Tool(description = "Escalate ticket to supervisor or human review workflow")
-    @Transactional
     public void escalate(
         @ToolParam(description = "Escalation reason") String reason
-    ) {
-        SupportTicket ticket = ToolExecutionContext.currentTicket();
+    ) throws BindException {
+        SupportTicket ticket = currentTicket();
 
-        log.info(
-            "ToolExecution(escalate)({}) SupportTicket(id:{}) Reason(length:{})",
-            OperationalLogContext.PHASE_START,
-            ticket.getId(),
-            StringUtils.length(reason)
+        RouterResponse routerResponse = baseResponse(
+            ticket,
+            NextAction.ESCALATE
         );
-
-        ticket.setStatus(
-            TicketStatus.ESCALATED
-        );
-        ticket.setEscalated(
-            true
-        );
-        ticket.setRequiresHumanReview(
-            true
+        routerResponse.setInternalNote(
+            reason
         );
 
-        persistTicketActivity(
-            ticket
-        );
-
-        auditService.recordEvent(
-            AuditEventType.ESCALATION_CREATED,
-            ticket.getId(),
-            null,
-            "Ticket escalated: " + StringUtils.defaultIfBlank(reason, "No reason provided"),
-            null
-        );
-
-        notificationService.createNotification(
-            ticket.getCustomer().getId(),
-            NotificationType.ESCALATION,
-            "Ticket Escalated: " + ticket.getFormattedTicketNo(),
-            StringUtils.defaultIfBlank(reason, "Your ticket has been escalated for specialist review."),
-            ticket.getId()
-        );
-
-        log.info(
-            "ToolExecution(escalate)({}) SupportTicket(id:{}) Outcome(completed)",
-            OperationalLogContext.PHASE_COMPLETE,
-            ticket.getId()
+        executeAction(
+            ticket,
+            routerResponse
         );
     }
 
     @Tool(description = "Send an automated reply to the customer and resolve the ticket")
-    @Transactional
     public void autoReply(
         @ToolParam(description = "The reply content to send to the customer") String content
-    ) {
-        SupportTicket ticket = ToolExecutionContext.currentTicket();
+    ) throws BindException {
+        SupportTicket ticket = currentTicket();
 
-        log.info(
-            "ToolExecution(autoReply)({}) SupportTicket(id:{}) Content(length:{})",
-            OperationalLogContext.PHASE_START,
-            ticket.getId(),
-            StringUtils.length(content)
-        );
-
-        TicketMessage message = buildCustomerVisibleMessage(
+        RouterResponse routerResponse = baseResponse(
             ticket,
-            MessageKind.AUTO_REPLY,
+            NextAction.AUTO_REPLY
+        );
+        routerResponse.setDraftReply(
             content
         );
 
-        messageRepository.save(
-            message
-        );
-
-        resolveTicket(
-            ticket
-        );
-
-        notificationService.createNotification(
-            ticket.getCustomer().getId(),
-            NotificationType.STATUS_CHANGE,
-            "Ticket Resolved: " + ticket.getFormattedTicketNo(),
-            "Your ticket has been automatically resolved.",
-            ticket.getId()
-        );
-
-        auditService.recordEvent(
-            AuditEventType.MESSAGE_POSTED,
-            ticket.getId(),
-            null,
-            "System sent auto-reply and resolved ticket",
-            null
-        );
-
-        log.info(
-            "ToolExecution(autoReply)({}) SupportTicket(id:{}) Outcome(completed)",
-            OperationalLogContext.PHASE_COMPLETE,
-            ticket.getId()
+        executeAction(
+            ticket,
+            routerResponse
         );
     }
 
     @Tool(description = "Request clarifying information from the customer")
-    @Transactional
     public void askClarifying(
         @ToolParam(description = "The clarifying question to ask the customer") String question
-    ) {
-        SupportTicket ticket = ToolExecutionContext.currentTicket();
+    ) throws BindException {
+        SupportTicket ticket = currentTicket();
 
-        log.info(
-            "ToolExecution(askClarifying)({}) SupportTicket(id:{}) Question(length:{})",
-            OperationalLogContext.PHASE_START,
-            ticket.getId(),
-            StringUtils.length(question)
-        );
-
-        TicketMessage message = buildCustomerVisibleMessage(
+        RouterResponse routerResponse = baseResponse(
             ticket,
-            MessageKind.CLARIFYING_QUESTION,
+            NextAction.ASK_CLARIFYING
+        );
+        routerResponse.setClarifyingQuestion(
             question
         );
 
-        messageRepository.save(
-            message
-        );
-
-        ticket.setStatus(
-            TicketStatus.WAITING_CUSTOMER
-        );
-
-        persistTicketActivity(
-            ticket
-        );
-
-        notificationService.createNotification(
-            ticket.getCustomer().getId(),
-            NotificationType.STATUS_CHANGE,
-            "Question about your ticket: " + ticket.getFormattedTicketNo(),
-            question,
-            ticket.getId()
-        );
-
-        auditService.recordEvent(
-            AuditEventType.MESSAGE_POSTED,
-            ticket.getId(),
-            null,
-            "System asked clarifying question",
-            null
-        );
-
-        log.info(
-            "ToolExecution(askClarifying)({}) SupportTicket(id:{}) Outcome(completed)",
-            OperationalLogContext.PHASE_COMPLETE,
-            ticket.getId()
+        executeAction(
+            ticket,
+            routerResponse
         );
     }
 
     @Tool(description = "Change the ticket priority level")
-    @Transactional
     public void changePriority(
         @ToolParam(description = "The new priority level: LOW, MEDIUM, HIGH, or URGENT") String priority
-    ) {
-        SupportTicket ticket = ToolExecutionContext.currentTicket();
-        TicketPriority newPriority = TicketPriority.valueOf(priority);
+    ) throws BindException {
+        SupportTicket ticket = currentTicket();
 
-        log.info(
-            "ToolExecution(changePriority)({}) SupportTicket(id:{}) OldPriority({}) NewPriority({})",
-            OperationalLogContext.PHASE_START,
-            ticket.getId(),
-            ticket.getCurrentPriority(),
-            newPriority
+        RouterResponse routerResponse = baseResponse(
+            ticket,
+            NextAction.CHANGE_PRIORITY
+        );
+        routerResponse.setPriority(
+            TicketPriority.valueOf(
+                priority
+            )
         );
 
-        ticket.setCurrentPriority(
-            newPriority
-        );
-
-        persistTicketActivity(
-            ticket
-        );
-
-        auditService.recordEvent(
-            AuditEventType.PRIORITY_CHANGED,
-            ticket.getId(),
-            null,
-            "Priority changed to " + newPriority.getDisplayName(),
-            null
-        );
-
-        log.info(
-            "ToolExecution(changePriority)({}) SupportTicket(id:{}) Outcome(completed)",
-            OperationalLogContext.PHASE_COMPLETE,
-            ticket.getId()
+        executeAction(
+            ticket,
+            routerResponse
         );
     }
 
     @Tool(description = "Add an internal note visible only to agents")
-    @Transactional
     public void addInternalNote(
         @ToolParam(description = "The internal note content") String note
-    ) {
-        SupportTicket ticket = ToolExecutionContext.currentTicket();
+    ) throws BindException {
+        SupportTicket ticket = currentTicket();
 
-        log.info(
-            "ToolExecution(addInternalNote)({}) SupportTicket(id:{}) Note(length:{})",
-            OperationalLogContext.PHASE_START,
-            ticket.getId(),
-            StringUtils.length(note)
-        );
-
-        TicketMessage message = buildInternalMessage(
+        RouterResponse routerResponse = baseResponse(
             ticket,
-            MessageKind.INTERNAL_NOTE,
+            NextAction.ADD_INTERNAL_NOTE
+        );
+        routerResponse.setInternalNote(
             note
         );
 
-        messageRepository.save(
-            message
-        );
-
-        persistTicketActivity(
-            ticket
-        );
-
-        auditService.recordEvent(
-            AuditEventType.MESSAGE_POSTED,
-            ticket.getId(),
-            null,
-            "Internal note added",
-            null
-        );
-
-        log.info(
-            "ToolExecution(addInternalNote)({}) SupportTicket(id:{}) Outcome(completed)",
-            OperationalLogContext.PHASE_COMPLETE,
-            ticket.getId()
+        executeAction(
+            ticket,
+            routerResponse
         );
     }
 
     @Tool(description = "Mark the ticket for human review")
-    @Transactional
     public void markHumanReview(
         @ToolParam(description = "The reason for requiring human review") String reason
-    ) {
-        SupportTicket ticket = ToolExecutionContext.currentTicket();
+    ) throws BindException {
+        SupportTicket ticket = currentTicket();
 
-        log.info(
-            "ToolExecution(markHumanReview)({}) SupportTicket(id:{}) Reason(length:{})",
-            OperationalLogContext.PHASE_START,
-            ticket.getId(),
-            StringUtils.length(reason)
+        RouterResponse routerResponse = baseResponse(
+            ticket,
+            NextAction.HUMAN_REVIEW
+        );
+        routerResponse.setInternalNote(
+            reason
         );
 
-        ticket.setStatus(
-            TicketStatus.TRIAGING
-        );
-
-        ticket.setRequiresHumanReview(
-            true
-        );
-
-        persistTicketActivity(
-            ticket
-        );
-
-        auditService.recordEvent(
-            AuditEventType.TICKET_STATUS_CHANGED,
-            ticket.getId(),
-            null,
-            "Marked for human review: " + reason,
-            null
-        );
-
-        log.info(
-            "ToolExecution(markHumanReview)({}) SupportTicket(id:{}) Outcome(completed)",
-            OperationalLogContext.PHASE_COMPLETE,
-            ticket.getId()
+        executeAction(
+            ticket,
+            routerResponse
         );
     }
 
     @Tool(description = "Auto-resolve the ticket with a solution")
-    @Transactional
     public void autoResolve(
         @ToolParam(description = "The solution content to send to the customer") String solution
-    ) {
-        SupportTicket ticket = ToolExecutionContext.currentTicket();
+    ) throws BindException {
+        SupportTicket ticket = currentTicket();
 
-        log.info(
-            "ToolExecution(autoResolve)({}) SupportTicket(id:{}) Solution(length:{})",
-            OperationalLogContext.PHASE_START,
-            ticket.getId(),
-            StringUtils.length(solution)
-        );
-
-        TicketMessage message = buildCustomerVisibleMessage(
+        RouterResponse routerResponse = baseResponse(
             ticket,
-            MessageKind.AUTO_REPLY,
+            NextAction.AUTO_RESOLVE
+        );
+        routerResponse.setDraftReply(
             solution
         );
 
-        messageRepository.save(
-            message
+        executeAction(
+            ticket,
+            routerResponse
+        );
+    }
+
+    @Tool(description = "Use knowledge base article for resolution")
+    public void useKnowledgeArticle(
+        @ToolParam(description = "Knowledge article id") long articleId
+    ) throws BindException {
+        SupportTicket ticket = currentTicket();
+
+        Map<String, Object> actionParameters = new HashMap<>();
+        actionParameters.put(
+            RoutingActionParameterKey.ARTICLE_ID.getKey(),
+            articleId
         );
 
-        resolveTicket(
-            ticket
+        RouterResponse routerResponse = baseResponse(
+            ticket,
+            NextAction.USE_KNOWLEDGE_ARTICLE
+        );
+        routerResponse.setActionParameters(
+            actionParameters
         );
 
-        notificationService.createNotification(
-            ticket.getCustomer().getId(),
-            NotificationType.STATUS_CHANGE,
-            "Ticket Resolved: " + ticket.getFormattedTicketNo(),
-            "Your ticket has been resolved.",
-            ticket.getId()
+        executeAction(
+            ticket,
+            routerResponse
+        );
+    }
+
+    @Tool(description = "Use response template for resolution")
+    public void useTemplate(
+        @ToolParam(description = "Template id") long templateId
+    ) throws BindException {
+        SupportTicket ticket = currentTicket();
+
+        Map<String, Object> actionParameters = new HashMap<>();
+        actionParameters.put(
+            RoutingActionParameterKey.TEMPLATE_ID.getKey(),
+            templateId
         );
 
-        auditService.recordEvent(
-            AuditEventType.TICKET_STATUS_CHANGED,
-            ticket.getId(),
-            null,
-            "Ticket auto-resolved",
-            null
+        RouterResponse routerResponse = baseResponse(
+            ticket,
+            NextAction.USE_TEMPLATE
+        );
+        routerResponse.setActionParameters(
+            actionParameters
         );
 
-        log.info(
-            "ToolExecution(autoResolve)({}) SupportTicket(id:{}) Outcome(completed)",
-            OperationalLogContext.PHASE_COMPLETE,
-            ticket.getId()
+        executeAction(
+            ticket,
+            routerResponse
+        );
+    }
+
+    @Tool(description = "Update customer profile information")
+    public void updateCustomerProfile(
+        @ToolParam(description = "Phone number") String phoneNumber,
+        @ToolParam(description = "Company name") String companyName,
+        @ToolParam(description = "Address") String address,
+        @ToolParam(description = "City") String city,
+        @ToolParam(description = "Postal code") String postalCode,
+        @ToolParam(description = "Preferred language code") String preferredLanguageCode
+    ) throws BindException {
+        SupportTicket ticket = currentTicket();
+
+        Map<String, Object> actionParameters = new HashMap<>();
+        putIfNotBlank(
+            actionParameters,
+            RoutingActionParameterKey.PHONE_NUMBER.getKey(),
+            phoneNumber
+        );
+        putIfNotBlank(
+            actionParameters,
+            RoutingActionParameterKey.COMPANY_NAME.getKey(),
+            companyName
+        );
+        putIfNotBlank(
+            actionParameters,
+            RoutingActionParameterKey.ADDRESS.getKey(),
+            address
+        );
+        putIfNotBlank(
+            actionParameters,
+            RoutingActionParameterKey.CITY.getKey(),
+            city
+        );
+        putIfNotBlank(
+            actionParameters,
+            RoutingActionParameterKey.POSTAL_CODE.getKey(),
+            postalCode
+        );
+        putIfNotBlank(
+            actionParameters,
+            RoutingActionParameterKey.PREFERRED_LANGUAGE_CODE.getKey(),
+            preferredLanguageCode
+        );
+
+        RouterResponse routerResponse = baseResponse(
+            ticket,
+            NextAction.UPDATE_CUSTOMER_PROFILE
+        );
+        routerResponse.setActionParameters(
+            actionParameters
+        );
+
+        executeAction(
+            ticket,
+            routerResponse
         );
     }
 
     @Tool(description = "Reopen a previously resolved or closed ticket")
-    @Transactional
     public void reopenTicket(
         @ToolParam(description = "Reason for reopening") String reason
-    ) {
-        SupportTicket ticket = ToolExecutionContext.currentTicket();
+    ) throws BindException {
+        SupportTicket ticket = currentTicket();
 
-        log.info(
-            "ToolExecution(reopenTicket)({}) SupportTicket(id:{}) Reason(length:{})",
-            OperationalLogContext.PHASE_START,
-            ticket.getId(),
-            StringUtils.length(reason)
+        RouterResponse routerResponse = baseResponse(
+            ticket,
+            NextAction.REOPEN_TICKET
         );
-
-        ticket.setStatus(
-            TicketStatus.IN_PROGRESS
-        );
-        ticket.setResolvedAt(
-            null
-        );
-        ticket.setClosedAt(
-            null
-        );
-        ticket.setEscalated(
-            false
-        );
-        ticket.setRequiresHumanReview(
-            false
+        routerResponse.setInternalNote(
+            reason
         );
 
-        persistTicketActivity(
-            ticket
-        );
-
-        auditService.recordEvent(
-            AuditEventType.TICKET_REOPENED,
-            ticket.getId(),
-            null,
-            "Ticket reopened: " + StringUtils.defaultIfBlank(reason, "No reason provided"),
-            null
-        );
-
-        log.info(
-            "ToolExecution(reopenTicket)({}) SupportTicket(id:{}) Outcome(completed)",
-            OperationalLogContext.PHASE_COMPLETE,
-            ticket.getId()
+        executeAction(
+            ticket,
+            routerResponse
         );
     }
 
     @Tool(description = "Send a notification to relevant parties")
-    @Transactional
     public void triggerNotification(
         @ToolParam(description = "Notification type: STATUS_CHANGE, NEW_MESSAGE, or ESCALATION") String notificationType,
         @ToolParam(description = "Notification title") String title,
         @ToolParam(description = "Notification body") String body
-    ) {
-        SupportTicket ticket = ToolExecutionContext.currentTicket();
-        NotificationType type = NotificationType.valueOf(notificationType);
+    ) throws BindException {
+        SupportTicket ticket = currentTicket();
 
+        Map<String, Object> actionParameters = new HashMap<>();
+        putIfNotBlank(
+            actionParameters,
+            KEY_NOTIFICATION_TYPE,
+            notificationType
+        );
+        putIfNotBlank(
+            actionParameters,
+            KEY_TITLE,
+            title
+        );
+        putIfNotBlank(
+            actionParameters,
+            KEY_BODY,
+            body
+        );
+
+        RouterResponse routerResponse = baseResponse(
+            ticket,
+            NextAction.TRIGGER_NOTIFICATION
+        );
+        routerResponse.setActionParameters(
+            actionParameters
+        );
+
+        executeAction(
+            ticket,
+            routerResponse
+        );
+    }
+
+    @Tool(description = "Retrieve current ticket information")
+    public String getTicketInfo() {
+        SupportTicket ticket = currentTicket();
+
+        return String.format(
+            "Ticket %s | Subject: %s | Status: %s | Queue: %s | Priority: %s | Category: %s | HumanReview: %s",
+            ticket.getFormattedTicketNo(),
+            ticket.getSubject(),
+            ticket.getStatus(),
+            ticket.getAssignedQueue(),
+            ticket.getCurrentPriority(),
+            ticket.getCurrentCategory(),
+            ticket.isRequiresHumanReview()
+        );
+    }
+
+    @Tool(description = "Retrieve customer ticket history")
+    public String getCustomerHistory(
+        @ToolParam(description = "Maximum number of tickets to return") Integer limit
+    ) {
+        SupportTicket ticket = currentTicket();
+        int resolvedLimit = normalizeLimit(
+            limit,
+            DEFAULT_HISTORY_LIMIT,
+            MAX_HISTORY_LIMIT
+        );
+
+        List<SupportTicket> tickets = supportTicketRepository.findTop5ByCustomerIdOrderByLastActivityAtDesc(
+            ticket.getCustomer().getId()
+        );
+
+        return tickets.stream()
+                      .limit(resolvedLimit)
+                      .map(historyTicket -> String.format(
+                          "%s | %s | %s | %s",
+                          historyTicket.getFormattedTicketNo(),
+                          historyTicket.getStatus(),
+                          historyTicket.getCurrentPriority(),
+                          StringUtils.abbreviate(historyTicket.getSubject(), 80)
+                      ))
+                      .collect(Collectors.joining("\n"));
+    }
+
+    @Tool(description = "Search knowledge base for relevant articles")
+    public String searchKnowledgeBase(
+        @ToolParam(description = "Knowledge base search query") String query,
+        @ToolParam(description = "Top K results to return") Integer topK
+    ) {
+        int resolvedTopK = normalizeLimit(
+            topK,
+            DEFAULT_SEARCH_TOP_K,
+            MAX_SEARCH_TOP_K
+        );
+
+        List<Document> documents = knowledgeBaseVectorStore.searchSimilar(
+            query,
+            resolvedTopK,
+            TOOL_SEARCH_SIMILARITY_THRESHOLD
+        );
+
+        if (documents.isEmpty()) {
+            return "No matching articles found.";
+        }
+
+        return documents.stream()
+                        .map(this::formatKnowledgeDocument)
+                        .collect(Collectors.joining("\n"));
+    }
+
+    private void executeAction(
+        SupportTicket ticket,
+        RouterResponse routerResponse
+    ) throws BindException {
         log.info(
-            "ToolExecution(triggerNotification)({}) SupportTicket(id:{}) Type({})",
+            "ToolExecution(route)({}) SupportTicket(id:{}) NextAction({})",
             OperationalLogContext.PHASE_START,
             ticket.getId(),
-            type
+            routerResponse.getNextAction()
         );
 
-        notificationService.createNotification(
-            ticket.getCustomer().getId(),
-            type,
-            title,
-            body,
-            ticket.getId()
+        runtimeActionAdapterService.execute(
+            ticket,
+            routerResponse
         );
 
         log.info(
-            "ToolExecution(triggerNotification)({}) SupportTicket(id:{}) Outcome(completed)",
+            "ToolExecution(route)({}) SupportTicket(id:{}) NextAction({}) Outcome(completed)",
             OperationalLogContext.PHASE_COMPLETE,
-            ticket.getId()
+            ticket.getId(),
+            routerResponse.getNextAction()
         );
     }
 
-    private TicketMessage buildCustomerVisibleMessage(
+    private RouterResponse baseResponse(
         SupportTicket ticket,
-        MessageKind messageKind,
-        String content
+        NextAction nextAction
     ) {
-        return TicketMessage.builder()
-                            .ticket(ticket)
-                            .messageKind(messageKind)
-                            .content(content)
-                            .visibleToCustomer(true)
-                            .build();
+        return RouterResponse.builder()
+                             .category(Objects.requireNonNullElse(ticket.getCurrentCategory(), TicketCategory.OTHER))
+                             .priority(Objects.requireNonNullElse(ticket.getCurrentPriority(), TicketPriority.MEDIUM))
+                             .queue(Objects.requireNonNullElse(ticket.getAssignedQueue(), TicketQueue.GENERAL_Q))
+                             .nextAction(nextAction)
+                             .confidence(Objects.requireNonNullElse(ticket.getLatestRoutingConfidence(), BigDecimal.ONE))
+                             .build();
     }
 
-    private TicketMessage buildInternalMessage(
-        SupportTicket ticket,
-        MessageKind messageKind,
-        String content
+    private String formatKnowledgeDocument(
+        Document document
     ) {
-        return TicketMessage.builder()
-                            .ticket(ticket)
-                            .messageKind(messageKind)
-                            .content(content)
-                            .visibleToCustomer(false)
-                            .build();
-    }
-
-    private void resolveTicket(
-        SupportTicket ticket
-    ) {
-        ticket.setStatus(
-            TicketStatus.RESOLVED
+        Object articleId = document.getMetadata().get(
+            VectorStoreMetadataKey.ARTICLE_ID.name()
+        );
+        String title = StringUtils.trimToEmpty(
+            StringUtils.substringBefore(
+                StringUtils.defaultString(document.getText()),
+                System.lineSeparator()
+            )
         );
 
-        ticket.setResolvedAt(
-            Instant.now()
-        );
-
-        persistTicketActivity(
-            ticket
+        return String.format(
+            "article_id=%s | title=%s",
+            Objects.toString(articleId, "n/a"),
+            StringUtils.abbreviate(title, 100)
         );
     }
 
-    private void persistTicketActivity(
-        SupportTicket ticket
+    private void putIfNotBlank(
+        Map<String, Object> target,
+        String key,
+        String value
     ) {
-        ticket.updateLastActivity();
+        if (StringUtils.isNotBlank(value)) {
+            target.put(
+                key,
+                value
+            );
+        }
+    }
 
-        supportTicketRepository.save(
-            ticket
+    private int normalizeLimit(
+        Integer limit,
+        int fallback,
+        int max
+    ) {
+        if (Objects.isNull(limit) || limit <= 0) {
+            return fallback;
+        }
+
+        return Math.min(
+            limit,
+            max
         );
+    }
+
+    private SupportTicket currentTicket() {
+        return ToolExecutionContext.currentTicket();
     }
 }

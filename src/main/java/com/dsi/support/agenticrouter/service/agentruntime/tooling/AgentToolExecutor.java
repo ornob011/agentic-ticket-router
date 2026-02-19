@@ -3,7 +3,7 @@ package com.dsi.support.agenticrouter.service.agentruntime.tooling;
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.NextAction;
-import com.dsi.support.agenticrouter.enums.NotificationType;
+import com.dsi.support.agenticrouter.enums.RoutingActionParameterKey;
 import com.dsi.support.agenticrouter.service.agentruntime.tools.TicketActionTools;
 import com.dsi.support.agenticrouter.service.agentruntime.tools.ToolExecutionContext;
 import com.dsi.support.agenticrouter.util.BindValidation;
@@ -12,9 +12,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BindException;
 
+import java.util.Map;
+import java.util.Objects;
+
 @Service
 @RequiredArgsConstructor
 public class AgentToolExecutor {
+
+    private static final String ROUTER_RESPONSE_OBJECT = "routerResponse";
+    private static final String FIELD_ACTION_PARAMETERS = "actionParameters";
 
     private final TicketActionTools ticketActionTools;
 
@@ -38,40 +44,118 @@ public class AgentToolExecutor {
     private void executeToolByAction(
         RouterResponse routerResponse
     ) throws BindException {
-        NextAction nextAction = routerResponse.getNextAction();
+        NextAction nextAction = Objects.requireNonNull(
+            routerResponse.getNextAction(),
+            "routerResponse.nextAction"
+        );
 
         switch (nextAction) {
             case AUTO_REPLY -> ticketActionTools.autoReply(
-                resolveReplyContent(routerResponse)
+                requireText(
+                    routerResponse.getDraftReply(),
+                    "draftReply",
+                    "draftReply is required for AUTO_REPLY action"
+                )
             );
             case ASK_CLARIFYING -> ticketActionTools.askClarifying(
-                resolveClarifyingQuestion(routerResponse)
+                requireText(
+                    routerResponse.getClarifyingQuestion(),
+                    "clarifyingQuestion",
+                    "clarifyingQuestion is required for ASK_CLARIFYING action"
+                )
             );
             case ASSIGN_QUEUE -> ticketActionTools.assignQueue(
                 requireQueue(routerResponse)
             );
             case ESCALATE, AUTO_ESCALATE -> ticketActionTools.escalate(
-                resolveReason(routerResponse)
+                requireText(
+                    routerResponse.getInternalNote(),
+                    "internalNote",
+                    "internalNote is required for escalation action"
+                )
             );
             case HUMAN_REVIEW -> ticketActionTools.markHumanReview(
-                resolveReason(routerResponse)
+                requireText(
+                    routerResponse.getInternalNote(),
+                    "internalNote",
+                    "internalNote is required for HUMAN_REVIEW action"
+                )
             );
-            case UPDATE_CUSTOMER_PROFILE, ADD_INTERNAL_NOTE -> ticketActionTools.addInternalNote(
-                resolveReason(routerResponse)
+            case UPDATE_CUSTOMER_PROFILE -> ticketActionTools.updateCustomerProfile(
+                readStringParameter(
+                    routerResponse,
+                    RoutingActionParameterKey.PHONE_NUMBER
+                ),
+                readStringParameter(
+                    routerResponse,
+                    RoutingActionParameterKey.COMPANY_NAME
+                ),
+                readStringParameter(
+                    routerResponse,
+                    RoutingActionParameterKey.ADDRESS
+                ),
+                readStringParameter(
+                    routerResponse,
+                    RoutingActionParameterKey.CITY
+                ),
+                readStringParameter(
+                    routerResponse,
+                    RoutingActionParameterKey.POSTAL_CODE
+                ),
+                readStringParameter(
+                    routerResponse,
+                    RoutingActionParameterKey.PREFERRED_LANGUAGE_CODE
+                )
             );
             case CHANGE_PRIORITY -> ticketActionTools.changePriority(
                 requirePriority(routerResponse)
             );
-            case AUTO_RESOLVE, USE_KNOWLEDGE_ARTICLE, USE_TEMPLATE -> ticketActionTools.autoResolve(
-                resolveReplyContent(routerResponse)
+            case ADD_INTERNAL_NOTE -> ticketActionTools.addInternalNote(
+                requireText(
+                    routerResponse.getInternalNote(),
+                    "internalNote",
+                    "internalNote is required for ADD_INTERNAL_NOTE action"
+                )
+            );
+            case AUTO_RESOLVE -> ticketActionTools.autoResolve(
+                requireText(
+                    routerResponse.getDraftReply(),
+                    "draftReply",
+                    "draftReply is required for AUTO_RESOLVE action"
+                )
             );
             case REOPEN_TICKET -> ticketActionTools.reopenTicket(
-                resolveReason(routerResponse)
+                requireText(
+                    routerResponse.getInternalNote(),
+                    "internalNote",
+                    "internalNote is required for REOPEN_TICKET action"
+                )
             );
             case TRIGGER_NOTIFICATION -> ticketActionTools.triggerNotification(
-                NotificationType.STATUS_CHANGE.name(),
-                "Ticket Update",
-                resolveReason(routerResponse)
+                readRawParameter(
+                    routerResponse,
+                    "notification_type"
+                ),
+                readRawParameter(
+                    routerResponse,
+                    "title"
+                ),
+                readRawParameter(
+                    routerResponse,
+                    "body"
+                )
+            );
+            case USE_KNOWLEDGE_ARTICLE -> ticketActionTools.useKnowledgeArticle(
+                requirePositiveLongParameter(
+                    routerResponse,
+                    RoutingActionParameterKey.ARTICLE_ID
+                )
+            );
+            case USE_TEMPLATE -> ticketActionTools.useTemplate(
+                requirePositiveLongParameter(
+                    routerResponse,
+                    RoutingActionParameterKey.TEMPLATE_ID
+                )
             );
         }
     }
@@ -81,9 +165,9 @@ public class AgentToolExecutor {
     ) throws BindException {
         if (routerResponse.getQueue() == null) {
             throw BindValidation.fieldError(
-                "routerResponse",
+                ROUTER_RESPONSE_OBJECT,
                 "queue",
-                "Queue is required for ASSIGN_QUEUE action"
+                "queue is required for ASSIGN_QUEUE action"
             );
         }
 
@@ -95,39 +179,105 @@ public class AgentToolExecutor {
     ) throws BindException {
         if (routerResponse.getPriority() == null) {
             throw BindValidation.fieldError(
-                "routerResponse",
+                ROUTER_RESPONSE_OBJECT,
                 "priority",
-                "Priority is required for CHANGE_PRIORITY action"
+                "priority is required for CHANGE_PRIORITY action"
             );
         }
 
         return routerResponse.getPriority().name();
     }
 
-    private String resolveClarifyingQuestion(
-        RouterResponse routerResponse
-    ) {
-        return StringUtils.defaultIfBlank(
-            routerResponse.getClarifyingQuestion(),
-            "Could you provide more details so I can help you better?"
+    private String requireText(
+        String value,
+        String fieldName,
+        String errorMessage
+    ) throws BindException {
+        String normalizedValue = StringUtils.trimToNull(
+            value
+        );
+
+        if (Objects.isNull(normalizedValue)) {
+            throw BindValidation.fieldError(
+                ROUTER_RESPONSE_OBJECT,
+                fieldName,
+                errorMessage
+            );
+        }
+
+        return normalizedValue;
+    }
+
+    private long requirePositiveLongParameter(
+        RouterResponse routerResponse,
+        RoutingActionParameterKey parameterKey
+    ) throws BindException {
+        String rawValue = readRawParameter(
+            routerResponse,
+            parameterKey.getKey()
+        );
+
+        if (StringUtils.isBlank(rawValue) || !StringUtils.isNumeric(rawValue)) {
+            throw BindValidation.fieldError(
+                ROUTER_RESPONSE_OBJECT,
+                FIELD_ACTION_PARAMETERS,
+                parameterKey.getKey() + " must be numeric"
+            );
+        }
+
+        long parsedValue = Long.parseLong(rawValue);
+        if (parsedValue <= 0L) {
+            throw BindValidation.fieldError(
+                ROUTER_RESPONSE_OBJECT,
+                FIELD_ACTION_PARAMETERS,
+                parameterKey.getKey() + " must be positive"
+            );
+        }
+
+        return parsedValue;
+    }
+
+    private String readStringParameter(
+        RouterResponse routerResponse,
+        RoutingActionParameterKey parameterKey
+    ) throws BindException {
+        return StringUtils.trimToNull(
+            readRawParameter(
+                routerResponse,
+                parameterKey.getKey()
+            )
         );
     }
 
-    private String resolveReplyContent(
-        RouterResponse routerResponse
-    ) {
-        return StringUtils.defaultIfBlank(
-            routerResponse.getDraftReply(),
-            "Thank you for your message. We have processed your request."
+    private String readRawParameter(
+        RouterResponse routerResponse,
+        String key
+    ) throws BindException {
+        Map<String, Object> actionParameters = requireActionParameters(
+            routerResponse
+        );
+
+        Object value = actionParameters.get(
+            key
+        );
+
+        return Objects.toString(
+            value,
+            null
         );
     }
 
-    private String resolveReason(
+    private Map<String, Object> requireActionParameters(
         RouterResponse routerResponse
-    ) {
-        return StringUtils.defaultIfBlank(
-            routerResponse.getInternalNote(),
-            "Action triggered by agent runtime policy."
-        );
+    ) throws BindException {
+        if (Objects.isNull(routerResponse.getActionParameters())) {
+            throw BindValidation.fieldError(
+                ROUTER_RESPONSE_OBJECT,
+                FIELD_ACTION_PARAMETERS,
+                "actionParameters are required"
+            );
+        }
+
+        return routerResponse.getActionParameters();
     }
 }
