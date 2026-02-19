@@ -8,6 +8,7 @@ import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.service.memory.MemoryContextService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
 import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
@@ -27,6 +28,7 @@ public class AskClarifyingAction implements TicketAction {
     private final NotificationService notificationService;
     private final AuditService auditService;
     private final SupportTicketRepository supportTicketRepository;
+    private final MemoryContextService memoryContextService;
 
     @Override
     public boolean canHandle(
@@ -65,6 +67,10 @@ public class AskClarifyingAction implements TicketAction {
                                              .visibleToCustomer(true)
                                              .build();
         messageRepository.save(message);
+        memoryContextService.appendAssistantMessage(
+            supportTicket,
+            routerResponse.getClarifyingQuestion()
+        );
 
         supportTicket.recordClarifyingQuestion(routerResponse.getClarifyingQuestion());
         supportTicket.setStatus(TicketStatus.WAITING_CUSTOMER);

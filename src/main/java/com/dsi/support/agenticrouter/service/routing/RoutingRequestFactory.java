@@ -10,6 +10,7 @@ import com.dsi.support.agenticrouter.enums.VectorStoreMetadataKey;
 import com.dsi.support.agenticrouter.model.TicketAutonomousMetadata;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.knowledge.KnowledgeBaseVectorStore;
+import com.dsi.support.agenticrouter.service.memory.CustomerContextEnrichmentService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,7 @@ public class RoutingRequestFactory {
 
     private final TicketMessageRepository ticketMessageRepository;
     private final KnowledgeBaseVectorStore knowledgeBaseVectorStore;
+    private final CustomerContextEnrichmentService customerContextEnrichmentService;
 
     public TicketAnalysisRequest buildAnalysisRequest(
         SupportTicket supportTicket
@@ -268,18 +270,33 @@ public class RoutingRequestFactory {
     private String buildConversationText(
         SupportTicket supportTicket
     ) {
-        return ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(
-                                          supportTicket.getId()
-                                      )
-                                      .stream()
-                                      .map(
-                                          message -> String.format(
-                                              "[%s] %s: %s",
-                                              message.getCreatedAt(),
-                                              message.getMessageKind(),
-                                              message.getContent()
-                                          )
-                                      )
-                                      .collect(Collectors.joining("\n"));
+        String ticketConversation = ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(
+                                                                supportTicket.getId()
+                                                            )
+                                                            .stream()
+                                                            .map(
+                                                                message -> String.format(
+                                                                    "[%s] %s: %s",
+                                                                    message.getCreatedAt(),
+                                                                    message.getMessageKind(),
+                                                                    message.getContent()
+                                                                )
+                                                            )
+                                                            .collect(Collectors.joining("\n"));
+
+        String customerContext = customerContextEnrichmentService.buildCustomerContext(
+            supportTicket.getCustomer().getId(),
+            supportTicket.getId()
+        );
+
+        if (StringUtils.isBlank(customerContext)) {
+            return ticketConversation;
+        }
+
+        return String.join(
+            "\n\n",
+            ticketConversation,
+            customerContext
+        );
     }
 }

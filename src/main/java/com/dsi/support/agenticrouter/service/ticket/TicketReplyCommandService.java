@@ -8,6 +8,7 @@ import com.dsi.support.agenticrouter.event.CategoryDetectionEvent;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.security.TicketAccessPolicyService;
+import com.dsi.support.agenticrouter.service.memory.MemoryContextService;
 import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
@@ -37,6 +38,7 @@ public class TicketReplyCommandService {
     private final CustomerReplyLifecycleService customerReplyLifecycleService;
     private final TicketCommandLookupService ticketCommandLookupService;
     private final StaffReplyWorkflowService staffReplyWorkflowService;
+    private final MemoryContextService memoryContextService;
 
     public void addCustomerReply(
         Long ticketId,
@@ -106,6 +108,10 @@ public class TicketReplyCommandService {
                                                          .build();
 
             ticketMessageRepository.save(customerMessage);
+            memoryContextService.appendCustomerMessage(
+                supportTicket,
+                normalizedContent
+            );
 
             eventPublisher.publishEvent(
                 new CategoryDetectionEvent(
@@ -136,6 +142,10 @@ public class TicketReplyCommandService {
                                                    .build();
 
         ticketMessageRepository.save(ticketMessage);
+        memoryContextService.appendCustomerMessage(
+            supportTicket,
+            normalizedContent
+        );
 
         supportTicket.updateLastActivity();
 
@@ -232,6 +242,10 @@ public class TicketReplyCommandService {
                                                    .build();
 
         ticketMessageRepository.save(ticketMessage);
+        memoryContextService.appendAssistantMessage(
+            supportTicket,
+            normalizedContent
+        );
 
         supportTicket.updateLastActivity();
         staffReplyWorkflowService.handleStaffReply(

@@ -11,6 +11,7 @@ import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.action.ActionParameterService;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.service.memory.MemoryContextService;
 import com.dsi.support.agenticrouter.service.knowledge.TemplateService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class UseTemplateAction implements TicketAction {
     private final SupportTicketRepository supportTicketRepository;
     private final TemplateService templateService;
     private final ActionParameterService actionParameterService;
+    private final MemoryContextService memoryContextService;
 
     @Override
     public boolean canHandle(
@@ -93,6 +95,10 @@ public class UseTemplateAction implements TicketAction {
                                                    .build();
 
         ticketMessageRepository.save(ticketMessage);
+        memoryContextService.appendAssistantMessage(
+            supportTicket,
+            filledContent
+        );
         supportTicket.updateLastActivity();
         supportTicketRepository.save(supportTicket);
 
