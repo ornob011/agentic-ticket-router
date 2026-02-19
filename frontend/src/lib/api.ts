@@ -333,3 +333,39 @@ export type NotificationDto = {
   read: boolean;
   createdAt: string;
 };
+
+export type FeedbackType = "RATING" | "CORRECTION" | "REJECTION" | "APPROVAL";
+
+export type FeedbackRequest = {
+  ticketId: number;
+  feedbackType: FeedbackType;
+  rating?: number;
+  originalCategory?: string;
+  correctedCategory?: string;
+  originalAction?: string;
+  correctedAction?: string;
+  notes?: string;
+};
+
+export type FeedbackResponse = {
+  id: number;
+  ticketId: number;
+  feedbackType: FeedbackType;
+  rating: number | null;
+  originalCategory: string | null;
+  correctedCategory: string | null;
+  originalAction: string | null;
+  correctedAction: string | null;
+  notes: string | null;
+  agentName: string | null;
+  createdAt: string;
+};
+
+export type FeedbackSummary = {
+  ticketId: number;
+  totalFeedbackCount: number;
+  approvalCount: number;
+  correctionCount: number;
+  rejectionCount: number;
+  averageRating: number | null;
+};

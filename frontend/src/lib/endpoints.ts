@@ -49,4 +49,9 @@ export const endpoints = {
     activateModel: "/admin/model-registry/activate",
     auditLog: "/admin/audit-log?page=0&size=50",
   },
+  feedback: {
+    submit: "/feedback",
+    listByTicket: (ticketId: string | number) => `/feedback/ticket/${ticketId}`,
+    summary: (ticketId: string | number) => `/feedback/ticket/${ticketId}/summary`,
+  },
 } as const;

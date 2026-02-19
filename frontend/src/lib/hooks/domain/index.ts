@@ -30,3 +30,9 @@ export {
   useResetPolicyMutation,
   useActivateModelMutation,
 } from "./use-admin-mutation";
+
+export {
+  useSubmitFeedbackMutation,
+  useSubmitRatingMutation,
+  useSubmitCorrectionMutation,
+} from "./use-feedback-mutation";
