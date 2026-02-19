@@ -30,8 +30,7 @@ public class AgentPlannerClient {
         return decideForRole(
             routerRequest,
             ticketId,
-            AgentRole.SUPERVISOR,
-            null
+            AgentRole.SUPERVISOR
         );
     }
 
@@ -40,33 +39,17 @@ public class AgentPlannerClient {
         Long ticketId,
         AgentRole actorRole
     ) {
-        return decideForRole(
-            routerRequest,
-            ticketId,
-            actorRole,
-            null
-        );
-    }
-
-    public AgentPlannerDecision decideForRole(
-        RouterRequest routerRequest,
-        Long ticketId,
-        AgentRole actorRole,
-        NextAction lockedNextAction
-    ) {
         log.info(
-            "AgentPlannerClient({}) SupportTicket(id:{}) Planner(role:{},lockedAction:{}) Outcome(start)",
+            "AgentPlannerClient({}) SupportTicket(id:{}) Planner(role:{}) Outcome(start)",
             OperationalLogContext.PHASE_START,
             ticketId,
-            actorRole,
-            lockedNextAction != null ? lockedNextAction : "NONE"
+            actorRole
         );
 
         String plannerRawJson = agentPlannerLlmClient.requestPlan(
             routerRequest,
             ticketId,
-            actorRole,
-            lockedNextAction
+            actorRole
         );
 
         String candidateJson = plannerRawJson;
@@ -76,8 +59,7 @@ public class AgentPlannerClient {
                 null,
                 routerRequest,
                 ticketId,
-                actorRole,
-                lockedNextAction
+                actorRole
             );
         }
 
@@ -108,8 +90,7 @@ public class AgentPlannerClient {
                 validationResult.errorMessage(),
                 routerRequest,
                 ticketId,
-                actorRole,
-                lockedNextAction
+                actorRole
             );
             validationResult = agentPlanSchemaValidator.validate(
                 candidateJson
@@ -144,19 +125,6 @@ public class AgentPlannerClient {
             ? agentPlanSchemaValidator.map(validationResult.jsonNode())
             : agentPlannerLlmClient.mapUnchecked(candidateJson);
 
-        if (lockedNextAction != null && routerResponse.getNextAction() != lockedNextAction) {
-            log.warn(
-                "AgentPlannerLock(enforce) SupportTicket(id:{}) Outcome(actorRole:{},expectedAction:{},actualAction:{})",
-                ticketId,
-                actorRole,
-                lockedNextAction,
-                routerResponse.getNextAction()
-            );
-            routerResponse.setNextAction(
-                lockedNextAction
-            );
-        }
-
         routerResponseContractValidator.validate(
             routerResponse
         );
@@ -182,11 +150,10 @@ public class AgentPlannerClient {
         );
 
         log.info(
-            "AgentPlannerClient({}) SupportTicket(id:{}) Planner(role:{},lockedAction:{}) Outcome(nextAction:{},targetRole:{},handoff:{})",
+            "AgentPlannerClient({}) SupportTicket(id:{}) Planner(role:{}) Outcome(nextAction:{},targetRole:{},handoff:{})",
             OperationalLogContext.PHASE_COMPLETE,
             ticketId,
             actorRole,
-            lockedNextAction != null ? lockedNextAction : "NONE",
             plannerDecision.routerResponse().getNextAction(),
             plannerDecision.targetRole(),
             plannerDecision.handoff()

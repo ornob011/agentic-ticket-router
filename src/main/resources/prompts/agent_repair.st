@@ -1,6 +1,5 @@
 Repair planner JSON and return valid JSON only.
 Agent role: {agent_role}
-Locked next action: {locked_next_action}
 
 RULES:
 - Keep enum values valid.
@@ -24,7 +23,6 @@ RULES:
 - If next_action is USE_KNOWLEDGE_ARTICLE, action_parameters.article_id must be positive numeric.
 - If next_action is USE_TEMPLATE, action_parameters.template_id must be positive numeric.
 - If next_action is UPDATE_CUSTOMER_PROFILE, include at least one concrete profile field in action_parameters.
-- If Locked next action is not "NONE", enforce next_action exactly equal to Locked next action.
 - For enum correction, copy exact token values from the provided allowed lists.
 - Never alter enum token casing/underscores.
 - Ensure queue/category consistency:

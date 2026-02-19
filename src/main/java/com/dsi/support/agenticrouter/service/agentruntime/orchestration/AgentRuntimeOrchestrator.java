@@ -336,8 +336,7 @@ public class AgentRuntimeOrchestrator {
             plannerDecision = agentPlannerClient.decideForRole(
                 routerRequest,
                 supportTicket.getId(),
-                supervisorDecision.targetRole(),
-                supervisorDecision.routerResponse().getNextAction()
+                supervisorDecision.targetRole()
             );
 
             applyHandoffState(

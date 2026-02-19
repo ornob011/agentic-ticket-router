@@ -7,7 +7,6 @@ INPUTS:
 - Analysis: {analysis}
 - Latest Customer Message: {latest_customer_message}
 - Knowledge: {relevant_articles}
-- Locked Next Action: {locked_next_action}
 
 OUTPUT RULES:
 - Use Latest Customer Message as the primary source of intent.
@@ -53,10 +52,6 @@ ROUTING CONSISTENCY POLICY:
   - ACCOUNT -> ACCOUNT_Q
   - PRICING -> ACCOUNT_Q
   - OTHER -> GENERAL_Q
-
-LOCK RULE (STRICT):
-- If Locked Next Action is not "NONE", you MUST output next_action exactly equal to Locked Next Action.
-- When Locked Next Action is set, your job is to refine supporting fields (draft_reply, clarifying_question, action_parameters, internal_note), not to change next_action.
 
 ACTION/FIELD CONTRACTS (STRICT):
 - ASK_CLARIFYING:
