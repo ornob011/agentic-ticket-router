@@ -31,6 +31,75 @@ public class AgenticStateMachine {
     private final SupportTicketRepository supportTicketRepository;
     private final TicketRoutingPersistenceService ticketRoutingPersistenceService;
 
+    private static TicketRouting buildRouting(
+        SupportTicket supportTicket,
+        RouterResponse routerResponse,
+        TicketQueue resolvedQueue
+    ) {
+        TicketCategory category = normalizeRoutingCategory(
+            chooseWithFallback(
+                routerResponse.getCategory(),
+                supportTicket.getCurrentCategory(),
+                TicketCategory.OTHER
+            )
+        );
+
+        TicketPriority priority = chooseWithFallback(
+            routerResponse.getPriority(),
+            supportTicket.getCurrentPriority(),
+            TicketPriority.MEDIUM
+        );
+
+        NextAction nextAction = chooseWithFallback(
+            routerResponse.getNextAction(),
+            NextAction.HUMAN_REVIEW
+        );
+
+        List<String> rationaleTags = copyRationaleTagsOrEmpty(
+            routerResponse.getRationaleTags()
+        );
+
+        return TicketRouting.builder()
+                            .version(supportTicket.getLatestRoutingVersion())
+                            .category(category)
+                            .priority(priority)
+                            .queue(resolvedQueue)
+                            .nextAction(nextAction)
+                            .confidence(routerResponse.getConfidence())
+                            .clarifyingQuestion(routerResponse.getClarifyingQuestion())
+                            .draftReply(routerResponse.getDraftReply())
+                            .rationaleTags(rationaleTags)
+                            .applied(true)
+                            .build();
+    }
+
+    @SafeVarargs
+    private static <T> T chooseWithFallback(
+        T... candidates
+    ) {
+        for (T candidate : candidates) {
+            if (Objects.nonNull(candidate)) {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static List<String> copyRationaleTagsOrEmpty(
+        List<String> tags
+    ) {
+        return Objects.nonNull(tags) ? new ArrayList<>(tags) : new ArrayList<>();
+    }
+
+    private static TicketCategory normalizeRoutingCategory(
+        TicketCategory category
+    ) {
+        return Objects.nonNull(category)
+            ? category.toRoutingCategory()
+            : TicketCategory.OTHER;
+    }
+
     public void executeAction(
         SupportTicket supportTicket,
         RouterResponse routerResponse
@@ -146,64 +215,5 @@ public class AgenticStateMachine {
             OperationalLogContext.queue(supportTicket),
             escalationReason
         );
-    }
-
-    private static TicketRouting buildRouting(
-        SupportTicket supportTicket,
-        RouterResponse routerResponse,
-        TicketQueue resolvedQueue
-    ) {
-        TicketCategory category = chooseWithFallback(
-            routerResponse.getCategory(),
-            supportTicket.getCurrentCategory(),
-            TicketCategory.OTHER
-        );
-
-        TicketPriority priority = chooseWithFallback(
-            routerResponse.getPriority(),
-            supportTicket.getCurrentPriority(),
-            TicketPriority.MEDIUM
-        );
-
-        NextAction nextAction = chooseWithFallback(
-            routerResponse.getNextAction(),
-            NextAction.HUMAN_REVIEW
-        );
-
-        List<String> rationaleTags = copyRationaleTagsOrEmpty(
-            routerResponse.getRationaleTags()
-        );
-
-        return TicketRouting.builder()
-                            .version(supportTicket.getLatestRoutingVersion())
-                            .category(category)
-                            .priority(priority)
-                            .queue(resolvedQueue)
-                            .nextAction(nextAction)
-                            .confidence(routerResponse.getConfidence())
-                            .clarifyingQuestion(routerResponse.getClarifyingQuestion())
-                            .draftReply(routerResponse.getDraftReply())
-                            .rationaleTags(rationaleTags)
-                            .applied(true)
-                            .build();
-    }
-
-    @SafeVarargs
-    private static <T> T chooseWithFallback(
-        T... candidates
-    ) {
-        for (T candidate : candidates) {
-            if (Objects.nonNull(candidate)) {
-                return candidate;
-            }
-        }
-
-        return null;
-    }
-
-    private static List<String> copyRationaleTagsOrEmpty(
-        List<String> tags
-    ) {
-        return Objects.nonNull(tags) ? new ArrayList<>(tags) : new ArrayList<>();
     }
 }
