@@ -2,6 +2,8 @@ package com.dsi.support.agenticrouter.dto.api;
 
 import com.dsi.support.agenticrouter.enums.*;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -494,6 +496,45 @@ public final class ApiDtos {
     public record QueueMembershipCreateRequest(
         @NotNull Long userId,
         @NotNull TicketQueue queue
+    ) {
+    }
+
+    public record FeedbackRequest(
+        @NotNull Long ticketId,
+        @NotNull FeedbackType feedbackType,
+        @Min(1) @Max(5) Integer rating,
+        String originalCategory,
+        String correctedCategory,
+        String originalAction,
+        String correctedAction,
+        String notes
+    ) {
+    }
+
+    @Builder
+    public record FeedbackResponse(
+        Long id,
+        Long ticketId,
+        FeedbackType feedbackType,
+        Integer rating,
+        String originalCategory,
+        String correctedCategory,
+        String originalAction,
+        String correctedAction,
+        String notes,
+        String agentName,
+        Instant createdAt
+    ) {
+    }
+
+    @Builder
+    public record FeedbackSummary(
+        Long ticketId,
+        long totalFeedbackCount,
+        long approvalCount,
+        long correctionCount,
+        long rejectionCount,
+        Double averageRating
     ) {
     }
 }
