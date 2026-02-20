@@ -44,14 +44,8 @@ NEXT ACTION POLICY (STRICT):
 
 ROUTING CONSISTENCY POLICY:
 - Queue must be consistent with category.
-- Use these mappings:
-  - BILLING -> BILLING_Q
-  - TECHNICAL -> TECH_Q
-  - SHIPPING -> OPS_Q
-  - SECURITY -> SECURITY_Q
-  - ACCOUNT -> ACCOUNT_Q
-  - PRICING -> ACCOUNT_Q
-  - OTHER -> GENERAL_Q
+- Use this mapping table:
+{routing_policy}
 
 ACTION/FIELD CONTRACTS (STRICT):
 - ASK_CLARIFYING:

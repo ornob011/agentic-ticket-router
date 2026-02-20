@@ -26,13 +26,7 @@ RULES:
 - For enum correction, copy exact token values from the provided allowed lists.
 - Never alter enum token casing/underscores.
 - Ensure queue/category consistency:
-  - BILLING -> BILLING_Q
-  - TECHNICAL -> TECH_Q
-  - SHIPPING -> OPS_Q
-  - SECURITY -> SECURITY_Q
-  - ACCOUNT -> ACCOUNT_Q
-  - PRICING -> ACCOUNT_Q
-  - OTHER -> GENERAL_Q
+{routing_policy}
 - Avoid escalation bias: if request is routine and safe, do not repair to HUMAN_REVIEW.
 
 OUTPUT:

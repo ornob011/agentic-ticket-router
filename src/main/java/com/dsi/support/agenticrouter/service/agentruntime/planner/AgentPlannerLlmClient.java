@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Component
 @RequiredArgsConstructor
@@ -69,6 +70,8 @@ public class AgentPlannerLlmClient {
             routerRequest.getRelevantArticles()
         );
 
+        String routingPolicy = routingPolicy();
+
         String plannerRawJson = llmResponseTextExtractor.extractRequiredContent(
             llmPromptCaller.call(
                 chatModel,
@@ -87,6 +90,7 @@ public class AgentPlannerLlmClient {
                     .param("analysis", routerRequest.getAnalysis())
                     .param("latest_customer_message", latestCustomerMessage)
                     .param("relevant_articles", relevantArticles)
+                    .param("routing_policy", routingPolicy)
                     .param("agent_role", actorRole.name())
                     .param("agent_role_description", actorRole.getDescription())
             ),
@@ -132,6 +136,8 @@ public class AgentPlannerLlmClient {
             validationError
         );
 
+        String routingPolicy = routingPolicy();
+
         String repairedJson = llmResponseTextExtractor.extractRequiredContent(
             llmPromptCaller.call(
                 chatModel,
@@ -153,6 +159,7 @@ public class AgentPlannerLlmClient {
                     .param("subject", routerRequest.getSubject())
                     .param("customer_name", routerRequest.getCustomerName())
                     .param("initial_message", routerRequest.getInitialMessage())
+                    .param("routing_policy", routingPolicy)
                     .param("agent_role", actorRole.name())
             ),
             repairTemplateName
@@ -264,6 +271,34 @@ public class AgentPlannerLlmClient {
         }
 
         return validationError;
+    }
+
+    private String routingPolicy() {
+        return Stream.of(TicketCategory.values())
+                     .map(category -> String.format(
+                         "- %s -> %s",
+                         category.name(),
+                         queueForCategory(category).name()
+                     ))
+                     .collect(Collectors.joining("\n"));
+    }
+
+    private TicketQueue queueForCategory(
+        TicketCategory category
+    ) {
+        TicketCategory routingCategory = Objects.requireNonNullElse(
+            category,
+            TicketCategory.OTHER
+        ).toRoutingCategory();
+
+        return switch (routingCategory) {
+            case BILLING -> TicketQueue.BILLING_Q;
+            case TECHNICAL -> TicketQueue.TECH_Q;
+            case SHIPPING -> TicketQueue.OPS_Q;
+            case SECURITY -> TicketQueue.SECURITY_Q;
+            case ACCOUNT, PRICING, CANCEL -> TicketQueue.ACCOUNT_Q;
+            default -> TicketQueue.GENERAL_Q;
+        };
     }
 
     private record EnumPromptValues(

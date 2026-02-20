@@ -1,5 +1,6 @@
 INPUTS:
 - History: {conversation_history}
+- Analysis: {analysis}
 - Knowledge: {relevant_articles}
 - Latest Customer Message: {latest_customer_message}
 
@@ -51,8 +52,17 @@ MANDATORY PRE-STEP:
 **ENUMS:**
 - Category: {category}
 - Priority: {priority}
-- Queue: {queue} (Map: BILLING->BILLING_Q, TECHNICAL->TECH_Q, ACCOUNT->ACCOUNT_Q, SHIPPING->OPS_Q, SECURITY->SECURITY_Q, PRICING->ACCOUNT_Q, OTHER->GENERAL_Q)
+- Queue: {queue}
 - Action: {next_action}
+
+**ROUTING POLICY (STRICT):**
+{routing_policy}
+
+**ENUM OUTPUT RULE (HARD):**
+- Output enum values by copying exact tokens from the allowed lists above.
+- Preserve exact spelling, underscore, and casing.
+- Never invent, transform, or abbreviate enum tokens.
+- If uncertain, still pick an exact token from the allowed lists.
 
 **JSON RESPONSE (Fill exactly):**
 \{
@@ -85,3 +95,4 @@ MANDATORY PRE-STEP:
 5. Update `confidence` based on the Calculation Rule (1.0 or 0.7).
 6. `rationale_tags` must be evidence-based from Latest Customer Message, History, and Analysis; do not output fixed defaults.
 7. Use 1 to 3 concise `rationale_tags`, and do not always output "latest_message".
+8. Queue/category pair must match the routing policy list above.
