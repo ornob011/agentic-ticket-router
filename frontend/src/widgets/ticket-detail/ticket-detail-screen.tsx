@@ -15,6 +15,7 @@ import { DateSeparator } from "@/components/ui/date-separator";
 import { DetailSection } from "@/components/ui/detail-section";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AgentSelectWithWorkload } from "@/components/ui/agent-select-with-workload";
+import { RoutingProgressPanel } from "@/components/ui/routing-progress-panel";
 import { FeedbackPanel } from "@/components/feedback/FeedbackPanel";
 import {
   ArrowLeft,
@@ -50,6 +51,8 @@ export type TicketDetailScreenProps = Readonly<{
   isAssignAgentPending: boolean;
   onUnassignAgent: () => Promise<void>;
   isUnassignPending: boolean;
+  isStreamingDraft: boolean;
+  onGenerateDraft: () => void;
   onBack: () => void;
 }>;
 
@@ -279,6 +282,8 @@ export function TicketDetailScreen({
   isAssignAgentPending,
   onUnassignAgent,
   isUnassignPending,
+  isStreamingDraft,
+  onGenerateDraft,
   onBack,
 }: TicketDetailScreenProps) {
   const [isUnassignDialogOpen, setIsUnassignDialogOpen] = useState(false);
@@ -329,9 +334,22 @@ export function TicketDetailScreen({
                   onChange={(e) => onReplyChange(e.target.value)}
                   rows={3}
                   className="resize-none"
-                  disabled={!data.permissions.canReply}
+                  disabled={!data.permissions.canReply || isStreamingDraft}
                 />
-                <div className="flex justify-end">
+                <div className="flex items-center justify-between gap-2">
+                  {data.permissions.canChangeStatus && data.permissions.canReply ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={isStreamingDraft || !data.permissions.canReply}
+                      onClick={onGenerateDraft}
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      {isStreamingDraft ? "Generating..." : "Generate AI Draft"}
+                    </Button>
+                  ) : (
+                    <span />
+                  )}
                   <Button type="submit" disabled={!reply.trim() || isReplyPending || !data.permissions.canReply}>
                     <Send className="h-4 w-4 mr-2" />
                     {isReplyPending ? "Sending..." : "Send Reply"}
@@ -457,6 +475,7 @@ export function TicketDetailScreen({
         </div>
 
         <div className="space-y-6">
+          <RoutingProgressPanel ticketId={data.id} />
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Ticket Details</CardTitle>

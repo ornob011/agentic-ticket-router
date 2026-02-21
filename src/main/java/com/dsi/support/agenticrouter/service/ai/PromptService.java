@@ -56,6 +56,9 @@ public class PromptService {
     @Value("classpath:/prompts/schemas/router_response.schema.json")
     private Resource routerResponseSchemaResource;
 
+    @Value("classpath:/prompts/ticket_reply_draft.st")
+    private Resource ticketReplyDraftPromptResource;
+
     @PostConstruct
     void initializeModePromptMappings() {
         plannerPromptByMode.put(
@@ -118,5 +121,9 @@ public class PromptService {
 
     public Resource getRouterResponseSchema() {
         return routerResponseSchemaResource;
+    }
+
+    public Resource getTicketReplyDraftPrompt() {
+        return ticketReplyDraftPromptResource;
     }
 }

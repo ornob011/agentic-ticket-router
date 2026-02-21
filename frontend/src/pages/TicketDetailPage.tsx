@@ -10,6 +10,7 @@ import {
   useAssignSelfMutation,
   usePeriodicRevalidation,
   useUpdateTicketStatusMutation,
+  useStreamingDraft,
 } from "@/lib/hooks";
 import { TicketDetailScreen } from "@/widgets/ticket-detail/ticket-detail-screen";
 
@@ -25,6 +26,17 @@ export default function TicketDetailPage() {
   const [selectedAgentId, setSelectedAgentId] = useState("");
 
   usePeriodicRevalidation(revalidator);
+
+  const { draft: streamedDraft, isStreaming: isStreamingDraft, start: startStreaming } = useStreamingDraft(data.id);
+
+  useEffect(() => {
+    if (streamedDraft) setReply(streamedDraft);
+  }, [streamedDraft]);
+
+  const handleGenerateDraft = () => {
+    setReply("");
+    startStreaming();
+  };
 
   const replyMutation = useAddReplyMutation();
   const statusMutation = useUpdateTicketStatusMutation();
@@ -141,6 +153,8 @@ export default function TicketDetailPage() {
       isAssignAgentPending={assignAgentMutation.isPending}
       onUnassignAgent={handleUnassignAgent}
       isUnassignPending={releaseAgentMutation.isPending}
+      isStreamingDraft={isStreamingDraft}
+      onGenerateDraft={handleGenerateDraft}
       onBack={() => navigate(-1)}
     />
   );

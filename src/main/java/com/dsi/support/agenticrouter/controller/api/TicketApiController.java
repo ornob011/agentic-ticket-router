@@ -7,26 +7,32 @@ import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.TicketQueryScope;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
+import com.dsi.support.agenticrouter.service.agentruntime.streaming.SseEmitterRegistry;
 import com.dsi.support.agenticrouter.service.ticket.TicketAssignmentCommandService;
 import com.dsi.support.agenticrouter.service.ticket.TicketLifecycleCommandService;
 import com.dsi.support.agenticrouter.service.ticket.TicketQueryService;
+import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.Utils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/tickets")
 @RequiredArgsConstructor
+@Slf4j
 public class TicketApiController {
 
     private final TicketLifecycleCommandService ticketLifecycleCommandService;
     private final TicketAssignmentCommandService ticketAssignmentCommandService;
     private final TicketQueryService ticketQueryService;
+    private final SseEmitterRegistry sseEmitterRegistry;
 
     @GetMapping
     @PreAuthorize("@ticketAuthorizationService.canAccessQueueScope(#scope,#queue)")
@@ -171,6 +177,19 @@ public class TicketApiController {
         return ticketQueryService.metadata(
             Utils.getLoggedInUserDetails()
         );
+    }
+
+    @GetMapping("/{ticketId}/routing/stream")
+    @PreAuthorize("@ticketAuthorizationService.canAccessTicket(#ticketId)")
+    public SseEmitter streamRoutingProgress(
+        @PathVariable Long ticketId
+    ) {
+        log.debug(
+            "RoutingStream({}) SupportTicket(id:{}) Outcome(subscribe)",
+            OperationalLogContext.PHASE_START,
+            ticketId
+        );
+        return sseEmitterRegistry.register(ticketId);
     }
 
 }

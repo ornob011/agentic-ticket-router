@@ -30,6 +30,8 @@ export const endpoints = {
     releaseAgent: (ticketId: string | number) => `/tickets/${ticketId}/release-agent`,
     assignableAgents: "/tickets/assignable-agents",
     metadata: "/tickets/meta",
+    routingStream: (ticketId: string | number) => `/tickets/${ticketId}/routing/stream`,
+    draftStream: (ticketId: string | number) => `/tickets/${ticketId}/draft/stream`,
   },
   supervisor: {
     escalations: "/supervisor/escalations?page=0&size=50",

@@ -10,6 +10,8 @@ import com.dsi.support.agenticrouter.service.agentruntime.planner.AgentPlannerCl
 import com.dsi.support.agenticrouter.service.agentruntime.planner.AgentPlannerDecision;
 import com.dsi.support.agenticrouter.service.agentruntime.safety.AgentSafetyDecision;
 import com.dsi.support.agenticrouter.service.agentruntime.safety.AgentSafetyEvaluator;
+import com.dsi.support.agenticrouter.service.agentruntime.streaming.AgentProgressEvent;
+import com.dsi.support.agenticrouter.service.agentruntime.streaming.SseEmitterRegistry;
 import com.dsi.support.agenticrouter.service.agentruntime.tooling.AgentToolExecutionResult;
 import com.dsi.support.agenticrouter.service.agentruntime.tooling.AgentToolExecutor;
 import com.dsi.support.agenticrouter.service.agentruntime.trace.AgentPlannerTracePayload;
@@ -46,6 +48,7 @@ public class AgentRuntimeOrchestrator {
     private final AgentRuntimeTraceService agentRuntimeTraceService;
     private final TicketRoutingPersistenceService ticketRoutingPersistenceService;
     private final AgentOrchestrationModeResolver agentOrchestrationModeResolver;
+    private final SseEmitterRegistry sseEmitterRegistry;
 
     public RouterResponse execute(
         SupportTicket supportTicket,
@@ -221,6 +224,11 @@ public class AgentRuntimeOrchestrator {
     ) {
         long startedAt = System.currentTimeMillis();
 
+        sseEmitterRegistry.emit(
+            supportTicket.getId(),
+            AgentProgressEvent.started(supportTicket.getId(), AgentRuntimeGraphNode.PLAN, "Planning routing decision")
+        );
+
         AgentPlannerDecision supervisorDecision = agentPlannerClient.decide(
             routerRequest,
             supportTicket.getId()
@@ -295,6 +303,11 @@ public class AgentRuntimeOrchestrator {
                 agentGraphState.isHandoff(),
                 agentGraphState.getHandoffReason()
             )
+        );
+
+        sseEmitterRegistry.emit(
+            supportTicket.getId(),
+            AgentProgressEvent.completed(supportTicket.getId(), AgentRuntimeGraphNode.PLAN, "Plan completed")
         );
 
         return AgentRuntimeStateUpdate.builder()
@@ -423,6 +436,11 @@ public class AgentRuntimeOrchestrator {
     ) {
         long startedAt = System.currentTimeMillis();
 
+        sseEmitterRegistry.emit(
+            supportTicket.getId(),
+            AgentProgressEvent.started(supportTicket.getId(), AgentRuntimeGraphNode.SAFETY, "Evaluating safety constraints")
+        );
+
         AgentSafetyDecision safetyDecision = agentSafetyEvaluator.evaluate(
             agentGraphState.getPlannedResponse()
         );
@@ -481,6 +499,11 @@ public class AgentRuntimeOrchestrator {
             )
         );
 
+        sseEmitterRegistry.emit(
+            supportTicket.getId(),
+            AgentProgressEvent.completed(supportTicket.getId(), AgentRuntimeGraphNode.SAFETY, "Safety evaluation complete")
+        );
+
         return AgentRuntimeStateUpdate.builder()
                                       .stepCount(agentGraphState.getStepCount())
                                       .terminated(false)
@@ -493,6 +516,11 @@ public class AgentRuntimeOrchestrator {
         AgentGraphState agentGraphState
     ) throws BindException {
         long startedAt = System.currentTimeMillis();
+
+        sseEmitterRegistry.emit(
+            supportTicket.getId(),
+            AgentProgressEvent.started(supportTicket.getId(), AgentRuntimeGraphNode.TOOL_EXECUTION, "Executing routing action")
+        );
 
         RouterResponse safeResponse = Objects.requireNonNull(
             agentGraphState.getFinalResponse(),
@@ -544,6 +572,11 @@ public class AgentRuntimeOrchestrator {
                 agentGraphState.isHandoff(),
                 agentGraphState.getHandoffReason()
             )
+        );
+
+        sseEmitterRegistry.emit(
+            supportTicket.getId(),
+            AgentProgressEvent.completed(supportTicket.getId(), AgentRuntimeGraphNode.TOOL_EXECUTION, "Tool execution complete")
         );
 
         return AgentRuntimeStateUpdate.builder()
@@ -630,6 +663,8 @@ public class AgentRuntimeOrchestrator {
     private AgentRuntimeStateUpdate runTerminateNode(
         AgentGraphState agentGraphState
     ) {
+        sseEmitterRegistry.complete(agentGraphState.getTicketId());
+
         agentRuntimeTraceService.recordStep(
             new AgentRuntimeStepTraceCommand(
                 agentGraphState.getRuntimeRunId(),
