@@ -7,7 +7,7 @@ SET active         = FALSE,
     is_default     = FALSE,
     deactivated_at = now(),
     updated_at     = now()
-WHERE model_tag <> 'ollama-llama3.2';
+WHERE model_tag <> 'ollama-qwen3:4b-instruct';
 
 INSERT INTO model_registry
 (row_version,
@@ -31,14 +31,14 @@ INSERT INTO model_registry
 VALUES (0,
         now(),
         now(),
-        'ollama-llama3.2',
-        'Llama 3.2 (Ollama)',
-        '3b',
-        'Default model for local Ollama inference (ollama run llama3.2) with maximum determinism (temperature=0.0)',
-        'llama3.2',
+        'ollama-qwen3:4b-instruct',
+        'Qwen 3 4B Instruct (Ollama)',
+        '4b',
+        'Default model for local Ollama inference (ollama run qwen3:4b-instruct) with maximum determinism (temperature=0.0)',
+        'qwen3:4b-instruct',
         NULL,
         NULL,
-        'ollama://llama3.2',
+        'ollama://qwen3:4b-instruct',
         TRUE,
         TRUE,
         now(),

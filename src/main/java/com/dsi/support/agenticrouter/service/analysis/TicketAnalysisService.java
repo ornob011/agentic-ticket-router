@@ -8,15 +8,15 @@ import com.dsi.support.agenticrouter.enums.ParseStatus;
 import com.dsi.support.agenticrouter.enums.TicketCategory;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
-import com.dsi.support.agenticrouter.service.ai.ChatClientFactory;
 import com.dsi.support.agenticrouter.service.ai.LlmOutputService;
+import com.dsi.support.agenticrouter.service.ai.LlmPromptCaller;
+import com.dsi.support.agenticrouter.service.ai.LlmResponseTextExtractor;
 import com.dsi.support.agenticrouter.service.ai.PromptService;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,7 +36,8 @@ public class TicketAnalysisService {
     private final AuditService auditService;
     private final LlmOutputService llmOutputService;
     private final AnalysisCategoryParser analysisCategoryParser;
-    private final ChatClientFactory chatClientFactory;
+    private final LlmPromptCaller llmPromptCaller;
+    private final LlmResponseTextExtractor llmResponseTextExtractor;
 
     public TicketAnalysisResult analyzeTicket(
         TicketAnalysisRequest ticketAnalysisRequest
@@ -58,10 +59,6 @@ public class TicketAnalysisService {
                                                                  )
                                                              );
 
-        ChatClient chatClient = chatClientFactory.create(
-            chatModel
-        );
-
         String categoryTokens = Arrays.stream(TicketCategory.values())
                                       .map(Enum::name)
                                       .collect(Collectors.joining(" | "));
@@ -71,14 +68,16 @@ public class TicketAnalysisService {
             categoryTokens
         );
 
-        String responseText = chatClient.prompt()
-                                        .system(promptService.getSystemPrompt())
-                                        .user(promptUserSpec -> promptUserSpec.text(promptService.getAnalysisPrompt())
-                                                                              .param("content", ticketAnalysisRequest.getContent())
-                                                                              .param("category_contract", categoryContract)
-                                                                              .param("fallback_category", TicketCategory.OTHER.name()))
-                                        .call()
-                                        .content();
+        String responseText = llmResponseTextExtractor.extractRequiredContent(
+            llmPromptCaller.call(
+                chatModel,
+                promptUserSpec -> promptUserSpec.text(promptService.getAnalysisPrompt())
+                                                .param("content", ticketAnalysisRequest.getContent())
+                                                .param("category_contract", categoryContract)
+                                                .param("fallback_category", TicketCategory.OTHER.name())
+            ),
+            "ticket_analysis"
+        );
 
         long latencyMs = System.currentTimeMillis() - startTime;
 

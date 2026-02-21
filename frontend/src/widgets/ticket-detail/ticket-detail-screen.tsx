@@ -15,6 +15,7 @@ import { DateSeparator } from "@/components/ui/date-separator";
 import { DetailSection } from "@/components/ui/detail-section";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AgentSelectWithWorkload } from "@/components/ui/agent-select-with-workload";
+import { FeedbackPanel } from "@/components/feedback/FeedbackPanel";
 import {
   ArrowLeft,
   Send,
@@ -288,6 +289,8 @@ export function TicketDetailScreen({
   const statusLabel = data.statusLabel || formatLabel(data.status);
   const canChangeStatus = data.permissions.canChangeStatus;
   const statusOptions = data.permissions.allowedStatusTransitions;
+  const latestRouting = data.routingHistory.length > 0 ? data.routingHistory[data.routingHistory.length - 1] : null;
+  const canSubmitFeedback = data.permissions.canReply;
 
   return (
     <div className="space-y-6">
@@ -522,6 +525,21 @@ export function TicketDetailScreen({
                 >
                   {isStatusPending ? "Updating..." : "Update Status"}
                 </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {latestRouting && canSubmitFeedback && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">AI Routing Feedback</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FeedbackPanel
+                  ticketId={data.id}
+                  originalCategory={latestRouting.category}
+                  originalAction={latestRouting.nextAction}
+                />
               </CardContent>
             </Card>
           )}

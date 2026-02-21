@@ -49,8 +49,8 @@ Open `sql/ddl/ddl.sql` in IntelliJ → Run against database connection
 - `V004__seed_policy_config.sql`
 - `V005__seed_model_registry.sql`
 - `V006__seed_staff_users.sql`
-- `V007__switch_to_llama3.2.sql`
-- `V008__switch_to_qwen2.5:3b-instruct.sql`
+- `V007__switch_to_qwen2.5:3b-instruct.sql`
+- `V008__switch_to_qwen3:4b-instruct.sql`
 - `V009__seed_global_config.sql`
 - `V010__seed_knowledge_article.sql`
 - `V011__seed_article_template.sql`

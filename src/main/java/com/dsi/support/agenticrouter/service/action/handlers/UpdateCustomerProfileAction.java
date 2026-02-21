@@ -13,6 +13,7 @@ import com.dsi.support.agenticrouter.service.action.handlers.profile.CustomerPro
 import com.dsi.support.agenticrouter.service.action.handlers.profile.CustomerProfileUpdateProcessor;
 import com.dsi.support.agenticrouter.service.action.handlers.profile.CustomerProfileUserMessageRenderer;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.service.memory.MemoryContextService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
 import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
@@ -36,6 +37,7 @@ public class UpdateCustomerProfileAction implements TicketAction {
     private final TicketMessageRepository ticketMessageRepository;
     private final CustomerProfileUpdateProcessor customerProfileUpdateProcessor;
     private final CustomerProfileUserMessageRenderer customerProfileUserMessageRenderer;
+    private final MemoryContextService memoryContextService;
 
     @Override
     public boolean canHandle(
@@ -89,6 +91,10 @@ public class UpdateCustomerProfileAction implements TicketAction {
                                                    .build();
 
         ticketMessageRepository.save(systemMessage);
+        memoryContextService.appendAssistantMessage(
+            supportTicket,
+            systemMessage.getContent()
+        );
 
         supportTicket.setStatus(TicketStatus.RESOLVED);
         supportTicket.updateLastActivity();

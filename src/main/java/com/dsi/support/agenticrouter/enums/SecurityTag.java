@@ -3,6 +3,7 @@ package com.dsi.support.agenticrouter.enums;
 import lombok.Getter;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 @Getter
@@ -21,6 +22,9 @@ public enum SecurityTag {
 
     ;
 
+    private static final Set<String> DANGEROUS_TAG_CODES = Stream.of(values())
+                                                                 .map(SecurityTag::getCode)
+                                                                 .collect(java.util.stream.Collectors.toSet());
     private final String code;
 
     SecurityTag(
@@ -33,5 +37,11 @@ public enum SecurityTag {
         return Stream.of(values())
                      .map(tag -> tag.code)
                      .toList();
+    }
+
+    public static boolean isDangerous(
+        String tag
+    ) {
+        return DANGEROUS_TAG_CODES.contains(tag);
     }
 }

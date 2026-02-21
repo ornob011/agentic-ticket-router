@@ -10,6 +10,7 @@ import com.dsi.support.agenticrouter.enums.NotificationType;
 import com.dsi.support.agenticrouter.event.TicketCreatedEvent;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.service.memory.MemoryContextService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class TicketCreationWorkflowService {
     private final NotificationService notificationService;
     private final AuditService auditService;
     private final ApplicationEventPublisher eventPublisher;
+    private final MemoryContextService memoryContextService;
 
     public void applyPostCreateWorkflows(
         SupportTicket supportTicket,
@@ -42,6 +44,10 @@ public class TicketCreationWorkflowService {
                                                           .build();
 
         ticketMessageRepository.save(initialTicketMessage);
+        memoryContextService.appendCustomerMessage(
+            supportTicket,
+            createTicketDto.getContent()
+        );
 
         notificationService.createNotification(
             customer.getId(),

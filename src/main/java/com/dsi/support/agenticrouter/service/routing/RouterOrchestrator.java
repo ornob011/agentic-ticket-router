@@ -1,7 +1,6 @@
 package com.dsi.support.agenticrouter.service.routing;
 
 import com.dsi.support.agenticrouter.dto.RouterRequest;
-import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.dto.TicketAnalysisRequest;
 import com.dsi.support.agenticrouter.dto.TicketAnalysisResult;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
@@ -13,6 +12,7 @@ import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.bsc.langgraph4j.GraphStateException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -24,9 +24,7 @@ import org.springframework.validation.BindException;
 @Slf4j
 public class RouterOrchestrator {
 
-    private final TicketRouterService ticketRouterService;
-    private final PolicyEngine policyEngine;
-    private final AgenticStateMachine agenticStateMachine;
+    private final RoutingExecutionCoordinator routingExecutionCoordinator;
     private final SupportTicketRepository supportTicketRepository;
     private final TicketAnalysisService ticketAnalysisService;
     private final RoutingRequestFactory routingRequestFactory;
@@ -35,7 +33,7 @@ public class RouterOrchestrator {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void routeTicket(
         Long ticketId
-    ) throws BindException {
+    ) throws BindException, GraphStateException {
         log.info(
             "TicketRoute({}) SupportTicket(id:{})",
             OperationalLogContext.PHASE_START,
@@ -83,48 +81,18 @@ public class RouterOrchestrator {
             analysisResult
         );
 
-        RouterResponse routerResponse = ticketRouterService.getRoutingDecision(
-            routerRequest,
-            supportTicket.getId()
-        );
-
-        log.info(
-            "TicketRoute({}) SupportTicket(id:{},status:{}) RouterResponse(nextAction:{},queue:{},priority:{},confidence:{})",
-            OperationalLogContext.PHASE_DECISION,
-            supportTicket.getId(),
-            supportTicket.getStatus(),
-            routerResponse.getNextAction(),
-            routerResponse.getQueue(),
-            routerResponse.getPriority(),
-            routerResponse.getConfidence()
-        );
-
-        routerResponse = policyEngine.applyPolicyGates(
-            routerResponse
-        );
-
-        log.info(
-            "TicketRoute({}) SupportTicket(id:{},status:{}) RouterResponse(nextAction:{},queue:{},priority:{},confidence:{})",
-            OperationalLogContext.PHASE_DECISION,
-            supportTicket.getId(),
-            supportTicket.getStatus(),
-            routerResponse.getNextAction(),
-            routerResponse.getQueue(),
-            routerResponse.getPriority(),
-            routerResponse.getConfidence()
-        );
-
-        agenticStateMachine.executeAction(
+        RoutingExecutionResult routingExecutionResult = routingExecutionCoordinator.execute(
             supportTicket,
-            routerResponse
+            routerRequest
         );
 
         log.info(
-            "TicketRoute({}) SupportTicket(id:{},status:{}) Outcome(nextAction:{})",
+            "TicketRoute({}) SupportTicket(id:{},status:{}) Outcome(source:{},nextAction:{})",
             OperationalLogContext.PHASE_COMPLETE,
             supportTicket.getId(),
             supportTicket.getStatus(),
-            routerResponse.getNextAction()
+            routingExecutionResult.source(),
+            routingExecutionResult.response().getNextAction()
         );
     }
 

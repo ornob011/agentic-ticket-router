@@ -154,6 +154,8 @@ public interface SupportTicketRepository extends JpaRepository<SupportTicket, Lo
 
     Page<SupportTicket> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
 
+    List<SupportTicket> findByCustomerIdAndIdNotOrderByCreatedAtDesc(Long customerId, Long excludeTicketId);
+
     Page<SupportTicket> findByCustomerIdAndStatusOrderByCreatedAtDesc(
         Long customerId,
         TicketStatus status,

@@ -6,22 +6,14 @@ import com.dsi.support.agenticrouter.enums.NextAction;
 import com.dsi.support.agenticrouter.enums.TicketCategory;
 import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
-import com.dsi.support.agenticrouter.service.ai.ChatClientFactory;
-import com.dsi.support.agenticrouter.service.ai.PromptService;
-import com.dsi.support.agenticrouter.service.ai.TokenCountService;
+import com.dsi.support.agenticrouter.service.ai.*;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
-import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.converter.MarkdownCodeBlockCleaner;
-import org.springframework.ai.converter.ResponseTextCleaner;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
@@ -34,11 +26,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class RoutingLlmClient implements RoutingModelClient {
 
-    private static final ResponseTextCleaner RESPONSE_TEXT_CLEANER = new MarkdownCodeBlockCleaner();
     private final ChatModel chatModel;
     private final PromptService promptService;
-    private final ObjectMapper objectMapper;
-    private final ChatClientFactory chatClientFactory;
+    private final LlmPromptCaller llmPromptCaller;
+    private final LlmResponseTextExtractor llmResponseTextExtractor;
+    private final LlmJsonResponseParser llmJsonResponseParser;
     private final TokenCountService tokenCountService;
 
     @Override
@@ -47,6 +39,10 @@ public class RoutingLlmClient implements RoutingModelClient {
     ) {
         String latestCustomerMessage = getLatestCustomerMessage(
             routerRequest
+        );
+
+        String latestAssistantMessage = StringUtils.defaultString(
+            routerRequest.getLatestAssistantMessage()
         );
 
         log.debug(
@@ -83,62 +79,59 @@ public class RoutingLlmClient implements RoutingModelClient {
             routerRequest.getRelevantArticles()
         );
 
-        ChatClient chatClient = chatClientFactory.create(
-            chatModel
+        String responseText = llmResponseTextExtractor.extractRequiredContent(
+            llmPromptCaller.call(
+                chatModel,
+                promptUserSpec -> promptUserSpec
+                    .text(promptService.getRoutingPrompt())
+                    .param("category", categoryValues)
+                    .param("priority", priorityValues)
+                    .param("queue", queueValues)
+                    .param("next_action", nextActionValues)
+                    .param("suggested_category", Objects.requireNonNullElse(routerRequest.getSuggestedCategory(), "None"))
+                    .param("ticket_no", routerRequest.getTicketNo())
+                    .param("subject", routerRequest.getSubject())
+                    .param("customer_name", routerRequest.getCustomerName())
+                    .param("customer_tier", routerRequest.getCustomerTier())
+                    .param("initial_message", routerRequest.getInitialMessage())
+                    .param("conversation_history", routerRequest.getConversationHistory())
+                    .param("analysis", routerRequest.getAnalysis())
+                    .param("latest_customer_message", latestCustomerMessage)
+                    .param("latest_assistant_message", latestAssistantMessage)
+                    .param("previous_clarifying_question",
+                        Objects.requireNonNullElse(
+                            routerRequest.getPreviousClarifyingQuestion(),
+                            "None"
+                        )
+                    )
+                    .param("relevant_articles", relevantArticles)
+                    .param("remaining_actions",
+                        Objects.requireNonNullElse(
+                            routerRequest.getRemainingActions(),
+                            5
+                        ).toString()
+                    )
+                    .param("questions_asked",
+                        Objects.requireNonNullElse(
+                            routerRequest.getQuestionsAsked(),
+                            0
+                        ).toString()
+                    )
+                    .param("max_questions",
+                        Objects.requireNonNullElse(
+                            routerRequest.getMaxQuestions(),
+                            3
+                        ).toString()
+                    )
+                    .param("max_actions",
+                        Objects.requireNonNullElse(
+                            routerRequest.getMaxActions(),
+                            5
+                        ).toString()
+                    )
+            ),
+            "routing_decision"
         );
-
-        String responseText = chatClient.prompt()
-                                        .system(promptService.getSystemPrompt())
-                                        .user(
-                                            promptUserSpec -> promptUserSpec
-                                                .text(promptService.getRoutingPrompt())
-                                                .param("category", categoryValues)
-                                                .param("priority", priorityValues)
-                                                .param("queue", queueValues)
-                                                .param("next_action", nextActionValues)
-                                                .param("suggested_category", Objects.requireNonNullElse(routerRequest.getSuggestedCategory(), "None"))
-                                                .param("ticket_no", routerRequest.getTicketNo())
-                                                .param("subject", routerRequest.getSubject())
-                                                .param("customer_name", routerRequest.getCustomerName())
-                                                .param("customer_tier", routerRequest.getCustomerTier())
-                                                .param("initial_message", routerRequest.getInitialMessage())
-                                                .param("conversation_history", routerRequest.getConversationHistory())
-                                                .param("analysis", routerRequest.getAnalysis())
-                                                .param("latest_customer_message", latestCustomerMessage)
-                                                .param("previous_clarifying_question",
-                                                    Objects.requireNonNullElse(
-                                                        routerRequest.getPreviousClarifyingQuestion(),
-                                                        "None"
-                                                    )
-                                                )
-                                                .param("relevant_articles", relevantArticles)
-                                                .param("remaining_actions",
-                                                    Objects.requireNonNullElse(
-                                                        routerRequest.getRemainingActions(),
-                                                        5
-                                                    ).toString()
-                                                )
-                                                .param("questions_asked",
-                                                    Objects.requireNonNullElse(
-                                                        routerRequest.getQuestionsAsked(),
-                                                        0
-                                                    ).toString()
-                                                )
-                                                .param("max_questions",
-                                                    Objects.requireNonNullElse(
-                                                        routerRequest.getMaxQuestions(),
-                                                        3
-                                                    ).toString()
-                                                )
-                                                .param("max_actions",
-                                                    Objects.requireNonNullElse(
-                                                        routerRequest.getMaxActions(),
-                                                        5
-                                                    ).toString()
-                                                )
-                                        )
-                                        .call()
-                                        .content();
 
         log.debug(
             "RoutingModelCall({}) RouterRequest(ticketId:{},ticketNo:{}) Outcome(responseLength:{},responseTokensEst:{})",
@@ -151,43 +144,18 @@ public class RoutingLlmClient implements RoutingModelClient {
 
         Objects.requireNonNull(responseText);
 
-        try {
-            return objectMapper.readTree(
-                RESPONSE_TEXT_CLEANER.clean(responseText)
-            );
-        } catch (JsonProcessingException exception) {
-            throw new IllegalStateException("Failed to parse router response JSON", exception);
-        }
+        return llmJsonResponseParser.parseJsonObjectToNode(
+            responseText
+        );
     }
 
     private String getLatestCustomerMessage(
         RouterRequest routerRequest
     ) {
-        String conversationHistory = StringUtils.defaultString(routerRequest.getConversationHistory());
-        String[] historyLines = StringUtils.splitPreserveAllTokens(conversationHistory, '\n');
-
-        if (historyLines == null || historyLines.length == 0) {
-            return StringNormalizationUtils.trimToEmpty(routerRequest.getInitialMessage());
-        }
-
-        List<String> lines = Arrays.stream(historyLines).toList();
-
-        for (int i = lines.size() - 1; i >= 0; i--) {
-            String line = lines.get(i);
-            if (line == null || !line.contains("CUSTOMER_MESSAGE:")) {
-                continue;
-            }
-
-            String extracted = StringNormalizationUtils.trimToEmpty(
-                StringUtils.substringAfter(line, "CUSTOMER_MESSAGE:")
-            );
-
-            if (StringUtils.isNotBlank(extracted)) {
-                return extracted;
-            }
-        }
-
-        return StringNormalizationUtils.trimToEmpty(routerRequest.getInitialMessage());
+        return StringUtils.defaultIfBlank(
+            routerRequest.getLatestCustomerMessage(),
+            StringUtils.defaultString(routerRequest.getInitialMessage())
+        );
     }
 
     private String formatRelevantArticles(

@@ -51,4 +51,14 @@ public enum TicketCategory {
     public boolean isAccountOrBilling() {
         return CUSTOMER_ACCOUNT_RELATED.contains(this);
     }
+
+    public TicketCategory toRoutingCategory() {
+        return switch (this) {
+            case PAYMENT, INVOICE, REFUND, SUBSCRIPTION -> BILLING;
+            case DELIVERY, ORDER -> SHIPPING;
+            case CANCEL -> ACCOUNT;
+            case CONTACT, FEEDBACK -> OTHER;
+            default -> this;
+        };
+    }
 }

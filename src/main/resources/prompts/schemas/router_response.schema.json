@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RouterResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "category",
+    "priority",
+    "queue",
+    "next_action",
+    "confidence",
+    "clarifying_question",
+    "draft_reply",
+    "rationale_tags",
+    "action_parameters"
+  ],
+  "properties": {
+    "category": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "string"
+    },
+    "queue": {
+      "type": "string"
+    },
+    "next_action": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "clarifying_question": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "draft_reply": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rationale_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "action_parameters": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "article_id": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "phone_number": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "company_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "address": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "city": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "postal_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "preferred_language_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "internal_note": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

@@ -57,18 +57,6 @@ public enum ParseStatus {
         this.description = description;
     }
 
-    public boolean isSuccess() {
-        return SUCCESS_STATUSES.contains(this);
-    }
-
-    public boolean requiresHumanReview() {
-        return HUMAN_REVIEW_REQUIRED.contains(this);
-    }
-
-    public boolean canRetry() {
-        return RETRYABLE.contains(this);
-    }
-
     public static boolean isTimeout(
         Throwable throwable
     ) {
@@ -86,5 +74,17 @@ public enum ParseStatus {
         }
 
         return false;
+    }
+
+    public boolean isSuccess() {
+        return SUCCESS_STATUSES.contains(this);
+    }
+
+    public boolean requiresHumanReview() {
+        return HUMAN_REVIEW_REQUIRED.contains(this);
+    }
+
+    public boolean canRetry() {
+        return RETRYABLE.contains(this);
     }
 }

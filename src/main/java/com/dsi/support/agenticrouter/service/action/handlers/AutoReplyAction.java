@@ -8,6 +8,7 @@ import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.action.TicketAction;
 import com.dsi.support.agenticrouter.service.audit.AuditService;
+import com.dsi.support.agenticrouter.service.memory.MemoryContextService;
 import com.dsi.support.agenticrouter.service.notification.NotificationService;
 import com.dsi.support.agenticrouter.util.BindValidation;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
@@ -29,6 +30,7 @@ public class AutoReplyAction implements TicketAction {
     private final NotificationService notificationService;
     private final AuditService auditService;
     private final SupportTicketRepository supportTicketRepository;
+    private final MemoryContextService memoryContextService;
 
     @Override
     public boolean canHandle(
@@ -75,6 +77,10 @@ public class AutoReplyAction implements TicketAction {
                                                    .visibleToCustomer(true)
                                                    .build();
         messageRepository.save(ticketMessage);
+        memoryContextService.appendAssistantMessage(
+            supportTicket,
+            routerResponse.getDraftReply()
+        );
 
         supportTicket.setStatus(TicketStatus.RESOLVED);
         supportTicket.setResolvedAt(Instant.now());

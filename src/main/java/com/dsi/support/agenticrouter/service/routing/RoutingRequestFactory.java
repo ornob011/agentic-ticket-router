@@ -10,6 +10,7 @@ import com.dsi.support.agenticrouter.enums.VectorStoreMetadataKey;
 import com.dsi.support.agenticrouter.model.TicketAutonomousMetadata;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.knowledge.KnowledgeBaseVectorStore;
+import com.dsi.support.agenticrouter.service.memory.CustomerContextEnrichmentService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,6 +43,7 @@ public class RoutingRequestFactory {
 
     private final TicketMessageRepository ticketMessageRepository;
     private final KnowledgeBaseVectorStore knowledgeBaseVectorStore;
+    private final CustomerContextEnrichmentService customerContextEnrichmentService;
 
     public TicketAnalysisRequest buildAnalysisRequest(
         SupportTicket supportTicket
@@ -113,6 +116,8 @@ public class RoutingRequestFactory {
                             .customerTier(customerTierCode)
                             .initialMessage(initialMessage)
                             .conversationHistory(conversationHistory)
+                            .latestCustomerMessage(getLatestCustomerMessage(supportTicket))
+                            .latestAssistantMessage(getLatestAssistantMessage(supportTicket))
                             .analysis(StringUtils.defaultString(ticketAnalysisResult.getAnalysis()))
                             .suggestedCategory(ticketAnalysisResult.getCategory())
                             .previousClarifyingQuestion(lastClarifyingQuestion)
@@ -265,21 +270,96 @@ public class RoutingRequestFactory {
                                       .orElse(StringUtils.EMPTY);
     }
 
+    private String getLatestAssistantMessage(
+        SupportTicket supportTicket
+    ) {
+        return getLatestMessage(
+            supportTicket,
+            this::isAssistantMessage,
+            StringUtils.EMPTY
+        );
+    }
+
+    private String getLatestCustomerMessage(
+        SupportTicket supportTicket
+    ) {
+        return getLatestMessage(
+            supportTicket,
+            this::isCustomerMessage,
+            getInitialMessage(supportTicket)
+        );
+    }
+
+    private String getLatestMessage(
+        SupportTicket supportTicket,
+        Predicate<TicketMessage> selector,
+        String fallback
+    ) {
+        List<TicketMessage> ticketMessages = ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(
+            supportTicket.getId()
+        );
+
+        for (int i = ticketMessages.size() - 1; i >= 0; i--) {
+            TicketMessage ticketMessage = ticketMessages.get(i);
+            if (ticketMessage == null || StringUtils.isBlank(ticketMessage.getContent())) {
+                continue;
+            }
+
+            if (selector.test(ticketMessage)) {
+                return ticketMessage.getContent();
+            }
+        }
+
+        return StringUtils.defaultString(fallback);
+    }
+
+    private boolean isAssistantMessage(
+        TicketMessage ticketMessage
+    ) {
+        if (ticketMessage.getAuthor() == null || ticketMessage.getAuthor().getId() == null) {
+            return true;
+        }
+
+        return !ticketMessage.getAuthor().isCustomer();
+    }
+
+    private boolean isCustomerMessage(
+        TicketMessage ticketMessage
+    ) {
+        return ticketMessage.getAuthor() != null
+               && ticketMessage.getAuthor().isCustomer();
+    }
+
     private String buildConversationText(
         SupportTicket supportTicket
     ) {
-        return ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(
-                                          supportTicket.getId()
-                                      )
-                                      .stream()
-                                      .map(
-                                          message -> String.format(
-                                              "[%s] %s: %s",
-                                              message.getCreatedAt(),
-                                              message.getMessageKind(),
-                                              message.getContent()
-                                          )
-                                      )
-                                      .collect(Collectors.joining("\n"));
+        String ticketConversation = ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(
+                                                               supportTicket.getId()
+                                                           )
+                                                           .stream()
+                                                           .map(
+                                                               message -> String.format(
+                                                                   "[%s] %s: %s",
+                                                                   message.getCreatedAt(),
+                                                                   message.getMessageKind(),
+                                                                   message.getContent()
+                                                               )
+                                                           )
+                                                           .collect(Collectors.joining("\n"));
+
+        String customerContext = customerContextEnrichmentService.buildCustomerContext(
+            supportTicket.getCustomer().getId(),
+            supportTicket.getId()
+        );
+
+        if (StringUtils.isBlank(customerContext)) {
+            return ticketConversation;
+        }
+
+        return String.join(
+            "\n\n",
+            ticketConversation,
+            customerContext
+        );
     }
 }

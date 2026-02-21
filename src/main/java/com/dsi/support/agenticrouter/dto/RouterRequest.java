@@ -24,6 +24,10 @@ public class RouterRequest {
 
     private String conversationHistory;
 
+    private String latestCustomerMessage;
+
+    private String latestAssistantMessage;
+
     private String analysis;
 
     private TicketCategory suggestedCategory;
