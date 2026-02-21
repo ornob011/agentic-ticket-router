@@ -293,6 +293,7 @@ export function TicketDetailScreen({
   const priorityLabel = data.priorityLabel || formatLabel(data.priority);
   const statusLabel = data.statusLabel || formatLabel(data.status);
   const canChangeStatus = data.permissions.canChangeStatus;
+  const canGenerateAiDraft = data.permissions.canChangeStatus && data.permissions.canReply;
   const statusOptions = data.permissions.allowedStatusTransitions;
   const latestRouting = data.routingHistory.length > 0 ? data.routingHistory[data.routingHistory.length - 1] : null;
   const canSubmitFeedback = data.permissions.canReply;
@@ -328,39 +329,45 @@ export function TicketDetailScreen({
               <ConversationPanel messages={data.messages} />
 
               <form onSubmit={(event) => void onReplySubmit(event)} className="space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-100 text-sky-700">
-                      <Sparkles className="h-3.5 w-3.5" />
+                {canGenerateAiDraft ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-100 text-sky-700">
+                        <Sparkles className="h-3.5 w-3.5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-sky-900">AI Draft Composer</p>
+                        <p className="text-xs text-sky-700/80">Generate and refine your response before sending</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-sky-900">AI Draft Composer</p>
-                      <p className="text-xs text-sky-700/80">Generate and refine your response before sending</p>
-                    </div>
+                    {isStreamingDraft ? (
+                      <Badge variant="outline" className="border-sky-300 bg-sky-100 text-sky-700">
+                        <Sparkles className="mr-1 h-3 w-3 animate-pulse" />
+                        Generating
+                      </Badge>
+                    ) : null}
                   </div>
-                  {isStreamingDraft ? (
-                    <Badge variant="outline" className="border-sky-300 bg-sky-100 text-sky-700">
-                      <Sparkles className="mr-1 h-3 w-3 animate-pulse" />
-                      Generating
-                    </Badge>
-                  ) : null}
-                </div>
+                ) : null}
 
                 <Textarea
                   placeholder="Type your reply..."
                   value={reply}
                   onChange={(e) => onReplyChange(e.target.value)}
-                  rows={10}
-                  className="min-h-[240px] resize-y border-sky-200 bg-sky-50/40 leading-relaxed"
+                  rows={canGenerateAiDraft ? 10 : 3}
+                  className={canGenerateAiDraft
+                    ? "min-h-[240px] resize-y border-sky-200 bg-sky-50/40 leading-relaxed"
+                    : "resize-none"}
                   disabled={!data.permissions.canReply || isStreamingDraft}
                 />
 
-                <div className="flex items-center justify-end">
-                  <span className="text-xs text-sky-800/70">{reply.length} characters</span>
-                </div>
+                {canGenerateAiDraft ? (
+                  <div className="flex items-center justify-end">
+                    <span className="text-xs text-sky-800/70">{reply.length} characters</span>
+                  </div>
+                ) : null}
 
                 <div className="flex items-center justify-between gap-2">
-                  {data.permissions.canChangeStatus && data.permissions.canReply ? (
+                  {canGenerateAiDraft ? (
                     <Button
                       type="button"
                       variant="outline"
