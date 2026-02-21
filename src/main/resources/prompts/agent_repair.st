@@ -1,42 +1,79 @@
 Repair planner JSON and return valid JSON only.
 Agent role: {agent_role}
 
-RULES:
-- Keep enum values valid.
-- Preserve intent.
-- Ensure nullable fields remain explicit.
-- Keep rationale_tags concise and evidence-based.
-- Only use these enum values:
-  - category: {category}
-  - priority: {priority}
-  - queue: {queue}
-  - next_action: {next_action}
-- Never output unknown enum values.
-- If enum is invalid or missing, replace it with the closest semantically valid value from the provided enum lists while preserving intent and safety.
-- Output must be directly deserializable into RouterResponse.
-- Follow all system-level JSON/type/format constraints.
-- Ensure confidence is a JSON number in [0.0, 1.0].
-- Never introduce generic placeholder draft replies.
-- If next_action is AUTO_REPLY or AUTO_RESOLVE, draft_reply must be non-null and actionable.
-- If next_action is ASK_CLARIFYING, clarifying_question must be non-null and draft_reply must be null.
-- If next_action is ASSIGN_QUEUE, clarifying_question and draft_reply must be null.
-- If next_action is USE_KNOWLEDGE_ARTICLE, action_parameters.article_id must be positive numeric.
-- If next_action is USE_TEMPLATE, action_parameters.template_id must be positive numeric.
-- If next_action is UPDATE_CUSTOMER_PROFILE, include at least one concrete profile field in action_parameters.
-- For enum correction, copy exact token values from the provided allowed lists.
-- Never alter enum token casing/underscores.
-- Ensure queue/category consistency:
-  - BILLING -> BILLING_Q
-  - TECHNICAL -> TECH_Q
-  - SHIPPING -> OPS_Q
-  - SECURITY -> SECURITY_Q
-  - ACCOUNT -> ACCOUNT_Q
-  - PRICING -> ACCOUNT_Q
-  - OTHER -> GENERAL_Q
-- Avoid escalation bias: if request is routine and safe, do not repair to HUMAN_REVIEW.
+AVAILABLE ENUM VALUES (COPY EXACT TOKENS ONLY):
+- category: {category}
+- priority: {priority}
+- queue: {queue}
+- next_action: {next_action}
 
-OUTPUT:
-- JSON only. No markdown.
+REPAIR RULES (STRICT):
+- Return JSON only.
+- Preserve original user intent while fixing invalid structure/enums.
+- Do not output reasoning labels/classes as enum values.
+- category/priority/queue/next_action must be exact tokens from available enum lists.
+- confidence must be numeric in [0.0, 1.0].
+
+ENUM CORRECTION (MANDATORY):
+- If VALIDATION_ERROR mentions $.category, overwrite category with one exact token from category list.
+- If VALIDATION_ERROR mentions $.priority, overwrite priority with one exact token from priority list.
+- If VALIDATION_ERROR mentions $.queue, overwrite queue with one exact token from queue list.
+- If VALIDATION_ERROR mentions $.next_action, overwrite next_action with one exact token from next_action list.
+- Never keep an invalid enum from RAW_PLANNER_JSON.
+- If uncertain, select a safe in-list token; never emit out-of-list text.
+- Never synthesize queue tokens; queue must be copied from queue list.
+- If queue cannot be confidently mapped, set queue to GENERAL_Q.
+
+INTENT-SPECIFIC REPAIR:
+- For explicit profile update intent:
+  - next_action = UPDATE_CUSTOMER_PROFILE
+  - keep UPDATE_CUSTOMER_PROFILE only when a concrete target profile value is present in action_parameters
+  - include at least one non-empty profile field value in action_parameters
+  - keep values aligned with latest customer request representation in the failed response
+  - do not introduce profile field values that are absent from the failed response payload
+- For recap-about-prior-action intent:
+  - next_action = AUTO_REPLY
+  - do not set USE_KNOWLEDGE_ARTICLE
+  - draft_reply must be non-null and based on prior assistant/system action context
+
+REPAIR INTENT GATE (MANDATORY):
+- Keep or set next_action to UPDATE_CUSTOMER_PROFILE only when failed-response context shows all three in latest customer turn:
+  - mutation verb signal,
+  - profile field signal,
+  - concrete target value signal.
+- If latest customer turn asks for explanation/recap and lacks concrete new target value, force next_action to AUTO_REPLY.
+- Do not preserve no-change/update outcomes for recap_or_explain_intent turns.
+
+ACTION CONTRACTS:
+- AUTO_REPLY/AUTO_RESOLVE => draft_reply non-null
+- ASK_CLARIFYING => clarifying_question non-null and draft_reply null
+- ASSIGN_QUEUE => clarifying_question null and draft_reply null
+- USE_KNOWLEDGE_ARTICLE => action_parameters.article_id positive
+- USE_TEMPLATE => action_parameters.template_id positive
+- UPDATE_CUSTOMER_PROFILE => at least one concrete profile field value
+
+DISAMBIGUATION REPAIR RULE:
+- If latest customer turn in failed response context is a new explicit update command with a concrete target value, set next_action to UPDATE_CUSTOMER_PROFILE.
+- Do not keep AUTO_REPLY for a new explicit profile update command.
+- If latest customer turn is interrogative/explanatory and has no concrete new profile field value, set next_action to AUTO_REPLY.
+- UPDATE_CUSTOMER_PROFILE is forbidden when repaired action_parameters lacks concrete profile field values from latest customer turn.
+- If repaired response has next_action = UPDATE_CUSTOMER_PROFILE but no concrete target profile field value, repair away from UPDATE_CUSTOMER_PROFILE.
+- If repaired response is question-only/recap-only without concrete target profile values, use AUTO_REPLY.
+
+FINAL ENUM SELF-CHECK (MUST PASS):
+- category is exactly one token from category list.
+- priority is exactly one token from priority list.
+- queue is exactly one token from queue list.
+- next_action is exactly one token from next_action list.
+
+ROUTING CONSISTENCY:
+- BILLING -> BILLING_Q
+- TECHNICAL -> TECH_Q
+- SHIPPING -> OPS_Q
+- SECURITY -> SECURITY_Q
+- ACCOUNT -> ACCOUNT_Q
+- PRICING -> ACCOUNT_Q
+- OTHER -> GENERAL_Q
 
 RAW_PLANNER_JSON:
 {planner_raw_json}

@@ -7,7 +7,6 @@ import com.dsi.support.agenticrouter.enums.*;
 import com.dsi.support.agenticrouter.service.agentruntime.orchestration.AgentOrchestrationModeResolver;
 import com.dsi.support.agenticrouter.service.ai.*;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
-import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -64,6 +63,10 @@ public class AgentPlannerLlmClient {
             routerRequest
         );
 
+        String latestAssistantMessage = StringUtils.defaultString(
+            routerRequest.getLatestAssistantMessage()
+        );
+
         EnumPromptValues promptValues = enumPromptValues();
 
         String relevantArticles = formatRelevantArticles(
@@ -89,6 +92,7 @@ public class AgentPlannerLlmClient {
                     .param("conversation_history", routerRequest.getConversationHistory())
                     .param("analysis", routerRequest.getAnalysis())
                     .param("latest_customer_message", latestCustomerMessage)
+                    .param("latest_assistant_message", latestAssistantMessage)
                     .param("relevant_articles", relevantArticles)
                     .param("routing_policy", routingPolicy)
                     .param("agent_role", actorRole.name())
@@ -194,37 +198,10 @@ public class AgentPlannerLlmClient {
     private String getLatestCustomerMessage(
         RouterRequest routerRequest
     ) {
-        String conversationHistory = StringUtils.defaultString(
-            routerRequest.getConversationHistory()
+        return StringUtils.defaultIfBlank(
+            routerRequest.getLatestCustomerMessage(),
+            StringUtils.defaultString(routerRequest.getInitialMessage())
         );
-
-        String[] historyLines = StringUtils.splitPreserveAllTokens(
-            conversationHistory,
-            '\n'
-        );
-
-        if (Objects.isNull(historyLines) || historyLines.length == 0) {
-            return StringNormalizationUtils.trimToEmpty(routerRequest.getInitialMessage());
-        }
-
-        List<String> lines = Arrays.stream(historyLines).toList();
-
-        for (int i = lines.size() - 1; i >= 0; i--) {
-            String line = lines.get(i);
-            if (Objects.isNull(line) || !line.contains("CUSTOMER_MESSAGE:")) {
-                continue;
-            }
-
-            String extracted = StringNormalizationUtils.trimToEmpty(
-                StringUtils.substringAfter(line, "CUSTOMER_MESSAGE:")
-            );
-
-            if (StringUtils.isNotBlank(extracted)) {
-                return extracted;
-            }
-        }
-
-        return StringNormalizationUtils.trimToEmpty(routerRequest.getInitialMessage());
     }
 
     private String formatRelevantArticles(

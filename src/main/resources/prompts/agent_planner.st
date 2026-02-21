@@ -6,86 +6,96 @@ INPUTS:
 - History: {conversation_history}
 - Analysis: {analysis}
 - Latest Customer Message: {latest_customer_message}
+- Latest Assistant Message: {latest_assistant_message}
 - Knowledge: {relevant_articles}
 
-OUTPUT RULES:
-- Use Latest Customer Message as the primary source of intent.
-- Use History and Analysis only as supporting context.
-- Decide one concrete next action and justify in concise internal note.
-- Use evidence-based rationale tags.
-- Keep actions safe and escalate when risky/uncertain.
-- Do not output any enum value outside the allowed lists below.
-- If unsure about enum choice, choose the closest valid value from the allowed lists based on evidence in inputs.
-- Follow all system-level JSON/type/format constraints.
-- Set confidence as a JSON number in [0.0, 1.0] based on certainty.
-- Never output placeholder customer text.
-- Forbidden generic replies include patterns such as:
-  - "Thank you for your message."
-  - "We have processed your request."
-  - "Please let us know if you need anything else."
+DECISION RULES (STRICT):
+1) Use Latest Customer Message as authoritative intent source.
+2) Intent precedence (highest to lowest):
+   - explicit profile mutation intent
+   - recap/explanation of prior assistant action intent
+   - knowledge-seeking intent
+   - unclear intent
+3) For explicit profile update requests:
+   - next_action = UPDATE_CUSTOMER_PROFILE
+   - This intent is valid only when the Latest Customer Message contains both:
+     - at least one requested profile field identifier, and
+     - at least one concrete target field value extractable from that same message
+   - extract update values only from Latest Customer Message
+   - do not derive new update values from History/Analysis/Latest Assistant Message
+   - every non-null profile field in action_parameters must be a verbatim span from Latest Customer Message
+   - action_parameters must contain at least one non-empty profile field value
+   - clarifying_question = null
+   - draft_reply = null
+4) For recap-about-prior-action requests:
+   - next_action = AUTO_REPLY
+   - build draft_reply from prior assistant/system action context
+   - do not select USE_KNOWLEDGE_ARTICLE for recap requests
+5) For knowledge-seeking requests:
+   - if relevant article exists: USE_KNOWLEDGE_ARTICLE with positive article_id
+   - otherwise: ASSIGN_QUEUE with null draft reply
+6) For unclear requests: ASK_CLARIFYING with specific clarifying_question.
 
-ROLE BEHAVIOR (STRICT):
-- SUPERVISOR:
-  - Choose the best next action and routing metadata.
-  - If the ticket needs specialist handling, choose a specialist-aligned action.
-- CLASSIFIER:
-  - Prefer: ASSIGN_QUEUE, CHANGE_PRIORITY, ADD_INTERNAL_NOTE, TRIGGER_NOTIFICATION, REOPEN_TICKET.
-- RESOLVER:
-  - Prefer: AUTO_REPLY, AUTO_RESOLVE, USE_KNOWLEDGE_ARTICLE, USE_TEMPLATE, UPDATE_CUSTOMER_PROFILE.
-- QA:
-  - Prefer: ASK_CLARIFYING.
-- ESCALATOR:
-  - Prefer: HUMAN_REVIEW, ESCALATE, AUTO_ESCALATE.
+INTENT CLASSIFICATION GATE (MUST RUN BEFORE next_action):
+- Compute update_intent = true only if all are present in Latest Customer Message:
+  - mutation verb signal (update/change/set/modify/replace/correct),
+  - profile field signal (company name/company/org/phone/address/city/postal/preferred language),
+  - concrete target value signal in the same message.
+- Compute recap_or_explain_intent = true when Latest Customer Message asks about prior action/explanation and lacks a concrete new profile target value.
+- If update_intent is true, next_action must be UPDATE_CUSTOMER_PROFILE.
+- If recap_or_explain_intent is true, next_action must be AUTO_REPLY.
+- recap_or_explain_intent has priority over any inferred no-change update path.
 
-NEXT ACTION POLICY (STRICT):
-- For routine procedural/support requests (how-to, account updates, billing/technical guidance), do NOT choose HUMAN_REVIEW by default.
-- Choose HUMAN_REVIEW / ESCALATE only when there is clear risk, policy uncertainty, security/compliance concern, or insufficient safe confidence.
-- If request is clear and safe, prefer resolver/classifier actions over escalation actions.
+DISAMBIGUATION RULE (HARD):
+- If Latest Customer Message includes a new explicit profile update command with a concrete target value, next_action must be UPDATE_CUSTOMER_PROFILE.
+- When previous turn was recap/explanation but current turn is a new explicit profile update command, treat current turn as update intent.
+- UPDATE_CUSTOMER_PROFILE is forbidden unless Latest Customer Message itself provides at least one concrete non-null profile field value for action_parameters.
+- If Latest Customer Message is interrogative/explanatory and does not include a concrete new profile field value, next_action must be AUTO_REPLY.
+- If no concrete profile field value is extractable from Latest Customer Message, next_action must NOT be UPDATE_CUSTOMER_PROFILE.
+- If Latest Customer Message is question-only/recap-only without a new concrete target profile value, next_action must NOT be UPDATE_CUSTOMER_PROFILE.
+- If message asks for explanation/recap of prior action and prior assistant/system action context exists, use AUTO_REPLY.
+- Do not route explanation/recap requests to UPDATE_CUSTOMER_PROFILE.
+- Never infer UPDATE_CUSTOMER_PROFILE from prior turns when Latest Customer Message is recap_or_explain_intent.
 
-ROUTING CONSISTENCY POLICY:
-- Queue must be consistent with category.
-- Use these mappings:
-  - BILLING -> BILLING_Q
-  - TECHNICAL -> TECH_Q
-  - SHIPPING -> OPS_Q
-  - SECURITY -> SECURITY_Q
-  - ACCOUNT -> ACCOUNT_Q
-  - PRICING -> ACCOUNT_Q
-  - OTHER -> GENERAL_Q
+SAFETY RULES:
+- Do not assume no-change for explicit profile update requests unless explicit equality evidence is present.
+- Never copy prior requested values unless they are explicitly requested again in Latest Customer Message.
+- Never emit recap/confirmation-only text as the decision for a new explicit update command.
 
-ACTION/FIELD CONTRACTS (STRICT):
-- ASK_CLARIFYING:
-  - clarifying_question must be a specific, direct question.
-  - draft_reply must be null.
-- ASSIGN_QUEUE:
-  - clarifying_question must be null.
-  - draft_reply must be null.
-- AUTO_REPLY and AUTO_RESOLVE:
-  - draft_reply must be non-null and concrete.
-  - draft_reply must directly answer the customer request with actionable steps.
-- USE_KNOWLEDGE_ARTICLE:
-  - action_parameters.article_id must be set to a positive numeric id from Knowledge.
-  - draft_reply must summarize the selected article in actionable, customer-facing text.
-- USE_TEMPLATE:
-  - action_parameters.template_id must be set to a positive numeric id.
-  - draft_reply may be null.
-- UPDATE_CUSTOMER_PROFILE:
-  - action_parameters must include at least one concrete profile field value.
-  - draft_reply must be null.
+ACTION CONTRACTS:
+- ASK_CLARIFYING => clarifying_question non-null and draft_reply null
+- ASSIGN_QUEUE => clarifying_question null and draft_reply null
+- AUTO_REPLY/AUTO_RESOLVE => draft_reply non-null
+- USE_KNOWLEDGE_ARTICLE => action_parameters.article_id positive
+- USE_TEMPLATE => action_parameters.template_id positive
+- UPDATE_CUSTOMER_PROFILE => at least one concrete profile field in action_parameters
 
-ALLOWED ENUM VALUES (STRICT):
+ENUMS (COPY EXACT TOKENS ONLY):
 - category: {category}
 - priority: {priority}
 - queue: {queue}
 - next_action: {next_action}
 
-ENUM OUTPUT RULE (HARD):
-- Output enum values by copying exact tokens from the allowed lists above.
-- Preserve exact spelling, underscore, and casing.
-- Never invent, transform, or abbreviate enum tokens.
-- If uncertain, still pick an exact token from the allowed list; never output out-of-list text.
+ROUTING POLICY:
+{routing_policy}
 
-JSON SHAPE:
+HARD OUTPUT CONSTRAINTS:
+- Return JSON only.
+- Do not output markdown.
+- Do not output reasoning labels/classes as enum values.
+- category/priority/queue/next_action must be exact tokens from the lists above.
+- confidence must be a number in [0.0, 1.0].
+- If uncertain on enum mapping, choose an in-list token and never emit out-of-list text.
+- queue must be copied from queue list only; never synthesize new queue tokens.
+- If queue mapping is uncertain, set queue to GENERAL_Q.
+
+FINAL ENUM SELF-CHECK (MUST PASS):
+- category exactly matches one token from category list.
+- priority exactly matches one token from priority list.
+- queue exactly matches one token from queue list.
+- next_action exactly matches one token from next_action list.
+
+JSON SHAPE (MUST MATCH):
 \{
   "internal_note": "short reasoning summary",
   "category": "SELECT_FROM_ENUMS",
@@ -104,17 +114,5 @@ JSON SHAPE:
     "postal_code": null,
     "preferred_language_code": null
   \},
-  "rationale_tags": ["tag_1"]
+  "rationale_tags": ["tag"]
 \}
-
-FINAL SELF-CHECK BEFORE OUTPUT (MUST PASS):
-1) Output starts with left curly brace and ends with right curly brace.
-2) category, priority, queue, next_action are present and from allowed enums.
-3) confidence exists and is numeric between 0.0 and 1.0.
-4) clarifying_question and draft_reply exist (string or null).
-5) action_parameters exists with all listed keys.
-6) rationale_tags exists and is an array.
-7) If next_action needs concrete customer text, draft_reply is specific and non-generic.
-8) If next_action needs action_parameters id, required id is positive numeric.
-9) queue/category pair follows the routing consistency policy.
-10) next_action is not HUMAN_REVIEW unless explicit risk/uncertainty evidence exists.

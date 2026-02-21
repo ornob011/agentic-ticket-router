@@ -8,7 +8,6 @@ import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.service.ai.*;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
-import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +39,10 @@ public class RoutingLlmClient implements RoutingModelClient {
     ) {
         String latestCustomerMessage = getLatestCustomerMessage(
             routerRequest
+        );
+
+        String latestAssistantMessage = StringUtils.defaultString(
+            routerRequest.getLatestAssistantMessage()
         );
 
         log.debug(
@@ -94,6 +97,7 @@ public class RoutingLlmClient implements RoutingModelClient {
                     .param("conversation_history", routerRequest.getConversationHistory())
                     .param("analysis", routerRequest.getAnalysis())
                     .param("latest_customer_message", latestCustomerMessage)
+                    .param("latest_assistant_message", latestAssistantMessage)
                     .param("previous_clarifying_question",
                         Objects.requireNonNullElse(
                             routerRequest.getPreviousClarifyingQuestion(),
@@ -148,31 +152,10 @@ public class RoutingLlmClient implements RoutingModelClient {
     private String getLatestCustomerMessage(
         RouterRequest routerRequest
     ) {
-        String conversationHistory = StringUtils.defaultString(routerRequest.getConversationHistory());
-        String[] historyLines = StringUtils.splitPreserveAllTokens(conversationHistory, '\n');
-
-        if (historyLines == null || historyLines.length == 0) {
-            return StringNormalizationUtils.trimToEmpty(routerRequest.getInitialMessage());
-        }
-
-        List<String> lines = Arrays.stream(historyLines).toList();
-
-        for (int i = lines.size() - 1; i >= 0; i--) {
-            String line = lines.get(i);
-            if (line == null || !line.contains("CUSTOMER_MESSAGE:")) {
-                continue;
-            }
-
-            String extracted = StringNormalizationUtils.trimToEmpty(
-                StringUtils.substringAfter(line, "CUSTOMER_MESSAGE:")
-            );
-
-            if (StringUtils.isNotBlank(extracted)) {
-                return extracted;
-            }
-        }
-
-        return StringNormalizationUtils.trimToEmpty(routerRequest.getInitialMessage());
+        return StringUtils.defaultIfBlank(
+            routerRequest.getLatestCustomerMessage(),
+            StringUtils.defaultString(routerRequest.getInitialMessage())
+        );
     }
 
     private String formatRelevantArticles(

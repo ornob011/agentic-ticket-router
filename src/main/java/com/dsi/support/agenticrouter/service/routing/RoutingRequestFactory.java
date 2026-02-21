@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -115,6 +116,8 @@ public class RoutingRequestFactory {
                             .customerTier(customerTierCode)
                             .initialMessage(initialMessage)
                             .conversationHistory(conversationHistory)
+                            .latestCustomerMessage(getLatestCustomerMessage(supportTicket))
+                            .latestAssistantMessage(getLatestAssistantMessage(supportTicket))
                             .analysis(StringUtils.defaultString(ticketAnalysisResult.getAnalysis()))
                             .suggestedCategory(ticketAnalysisResult.getCategory())
                             .previousClarifyingQuestion(lastClarifyingQuestion)
@@ -265,6 +268,66 @@ public class RoutingRequestFactory {
                                       .findFirst()
                                       .map(TicketMessage::getContent)
                                       .orElse(StringUtils.EMPTY);
+    }
+
+    private String getLatestAssistantMessage(
+        SupportTicket supportTicket
+    ) {
+        return getLatestMessage(
+            supportTicket,
+            this::isAssistantMessage,
+            StringUtils.EMPTY
+        );
+    }
+
+    private String getLatestCustomerMessage(
+        SupportTicket supportTicket
+    ) {
+        return getLatestMessage(
+            supportTicket,
+            this::isCustomerMessage,
+            getInitialMessage(supportTicket)
+        );
+    }
+
+    private String getLatestMessage(
+        SupportTicket supportTicket,
+        Predicate<TicketMessage> selector,
+        String fallback
+    ) {
+        List<TicketMessage> ticketMessages = ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(
+            supportTicket.getId()
+        );
+
+        for (int i = ticketMessages.size() - 1; i >= 0; i--) {
+            TicketMessage ticketMessage = ticketMessages.get(i);
+            if (ticketMessage == null || StringUtils.isBlank(ticketMessage.getContent())) {
+                continue;
+            }
+
+            if (selector.test(ticketMessage)) {
+                return ticketMessage.getContent();
+            }
+        }
+
+        return StringUtils.defaultString(fallback);
+    }
+
+    private boolean isAssistantMessage(
+        TicketMessage ticketMessage
+    ) {
+        if (ticketMessage.getAuthor() == null || ticketMessage.getAuthor().getId() == null) {
+            return true;
+        }
+
+        return !ticketMessage.getAuthor().isCustomer();
+    }
+
+    private boolean isCustomerMessage(
+        TicketMessage ticketMessage
+    ) {
+        return ticketMessage.getAuthor() != null
+               && ticketMessage.getAuthor().isCustomer();
     }
 
     private String buildConversationText(

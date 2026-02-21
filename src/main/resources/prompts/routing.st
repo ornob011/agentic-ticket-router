@@ -2,86 +2,104 @@ INPUTS:
 - History: {conversation_history}
 - Knowledge: {relevant_articles}
 - Latest Customer Message: {latest_customer_message}
+- Latest Assistant Message: {latest_assistant_message}
 
-MANDATORY PRE-STEP:
-- Use `Latest Customer Message` as the primary source of intent.
-- Use `History` only as supporting context.
-- Do not let older messages override `Latest Customer Message`.
+DECISION RULES (STRICT):
+1) Use Latest Customer Message as authoritative intent source.
+2) Intent precedence (highest to lowest):
+   - explicit profile mutation intent
+   - recap/explanation of prior assistant action intent
+   - knowledge-seeking intent
+   - security/compliance risk intent
+   - unclear intent
+3) For explicit profile update requests:
+   - next_action = UPDATE_CUSTOMER_PROFILE
+   - This intent is valid only when the Latest Customer Message contains both:
+     - at least one requested profile field identifier, and
+     - at least one concrete target field value extractable from that same message
+   - extract update values only from Latest Customer Message
+   - do not derive new update values from History/Latest Assistant Message
+   - every non-null profile field in action_parameters must be a verbatim span from Latest Customer Message
+   - action_parameters must contain at least one non-empty profile field value
+   - clarifying_question = null
+   - draft_reply = null
+4) For recap-about-prior-action requests:
+   - next_action = AUTO_REPLY
+   - build draft_reply from prior assistant/system action context
+   - do not select USE_KNOWLEDGE_ARTICLE for recap requests
+5) For knowledge-seeking requests:
+   - if relevant article exists: USE_KNOWLEDGE_ARTICLE with positive article_id
+   - otherwise: ASSIGN_QUEUE with null draft reply
+6) For security/compliance risk requests:
+   - ASSIGN_QUEUE with queue SECURITY_Q and priority HIGH
+7) For unclear requests: ASK_CLARIFYING with specific clarifying_question.
 
-**PRIORITY CHECKLIST (Execute in Order):**
+INTENT CLASSIFICATION GATE (MUST RUN BEFORE next_action):
+- Compute update_intent = true only if all are present in Latest Customer Message:
+  - mutation verb signal (update/change/set/modify/replace/correct),
+  - profile field signal (company name/company/org/phone/address/city/postal/preferred language),
+  - concrete target value signal in the same message.
+- Compute recap_or_explain_intent = true when Latest Customer Message asks about prior action/explanation and lacks a concrete new profile target value.
+- If update_intent is true, next_action must be UPDATE_CUSTOMER_PROFILE.
+- If recap_or_explain_intent is true, next_action must be AUTO_REPLY.
+- recap_or_explain_intent has priority over any inferred no-change update path.
 
-1. **CHECK FOR ESCALATION (Highest Priority):**
-   - Does `Latest Customer Message` fall under the SECURITY category?
-   - If Category=`SECURITY`:
-     - Action: `ASSIGN_QUEUE`
-     - Priority: `HIGH`
-     - Queue: `SECURITY_Q`
-     - `draft_reply`: `null`
-     - **STOP HERE.**
+DISAMBIGUATION RULE (HARD):
+- If Latest Customer Message includes a new explicit profile update command with a concrete target value, next_action must be UPDATE_CUSTOMER_PROFILE.
+- When previous turn was recap/explanation but current turn is a new explicit profile update command, treat current turn as update intent.
+- UPDATE_CUSTOMER_PROFILE is forbidden unless Latest Customer Message itself provides at least one concrete non-null profile field value for action_parameters.
+- If Latest Customer Message is interrogative/explanatory and does not include a concrete new profile field value, next_action must be AUTO_REPLY.
+- If no concrete profile field value is extractable from Latest Customer Message, next_action must NOT be UPDATE_CUSTOMER_PROFILE.
+- If Latest Customer Message is question-only/recap-only without a new concrete target profile value, next_action must NOT be UPDATE_CUSTOMER_PROFILE.
+- If message asks for explanation/recap of prior action and prior assistant/system action context exists, use AUTO_REPLY.
+- Do not route explanation/recap requests to UPDATE_CUSTOMER_PROFILE.
+- Never infer UPDATE_CUSTOMER_PROFILE from prior turns when Latest Customer Message is recap_or_explain_intent.
 
-2. **CHECK FOR COMMANDS:**
-   - Does `Latest Customer Message` contain a profile update command?
-   - Profile update verbs: change, update, set, modify, replace, correct.
-   - Profile fields: company name/company/organization/org, phone/phone number/mobile/contact number, address/street, city/town, postal code/zip/postcode, preferred language/language.
-   - If verb + profile field + explicit target value are present, this is a profile update command.
-   - **YES:**
-     - Action: `UPDATE_CUSTOMER_PROFILE`
-     - Extraction: You **MUST** extract the value into `action_parameters`.
-     - Draft Reply: `null`.
-     - `action_parameters.article_id`: `null`.
-     - `clarifying_question`: `null`.
-     - **NEVER choose `USE_KNOWLEDGE_ARTICLE` for this case.**
-     - **STOP HERE.** (Do not check knowledge).
+SAFETY RULES:
+- Do not assume no-change for explicit profile update requests unless explicit equality evidence is present.
+- Never copy prior requested values unless they are explicitly requested again in Latest Customer Message.
+- Never emit recap/confirmation-only text as the decision for a new explicit update command.
 
-3. **CHECK FOR QUESTIONS (If not a command):**
-   - Does `Latest Customer Message` ask "How to...", "Can I...", or describe an issue?
-   - **YES:**
-     - **Check Knowledge**: Read `{relevant_articles}`.
-     - If Knowledge Found -> Action: `USE_KNOWLEDGE_ARTICLE`. **You MUST set `action_parameters.article_id` to the chosen article's id.** Write a `draft_reply` using the article.
-     - If Knowledge Empty -> Action: `ASSIGN_QUEUE`. Set `draft_reply` to `null` (Do NOT hallucinate).
+ENUMS (COPY EXACT TOKENS ONLY):
+- category: {category}
+- priority: {priority}
+- queue: {queue}
+- action: {next_action}
 
-4. **CHECK FOR VAGUE INPUT:**
-   - If unclear -> Action: `ASK_CLARIFYING`.
-   - **REQUIRED**: Write a specific question asking what the customer needs.
+HARD OUTPUT CONSTRAINTS:
+- Return JSON only.
+- Do not output markdown.
+- Do not output reasoning labels/classes as enum values.
+- category/priority/queue/next_action must be exact tokens from the lists above.
+- confidence must be a number in [0.0, 1.0].
+- If uncertain on enum mapping, choose an in-list token and never emit out-of-list text.
+- queue must be copied from queue list only; never synthesize new queue tokens.
+- If queue mapping is uncertain, set queue to GENERAL_Q.
 
-**CONFIDENCE CALCULATION:**
-- If Request is Clear/Simple (Command or Simple Question) -> Set `confidence` to 1.0.
-- If Request is Vague/Ambiguous -> Set `confidence` to 0.7.
+FINAL ENUM SELF-CHECK (MUST PASS):
+- category exactly matches one token from category list.
+- priority exactly matches one token from priority list.
+- queue exactly matches one token from queue list.
+- next_action exactly matches one token from next_action list.
 
-**ENUMS:**
-- Category: {category}
-- Priority: {priority}
-- Queue: {queue} (Map: BILLING->BILLING_Q, TECHNICAL->TECH_Q, ACCOUNT->ACCOUNT_Q, SHIPPING->OPS_Q, SECURITY->SECURITY_Q, PRICING->ACCOUNT_Q, OTHER->GENERAL_Q)
-- Action: {next_action}
-
-**JSON RESPONSE (Fill exactly):**
+JSON RESPONSE (MUST MATCH):
 \{
-  "internal_note": "Last Msg: [INSERT_TEXT]. Intent: [COMMAND/QUESTION]. Knowledge: [FOUND/EMPTY].",
+  "internal_note": "short reasoning summary",
   "category": "SELECT_FROM_ENUMS",
   "priority": "SELECT_FROM_ENUMS",
   "queue": "SELECT_FROM_ENUMS",
   "next_action": "SELECT_FROM_ENUMS",
-  "confidence": 0.9,
-  "clarifying_question": "WRITE_QUESTION_HERE_IF_ACTION_IS_ASK_CLARIFYING",
-  "draft_reply": "WRITE_REPLY_HERE_IF_ACTION_IS_USE_KNOWLEDGE_ARTICLE",
+  "confidence": 0.0,
+  "clarifying_question": null,
+  "draft_reply": null,
   "action_parameters": \{
-      "article_id": null,
-      "phone_number": null,
-      "company_name": null,
-      "address": null,
-      "city": null,
-      "postal_code": null,
-      "preferred_language_code": null
+    "article_id": null,
+    "phone_number": null,
+    "company_name": null,
+    "address": null,
+    "city": null,
+    "postal_code": null,
+    "preferred_language_code": null
   \},
-  "rationale_tags": ["tag_1", "tag_2"]
+  "rationale_tags": ["tag"]
 \}
-
-**CRITICAL OVERRIDES (You MUST apply these):**
-1. If Action=`UPDATE_CUSTOMER_PROFILE`, replace `null` in `action_parameters` with the EXTRACTED VALUE.
-   - For UPDATE_CUSTOMER_PROFILE, do not use knowledge article action.
-2. If Action=`USE_KNOWLEDGE_ARTICLE`, **set `action_parameters.article_id` to the selected article id** and replace the draft reply with a summary of `{relevant_articles}`.
-3. If Action=`ASK_CLARIFYING`, replace "WRITE_QUESTION_HERE_IF_ACTION_IS_ASK_CLARIFYING" with your specific question.
-4. If Action=`ASSIGN_QUEUE`, set `clarifying_question` to null and `draft_reply` to null.
-5. Update `confidence` based on the Calculation Rule (1.0 or 0.7).
-6. `rationale_tags` must be evidence-based from Latest Customer Message, History, and Analysis; do not output fixed defaults.
-7. Use 1 to 3 concise `rationale_tags`, and do not always output "latest_message".
