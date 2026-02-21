@@ -8,6 +8,7 @@ INPUTS:
 - Latest Customer Message: {latest_customer_message}
 - Latest Assistant Message: {latest_assistant_message}
 - Knowledge: {relevant_articles}
+- Patterns: {relevant_patterns}
 
 DECISION RULES (STRICT):
 1) Use Latest Customer Message as authoritative intent source.
@@ -65,7 +66,7 @@ SAFETY RULES:
 ACTION CONTRACTS:
 - ASK_CLARIFYING => clarifying_question non-null and draft_reply null
 - ASSIGN_QUEUE => clarifying_question null and draft_reply null
-- AUTO_REPLY/AUTO_RESOLVE => draft_reply non-null
+- AUTO_REPLY/AUTO_RESOLVE => draft_reply non-null and non-empty
 - USE_KNOWLEDGE_ARTICLE => action_parameters.article_id positive
 - USE_TEMPLATE => action_parameters.template_id positive
 - UPDATE_CUSTOMER_PROFILE => at least one concrete profile field in action_parameters
@@ -94,6 +95,23 @@ FINAL ENUM SELF-CHECK (MUST PASS):
 - priority exactly matches one token from priority list.
 - queue exactly matches one token from queue list.
 - next_action exactly matches one token from next_action list.
+
+FINAL ACTION-FIELD SELF-CHECK (MUST PASS):
+- If next_action is AUTO_REPLY or AUTO_RESOLVE:
+  - draft_reply must be a JSON string (not null), trimmed length >= 12.
+  - draft_reply must not be placeholder/null-like text.
+  - clarifying_question must be null.
+- If next_action is ASK_CLARIFYING:
+  - clarifying_question must be a non-empty string, trimmed length >= 8.
+  - draft_reply must be null.
+- If next_action is ASSIGN_QUEUE:
+  - clarifying_question must be null.
+  - draft_reply must be null.
+- If next_action is USE_KNOWLEDGE_ARTICLE:
+  - action_parameters.article_id must be a positive integer.
+- If next_action is UPDATE_CUSTOMER_PROFILE:
+  - at least one profile field in action_parameters must be non-null and non-empty.
+  - draft_reply must be null.
 
 JSON SHAPE (MUST MATCH):
 \{

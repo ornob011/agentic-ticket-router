@@ -36,6 +36,8 @@ public class RouterRequest {
 
     private List<ArticleSearchResult> relevantArticles;
 
+    private List<PatternHint> relevantPatterns;
+
     private Integer remainingActions;
 
     private Integer questionsAsked;

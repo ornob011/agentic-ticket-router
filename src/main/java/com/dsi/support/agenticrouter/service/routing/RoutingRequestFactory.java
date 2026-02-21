@@ -1,15 +1,13 @@
 package com.dsi.support.agenticrouter.service.routing;
 
-import com.dsi.support.agenticrouter.dto.ArticleSearchResult;
-import com.dsi.support.agenticrouter.dto.RouterRequest;
-import com.dsi.support.agenticrouter.dto.TicketAnalysisRequest;
-import com.dsi.support.agenticrouter.dto.TicketAnalysisResult;
+import com.dsi.support.agenticrouter.dto.*;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.entity.TicketMessage;
 import com.dsi.support.agenticrouter.enums.VectorStoreMetadataKey;
 import com.dsi.support.agenticrouter.model.TicketAutonomousMetadata;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.knowledge.KnowledgeBaseVectorStore;
+import com.dsi.support.agenticrouter.service.learning.RoutingPatternMatcherService;
 import com.dsi.support.agenticrouter.service.memory.CustomerContextEnrichmentService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
@@ -44,6 +42,7 @@ public class RoutingRequestFactory {
     private final TicketMessageRepository ticketMessageRepository;
     private final KnowledgeBaseVectorStore knowledgeBaseVectorStore;
     private final CustomerContextEnrichmentService customerContextEnrichmentService;
+    private final RoutingPatternMatcherService routingPatternMatcherService;
 
     public TicketAnalysisRequest buildAnalysisRequest(
         SupportTicket supportTicket
@@ -100,6 +99,11 @@ public class RoutingRequestFactory {
             initialMessage
         );
 
+        List<PatternHint> relevantPatterns = routingPatternMatcherService.findRelevantPatterns(
+            ticketAnalysisResult.getCategory(),
+            supportTicket.getSubject()
+        );
+
         int remainingActions = MAX_AUTONOMOUS_ACTIONS - Optional.ofNullable(autonomousMetadata)
                                                                 .map(TicketAutonomousMetadata::getAutonomousActionCount)
                                                                 .orElse(0);
@@ -122,6 +126,7 @@ public class RoutingRequestFactory {
                             .suggestedCategory(ticketAnalysisResult.getCategory())
                             .previousClarifyingQuestion(lastClarifyingQuestion)
                             .relevantArticles(relevantArticles)
+                            .relevantPatterns(relevantPatterns)
                             .remainingActions(remainingActions)
                             .questionsAsked(questionsAsked)
                             .maxQuestions(MAX_QUESTIONS)

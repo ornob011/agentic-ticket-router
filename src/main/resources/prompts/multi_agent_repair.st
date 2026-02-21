@@ -45,7 +45,7 @@ REPAIR INTENT GATE (MANDATORY):
 - Do not preserve no-change/update outcomes for recap_or_explain_intent turns.
 
 ACTION CONTRACTS:
-- AUTO_REPLY/AUTO_RESOLVE => draft_reply non-null
+- AUTO_REPLY/AUTO_RESOLVE => draft_reply non-null and non-empty
 - ASK_CLARIFYING => clarifying_question non-null and draft_reply null
 - ASSIGN_QUEUE => clarifying_question null and draft_reply null
 - USE_KNOWLEDGE_ARTICLE => action_parameters.article_id positive
@@ -65,6 +65,25 @@ FINAL ENUM SELF-CHECK (MUST PASS):
 - priority is exactly one token from priority list.
 - queue is exactly one token from queue list.
 - next_action is exactly one token from next_action list.
+
+FINAL ACTION-FIELD SELF-CHECK (MUST PASS):
+- If next_action is AUTO_REPLY or AUTO_RESOLVE:
+  - draft_reply must be a JSON string (not null), trimmed length >= 12.
+  - draft_reply must not be placeholder/null-like text.
+  - clarifying_question must be null.
+- If next_action is ASK_CLARIFYING:
+  - clarifying_question must be a non-empty string, trimmed length >= 8.
+  - draft_reply must be null.
+- If next_action is ASSIGN_QUEUE:
+  - clarifying_question must be null.
+  - draft_reply must be null.
+- If next_action is USE_KNOWLEDGE_ARTICLE:
+  - action_parameters.article_id must be a positive integer.
+- If next_action is USE_TEMPLATE:
+  - action_parameters.template_id must be a positive integer.
+- If next_action is UPDATE_CUSTOMER_PROFILE:
+  - at least one profile field in action_parameters must be non-null and non-empty.
+  - draft_reply must be null.
 
 ROUTING CONSISTENCY:
 {routing_policy}

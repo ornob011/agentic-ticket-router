@@ -1,6 +1,7 @@
 package com.dsi.support.agenticrouter.service.agentruntime.planner;
 
 import com.dsi.support.agenticrouter.dto.ArticleSearchResult;
+import com.dsi.support.agenticrouter.dto.PatternHint;
 import com.dsi.support.agenticrouter.dto.RouterRequest;
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.enums.*;
@@ -73,6 +74,10 @@ public class AgentPlannerLlmClient {
             routerRequest.getRelevantArticles()
         );
 
+        String relevantPatterns = formatRelevantPatterns(
+            routerRequest.getRelevantPatterns()
+        );
+
         String routingPolicy = routingPolicy();
 
         String plannerRawJson = llmResponseTextExtractor.extractRequiredContent(
@@ -94,6 +99,7 @@ public class AgentPlannerLlmClient {
                     .param("latest_customer_message", latestCustomerMessage)
                     .param("latest_assistant_message", latestAssistantMessage)
                     .param("relevant_articles", relevantArticles)
+                    .param("relevant_patterns", relevantPatterns)
                     .param("routing_policy", routingPolicy)
                     .param("agent_role", actorRole.name())
                     .param("agent_role_description", actorRole.getDescription())
@@ -202,6 +208,26 @@ public class AgentPlannerLlmClient {
             routerRequest.getLatestCustomerMessage(),
             StringUtils.defaultString(routerRequest.getInitialMessage())
         );
+    }
+
+    private String formatRelevantPatterns(
+        List<PatternHint> patterns
+    ) {
+        if (CollectionUtils.isEmpty(patterns)) {
+            return "No historical patterns available.";
+        }
+
+        return "HISTORICAL PATTERNS (from human feedback on similar tickets):\n" +
+               patterns.stream()
+                       .map(p -> String.format(
+                           "- Category: %s, Action: %s, Success rate: %.0f%% over %d samples",
+                           p.category(),
+                           p.successfulAction(),
+                           p.successRate() * 100,
+                           p.sampleCount()
+                       ))
+                       .collect(Collectors.joining("\n")) +
+               "\nUse these patterns to inform your decision, but prioritize current intent signals.";
     }
 
     private String formatRelevantArticles(
