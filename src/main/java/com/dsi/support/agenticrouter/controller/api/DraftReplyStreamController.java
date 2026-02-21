@@ -48,7 +48,7 @@ public class DraftReplyStreamController {
             streamingDraftService.streamDraftReply(ticket)
                                  .doOnNext(token -> {
                                      try {
-                                         emitter.send(SseEmitter.event().data(token));
+                                         emitter.send(SseEmitter.event().data(" " + token));
                                      } catch (IOException e) {
                                          emitter.completeWithError(e);
                                      }

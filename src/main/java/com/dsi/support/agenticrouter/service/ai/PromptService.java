@@ -59,6 +59,9 @@ public class PromptService {
     @Value("classpath:/prompts/ticket_reply_draft.st")
     private Resource ticketReplyDraftPromptResource;
 
+    @Value("classpath:/prompts/ticket_reply_draft_system.st")
+    private Resource ticketReplyDraftSystemPromptResource;
+
     @PostConstruct
     void initializeModePromptMappings() {
         plannerPromptByMode.put(
@@ -125,5 +128,9 @@ public class PromptService {
 
     public Resource getTicketReplyDraftPrompt() {
         return ticketReplyDraftPromptResource;
+    }
+
+    public Resource getTicketReplyDraftSystemPrompt() {
+        return ticketReplyDraftSystemPromptResource;
     }
 }

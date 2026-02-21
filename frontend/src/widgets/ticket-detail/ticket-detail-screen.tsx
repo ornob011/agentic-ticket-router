@@ -328,32 +328,60 @@ export function TicketDetailScreen({
               <ConversationPanel messages={data.messages} />
 
               <form onSubmit={(event) => void onReplySubmit(event)} className="space-y-3">
-                <Textarea
-                  placeholder="Type your reply..."
-                  value={reply}
-                  onChange={(e) => onReplyChange(e.target.value)}
-                  rows={3}
-                  className="resize-none"
-                  disabled={!data.permissions.canReply || isStreamingDraft}
-                />
-                <div className="flex items-center justify-between gap-2">
-                  {data.permissions.canChangeStatus && data.permissions.canReply ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={isStreamingDraft || !data.permissions.canReply}
-                      onClick={onGenerateDraft}
-                    >
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      {isStreamingDraft ? "Generating..." : "Generate AI Draft"}
+                <div className="rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 p-4 shadow-sm">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-100 text-sky-700">
+                        <Sparkles className="h-3.5 w-3.5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-sky-900">AI Draft Composer</p>
+                        <p className="text-xs text-sky-700/80">
+                          Generate and edit a polished reply before sending
+                        </p>
+                      </div>
+                    </div>
+                    {isStreamingDraft ? (
+                      <Badge variant="outline" className="border-sky-300 bg-sky-100 text-sky-700">
+                        <Sparkles className="mr-1 h-3 w-3 animate-pulse" />
+                        Generating
+                      </Badge>
+                    ) : null}
+                  </div>
+
+                  <Textarea
+                    placeholder="Type your reply..."
+                    value={reply}
+                    onChange={(e) => onReplyChange(e.target.value)}
+                    rows={10}
+                    className="min-h-[240px] resize-y border-sky-200 bg-white/90 leading-relaxed"
+                    disabled={!data.permissions.canReply || isStreamingDraft}
+                  />
+
+                  <div className="mt-2 flex items-center justify-end">
+                    <span className="text-xs text-sky-800/70">{reply.length} characters</span>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between gap-2">
+                    {data.permissions.canChangeStatus && data.permissions.canReply ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-sky-300 bg-white text-sky-800 hover:bg-sky-100"
+                        disabled={isStreamingDraft || !data.permissions.canReply}
+                        onClick={onGenerateDraft}
+                      >
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        {isStreamingDraft ? "Generating..." : "Generate AI Draft"}
+                      </Button>
+                    ) : (
+                      <span />
+                    )}
+                    <Button type="submit" disabled={!reply.trim() || isReplyPending || !data.permissions.canReply}>
+                      <Send className="mr-2 h-4 w-4" />
+                      {isReplyPending ? "Sending..." : "Send Reply"}
                     </Button>
-                  ) : (
-                    <span />
-                  )}
-                  <Button type="submit" disabled={!reply.trim() || isReplyPending || !data.permissions.canReply}>
-                    <Send className="h-4 w-4 mr-2" />
-                    {isReplyPending ? "Sending..." : "Send Reply"}
-                  </Button>
+                  </div>
                 </div>
               </form>
             </CardContent>

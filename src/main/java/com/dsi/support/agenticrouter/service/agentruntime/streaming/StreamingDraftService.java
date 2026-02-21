@@ -5,17 +5,15 @@ import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
 import com.dsi.support.agenticrouter.service.ai.LlmPromptCaller;
 import com.dsi.support.agenticrouter.service.ai.PromptService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class StreamingDraftService {
 
@@ -23,6 +21,18 @@ public class StreamingDraftService {
     private final LlmPromptCaller llmPromptCaller;
     private final PromptService promptService;
     private final TicketMessageRepository ticketMessageRepository;
+
+    public StreamingDraftService(
+        @Qualifier("draftReplyChatModel") ChatModel chatModel,
+        LlmPromptCaller llmPromptCaller,
+        PromptService promptService,
+        TicketMessageRepository ticketMessageRepository
+    ) {
+        this.chatModel = chatModel;
+        this.llmPromptCaller = llmPromptCaller;
+        this.promptService = promptService;
+        this.ticketMessageRepository = ticketMessageRepository;
+    }
 
     public Flux<String> streamDraftReply(
         SupportTicket supportTicket
@@ -36,22 +46,24 @@ public class StreamingDraftService {
         String conversationHistory = buildConversationHistory(supportTicket);
 
         return llmPromptCaller.streamContent(
-            chatModel,
-            promptUserSpec -> promptUserSpec
-                .text(promptService.getTicketReplyDraftPrompt())
-                .param("subject", supportTicket.getSubject())
-                .param("conversation_history", conversationHistory)
-        ).doOnComplete(() -> log.info(
-            "StreamingDraft({}) SupportTicket(id:{}) Outcome(completed)",
-            OperationalLogContext.PHASE_COMPLETE,
-            supportTicket.getId()
-        )).doOnError(error -> log.error(
-            "StreamingDraft({}) SupportTicket(id:{}) Outcome(reason:{})",
-            OperationalLogContext.PHASE_FAIL,
-            supportTicket.getId(),
-            "stream_failed",
-            error
-        ));
+                                  chatModel,
+                                  promptService.getTicketReplyDraftSystemPrompt(),
+                                  promptUserSpec -> promptUserSpec
+                                      .text(promptService.getTicketReplyDraftPrompt())
+                                      .param("subject", supportTicket.getSubject())
+                                      .param("conversation_history", conversationHistory)
+                              ).doOnComplete(() -> log.info(
+                                  "StreamingDraft({}) SupportTicket(id:{}) Outcome(completed)",
+                                  OperationalLogContext.PHASE_COMPLETE,
+                                  supportTicket.getId()
+                              ))
+                              .doOnError(error -> log.error(
+                                  "StreamingDraft({}) SupportTicket(id:{}) Outcome(reason:{})",
+                                  OperationalLogContext.PHASE_FAIL,
+                                  supportTicket.getId(),
+                                  "stream_failed",
+                                  error
+                              ));
     }
 
     private String buildConversationHistory(
@@ -71,9 +83,10 @@ public class StreamingDraftService {
             "StreamingDraft({}) SupportTicket(id:{}) Outcome(historyLength:{})",
             OperationalLogContext.PHASE_COMPLETE,
             supportTicket.getId(),
-            StringUtils.length(history)
+            history.length()
         );
 
         return history;
     }
+
 }
