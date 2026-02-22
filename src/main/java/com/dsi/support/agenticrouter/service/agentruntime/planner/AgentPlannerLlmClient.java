@@ -104,7 +104,6 @@ public class AgentPlannerLlmClient {
                     .param("customer_tier", routerRequest.getCustomerTier())
                     .param("initial_message", routerRequest.getInitialMessage())
                     .param("conversation_history", routerRequest.getConversationHistory())
-                    .param("analysis", routerRequest.getAnalysis())
                     .param("latest_customer_message", latestCustomerMessage)
                     .param("latest_assistant_message", latestAssistantMessage)
                     .param("relevant_articles", relevantArticles)

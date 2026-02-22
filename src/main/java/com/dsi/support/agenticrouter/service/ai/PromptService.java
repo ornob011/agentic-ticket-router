@@ -26,9 +26,6 @@ public class PromptService {
     @Value("classpath:/prompts/routing.st")
     private Resource routingPromptResource;
 
-    @Value("classpath:/prompts/analysis.st")
-    private Resource analysisPromptResource;
-
     @Value("classpath:/prompts/repair.st")
     private Resource repairPromptResource;
 
@@ -88,10 +85,6 @@ public class PromptService {
 
     public Resource getRoutingPrompt() {
         return routingPromptResource;
-    }
-
-    public Resource getAnalysisPrompt() {
-        return analysisPromptResource;
     }
 
     public Resource getRepairPrompt() {

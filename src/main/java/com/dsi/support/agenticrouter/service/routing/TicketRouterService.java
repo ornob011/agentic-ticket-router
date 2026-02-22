@@ -56,21 +56,17 @@ public class TicketRouterService {
 
         int conversationTokensEstimate = tokenCountService.countTokens(routerRequest.getConversationHistory());
 
-        int analysisTokensEstimate = tokenCountService.countTokens(routerRequest.getAnalysis());
-
-        int totalInputTokensEstimate = subjectTokensEstimate + conversationTokensEstimate + analysisTokensEstimate;
+        int totalInputTokensEstimate = subjectTokensEstimate + conversationTokensEstimate;
 
         log.info(
-            "RoutingDecision({}) SupportTicket(id:{},ticketNo:{}) RouterRequest(subjectLength:{},conversationLength:{},analysisLength:{},subjectTokensEst:{},conversationTokensEst:{},analysisTokensEst:{},totalInputTokensEst:{},relevantArticleCount:{})",
+            "RoutingDecision({}) SupportTicket(id:{},ticketNo:{}) RouterRequest(subjectLength:{},conversationLength:{},subjectTokensEst:{},conversationTokensEst:{},totalInputTokensEst:{},relevantArticleCount:{})",
             OperationalLogContext.PHASE_START,
             ticketId,
             routerRequest.getTicketNo(),
             StringUtils.length(routerRequest.getSubject()),
             StringUtils.length(routerRequest.getConversationHistory()),
-            StringUtils.length(routerRequest.getAnalysis()),
             subjectTokensEstimate,
             conversationTokensEstimate,
-            analysisTokensEstimate,
             totalInputTokensEstimate,
             CollectionUtils.size(routerRequest.getRelevantArticles())
         );
@@ -148,13 +144,12 @@ public class TicketRouterService {
         Throwable throwable
     ) {
         log.error(
-            "RoutingFallback({}) SupportTicket(id:{}) RouterRequest(ticketNo:{},subjectTokensEst:{},conversationTokensEst:{},analysisTokensEst:{}) Outcome(errorType:{},message:{})",
+            "RoutingFallback({}) SupportTicket(id:{}) RouterRequest(ticketNo:{},subjectTokensEst:{},conversationTokensEst:{}) Outcome(errorType:{},message:{})",
             OperationalLogContext.PHASE_FAIL,
             ticketId,
             routerRequest.getTicketNo(),
             tokenCountService.countTokens(routerRequest.getSubject()),
             tokenCountService.countTokens(routerRequest.getConversationHistory()),
-            tokenCountService.countTokens(routerRequest.getAnalysis()),
             throwable.getClass().getSimpleName(),
             throwable.getMessage(),
             throwable

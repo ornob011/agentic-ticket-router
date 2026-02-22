@@ -4,7 +4,6 @@ Role objective: {agent_role_description}
 
 INPUTS:
 - History: {conversation_history}
-- Analysis: {analysis}
 - Latest Customer Message: {latest_customer_message}
 - Latest Assistant Message: {latest_assistant_message}
 - Knowledge: {relevant_articles}
@@ -22,7 +21,7 @@ DECISION RULES (STRICT):
      - at least one requested profile field identifier, and
      - at least one concrete target field value extractable from that same message
    - extract update values only from Latest Customer Message
-   - do not derive new update values from History/Analysis/Latest Assistant Message
+   - do not derive new update values from History/Latest Assistant Message
    - every non-null profile field in action_parameters must be a verbatim span from Latest Customer Message
    - action_parameters must contain at least one non-empty profile field value
    - clarifying_question = null

@@ -1,17 +1,13 @@
 package com.dsi.support.agenticrouter.service.routing;
 
 import com.dsi.support.agenticrouter.dto.RouterRequest;
-import com.dsi.support.agenticrouter.dto.TicketAnalysisRequest;
-import com.dsi.support.agenticrouter.dto.TicketAnalysisResult;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
 import com.dsi.support.agenticrouter.exception.DataNotFoundException;
 import com.dsi.support.agenticrouter.repository.SupportTicketRepository;
-import com.dsi.support.agenticrouter.service.analysis.TicketAnalysisService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.bsc.langgraph4j.GraphStateException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -26,7 +22,6 @@ public class RouterOrchestrator {
 
     private final RoutingExecutionCoordinator routingExecutionCoordinator;
     private final SupportTicketRepository supportTicketRepository;
-    private final TicketAnalysisService ticketAnalysisService;
     private final RoutingRequestFactory routingRequestFactory;
 
     @Async("ticketRoutingExecutor")
@@ -59,26 +54,8 @@ public class RouterOrchestrator {
             supportTicket.getStatus()
         );
 
-        TicketAnalysisRequest analysisRequest = buildAnalysisRequest(
-            supportTicket
-        );
-
-        TicketAnalysisResult analysisResult = ticketAnalysisService.analyzeTicket(
-            analysisRequest
-        );
-
-        log.debug(
-            "TicketRoute({}) SupportTicket(id:{},status:{}) Outcome(analysisCategory:{},analysisLength:{})",
-            OperationalLogContext.PHASE_DECISION,
-            supportTicket.getId(),
-            supportTicket.getStatus(),
-            analysisResult.getCategory(),
-            StringUtils.length(analysisResult.getAnalysis())
-        );
-
         RouterRequest routerRequest = buildRouterRequest(
-            supportTicket,
-            analysisResult
+            supportTicket
         );
 
         RoutingExecutionResult routingExecutionResult = routingExecutionCoordinator.execute(
@@ -97,19 +74,9 @@ public class RouterOrchestrator {
     }
 
     private RouterRequest buildRouterRequest(
-        SupportTicket supportTicket,
-        TicketAnalysisResult ticketAnalysisResult
-    ) {
-        return routingRequestFactory.buildRouterRequest(
-            supportTicket,
-            ticketAnalysisResult
-        );
-    }
-
-    private TicketAnalysisRequest buildAnalysisRequest(
         SupportTicket supportTicket
     ) {
-        return routingRequestFactory.buildAnalysisRequest(
+        return routingRequestFactory.buildRouterRequest(
             supportTicket
         );
     }

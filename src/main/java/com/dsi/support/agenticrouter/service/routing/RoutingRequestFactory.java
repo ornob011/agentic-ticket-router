@@ -3,6 +3,7 @@ package com.dsi.support.agenticrouter.service.routing;
 import com.dsi.support.agenticrouter.dto.*;
 import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.entity.TicketMessage;
+import com.dsi.support.agenticrouter.enums.TicketCategory;
 import com.dsi.support.agenticrouter.enums.VectorStoreMetadataKey;
 import com.dsi.support.agenticrouter.model.TicketAutonomousMetadata;
 import com.dsi.support.agenticrouter.repository.TicketMessageRepository;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
@@ -45,40 +47,8 @@ public class RoutingRequestFactory {
     private final CustomerContextEnrichmentService customerContextEnrichmentService;
     private final RoutingPatternMatcherService routingPatternMatcherService;
 
-    public TicketAnalysisRequest buildAnalysisRequest(
-        SupportTicket supportTicket
-    ) {
-        List<TicketMessage> ticketMessages = ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(
-            supportTicket.getId()
-        );
-
-        String conversationText = buildConversationText(
-            supportTicket,
-            ticketMessages
-        );
-
-        String analysisContent = String.format(
-            "Ticket Number: %s%n" +
-            "Subject: %s%n" +
-            "Customer: %s%n" +
-            "Customer Tier: %s%n%n" +
-            "Conversation:%n%s",
-            supportTicket.getFormattedTicketNo(),
-            supportTicket.getSubject(),
-            supportTicket.getCustomer().getFullName(),
-            supportTicket.getCustomer().getCustomerProfile().getCustomerTier().getCode(),
-            conversationText
-        );
-
-        return TicketAnalysisRequest.builder()
-                                    .ticketId(supportTicket.getId())
-                                    .content(analysisContent)
-                                    .build();
-    }
-
     public RouterRequest buildRouterRequest(
-        SupportTicket supportTicket,
-        TicketAnalysisResult ticketAnalysisResult
+        SupportTicket supportTicket
     ) {
         List<TicketMessage> messages = ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(
             supportTicket.getId()
@@ -124,7 +94,10 @@ public class RoutingRequestFactory {
 
         CompletableFuture<List<PatternHint>> patternsFuture = CompletableFuture.supplyAsync(
             () -> routingPatternMatcherService.findRelevantPatterns(
-                ticketAnalysisResult.getCategory(),
+                Objects.requireNonNullElse(
+                    supportTicket.getCurrentCategory(),
+                    TicketCategory.OTHER
+                ),
                 supportTicket.getSubject()
             )
         );
@@ -155,8 +128,6 @@ public class RoutingRequestFactory {
                             .conversationHistory(conversationHistory)
                             .latestCustomerMessage(latestCustomerMessage)
                             .latestAssistantMessage(latestAssistantMessage)
-                            .analysis(StringUtils.defaultString(ticketAnalysisResult.getAnalysis()))
-                            .suggestedCategory(ticketAnalysisResult.getCategory())
                             .previousClarifyingQuestion(lastClarifyingQuestion)
                             .relevantArticles(relevantArticles)
                             .relevantPatterns(relevantPatterns)
