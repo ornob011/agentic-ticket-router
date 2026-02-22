@@ -1,6 +1,5 @@
 package com.dsi.support.agenticrouter.dto;
 
-import com.dsi.support.agenticrouter.enums.TicketCategory;
 import lombok.Builder;
 import lombok.Data;
 
@@ -28,13 +27,11 @@ public class RouterRequest {
 
     private String latestAssistantMessage;
 
-    private String analysis;
-
-    private TicketCategory suggestedCategory;
-
     private String previousClarifyingQuestion;
 
     private List<ArticleSearchResult> relevantArticles;
+
+    private List<PatternHint> relevantPatterns;
 
     private Integer remainingActions;
 

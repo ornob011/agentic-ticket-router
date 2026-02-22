@@ -9,6 +9,8 @@ import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,7 +18,6 @@ import java.util.List;
 import java.util.Objects;
 
 @Service
-@Transactional
 @RequiredArgsConstructor
 @Slf4j
 public class ModelService {
@@ -40,6 +41,7 @@ public class ModelService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "activeModel", unless = "#result == null")
     public ModelRegistry getActiveModel() {
         ModelRegistry activeModel = requireSingleActiveModel();
 
@@ -67,6 +69,8 @@ public class ModelService {
         return models;
     }
 
+    @Transactional
+    @CacheEvict(value = "activeModel", allEntries = true)
     public void activateModel(
         String modelTag,
         Long activatorId

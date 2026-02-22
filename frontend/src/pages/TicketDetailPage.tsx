@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { useLoaderData, useNavigate, useRevalidator } from "react-router-dom";
+import { useLoaderData, useLocation, useNavigate, useRevalidator } from "react-router-dom";
 import type { TicketDetailLoaderData } from "@/router";
 import {
   useAddReplyMutation,
@@ -10,12 +10,14 @@ import {
   useAssignSelfMutation,
   usePeriodicRevalidation,
   useUpdateTicketStatusMutation,
+  useStreamingDraft,
 } from "@/lib/hooks";
 import { TicketDetailScreen } from "@/widgets/ticket-detail/ticket-detail-screen";
 
 export default function TicketDetailPage() {
   const data = useLoaderData<TicketDetailLoaderData>();
   const navigate = useNavigate();
+  const location = useLocation();
   const revalidator = useRevalidator();
 
   const [reply, setReply] = useState("");
@@ -23,8 +25,20 @@ export default function TicketDetailPage() {
   const [statusReason, setStatusReason] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [selectedAgentId, setSelectedAgentId] = useState("");
+  const [routingActivationSeq, setRoutingActivationSeq] = useState(0);
 
   usePeriodicRevalidation(revalidator);
+
+  const { draft: streamedDraft, isStreaming: isStreamingDraft, start: startStreaming } = useStreamingDraft(data.id);
+
+  useEffect(() => {
+    if (streamedDraft) setReply(streamedDraft);
+  }, [streamedDraft]);
+
+  const handleGenerateDraft = () => {
+    setReply("");
+    startStreaming();
+  };
 
   const replyMutation = useAddReplyMutation();
   const statusMutation = useUpdateTicketStatusMutation();
@@ -53,12 +67,29 @@ export default function TicketDetailPage() {
     setSelectedAgentId("");
   }, [data.assignedAgent?.id, data.permissions.canAssignOthers]);
 
+  useEffect(() => {
+    const state = location.state as { activateRoutingPanel?: boolean } | null;
+    if (!state?.activateRoutingPanel) {
+      return;
+    }
+
+    setRoutingActivationSeq((prev) => prev + 1);
+    void navigate(
+      location.pathname,
+      {
+        replace: true,
+        state: null,
+      }
+    );
+  }, [location.pathname, location.state, navigate]);
+
   const handleReplySubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!reply.trim() || replyMutation.isPending || !data.permissions.canReply) {
       return;
     }
 
+    setRoutingActivationSeq((prev) => prev + 1);
     await replyMutation.mutateAsync({
       ticketId: data.id,
       content: reply,
@@ -141,6 +172,9 @@ export default function TicketDetailPage() {
       isAssignAgentPending={assignAgentMutation.isPending}
       onUnassignAgent={handleUnassignAgent}
       isUnassignPending={releaseAgentMutation.isPending}
+      isStreamingDraft={isStreamingDraft}
+      onGenerateDraft={handleGenerateDraft}
+      routingActivationSeq={routingActivationSeq}
       onBack={() => navigate(-1)}
     />
   );

@@ -26,9 +26,6 @@ public class PromptService {
     @Value("classpath:/prompts/routing.st")
     private Resource routingPromptResource;
 
-    @Value("classpath:/prompts/analysis.st")
-    private Resource analysisPromptResource;
-
     @Value("classpath:/prompts/repair.st")
     private Resource repairPromptResource;
 
@@ -56,6 +53,12 @@ public class PromptService {
     @Value("classpath:/prompts/schemas/router_response.schema.json")
     private Resource routerResponseSchemaResource;
 
+    @Value("classpath:/prompts/ticket_reply_draft.st")
+    private Resource ticketReplyDraftPromptResource;
+
+    @Value("classpath:/prompts/ticket_reply_draft_system.st")
+    private Resource ticketReplyDraftSystemPromptResource;
+
     @PostConstruct
     void initializeModePromptMappings() {
         plannerPromptByMode.put(
@@ -82,10 +85,6 @@ public class PromptService {
 
     public Resource getRoutingPrompt() {
         return routingPromptResource;
-    }
-
-    public Resource getAnalysisPrompt() {
-        return analysisPromptResource;
     }
 
     public Resource getRepairPrompt() {
@@ -118,5 +117,13 @@ public class PromptService {
 
     public Resource getRouterResponseSchema() {
         return routerResponseSchemaResource;
+    }
+
+    public Resource getTicketReplyDraftPrompt() {
+        return ticketReplyDraftPromptResource;
+    }
+
+    public Resource getTicketReplyDraftSystemPrompt() {
+        return ticketReplyDraftSystemPromptResource;
     }
 }

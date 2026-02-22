@@ -38,7 +38,14 @@ export default function NewTicketPage() {
         content: content.trim(),
       });
       await revalidator.revalidate();
-      void navigate(appRoutes.tickets.detail(response.id));
+      void navigate(
+        appRoutes.tickets.detail(response.id),
+        {
+          state: {
+            activateRoutingPanel: true,
+          },
+        }
+      );
     } catch {
       setValidationError("Unable to submit ticket right now. Please try again.");
     }

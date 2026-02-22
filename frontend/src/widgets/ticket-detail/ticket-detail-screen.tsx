@@ -15,6 +15,7 @@ import { DateSeparator } from "@/components/ui/date-separator";
 import { DetailSection } from "@/components/ui/detail-section";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AgentSelectWithWorkload } from "@/components/ui/agent-select-with-workload";
+import { RoutingProgressPanel } from "@/components/ui/routing-progress-panel";
 import { FeedbackPanel } from "@/components/feedback/FeedbackPanel";
 import {
   ArrowLeft,
@@ -50,6 +51,9 @@ export type TicketDetailScreenProps = Readonly<{
   isAssignAgentPending: boolean;
   onUnassignAgent: () => Promise<void>;
   isUnassignPending: boolean;
+  isStreamingDraft: boolean;
+  onGenerateDraft: () => void;
+  routingActivationSeq: number;
   onBack: () => void;
 }>;
 
@@ -279,6 +283,9 @@ export function TicketDetailScreen({
   isAssignAgentPending,
   onUnassignAgent,
   isUnassignPending,
+  isStreamingDraft,
+  onGenerateDraft,
+  routingActivationSeq,
   onBack,
 }: TicketDetailScreenProps) {
   const [isUnassignDialogOpen, setIsUnassignDialogOpen] = useState(false);
@@ -288,6 +295,7 @@ export function TicketDetailScreen({
   const priorityLabel = data.priorityLabel || formatLabel(data.priority);
   const statusLabel = data.statusLabel || formatLabel(data.status);
   const canChangeStatus = data.permissions.canChangeStatus;
+  const canGenerateAiDraft = data.permissions.canChangeStatus && data.permissions.canReply;
   const statusOptions = data.permissions.allowedStatusTransitions;
   const latestRouting = data.routingHistory.length > 0 ? data.routingHistory[data.routingHistory.length - 1] : null;
   const canSubmitFeedback = data.permissions.canReply;
@@ -323,17 +331,60 @@ export function TicketDetailScreen({
               <ConversationPanel messages={data.messages} />
 
               <form onSubmit={(event) => void onReplySubmit(event)} className="space-y-3">
+                {canGenerateAiDraft ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-100 text-sky-700">
+                        <Sparkles className="h-3.5 w-3.5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-sky-900">AI Draft Composer</p>
+                        <p className="text-xs text-sky-700/80">Generate and refine your response before sending</p>
+                      </div>
+                    </div>
+                    {isStreamingDraft ? (
+                      <Badge variant="outline" className="border-sky-300 bg-sky-100 text-sky-700">
+                        <Sparkles className="mr-1 h-3 w-3 animate-pulse" />
+                        Generating
+                      </Badge>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 <Textarea
                   placeholder="Type your reply..."
                   value={reply}
                   onChange={(e) => onReplyChange(e.target.value)}
-                  rows={3}
-                  className="resize-none"
-                  disabled={!data.permissions.canReply}
+                  rows={canGenerateAiDraft ? 10 : 3}
+                  className={canGenerateAiDraft
+                    ? "min-h-[240px] resize-y border-sky-200 bg-sky-50/40 leading-relaxed"
+                    : "resize-none"}
+                  disabled={!data.permissions.canReply || isStreamingDraft}
                 />
-                <div className="flex justify-end">
+
+                {canGenerateAiDraft ? (
+                  <div className="flex items-center justify-end">
+                    <span className="text-xs text-sky-800/70">{reply.length} characters</span>
+                  </div>
+                ) : null}
+
+                <div className="flex items-center justify-between gap-2">
+                  {canGenerateAiDraft ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-sky-300 bg-white text-sky-800 hover:bg-sky-100"
+                      disabled={isStreamingDraft || !data.permissions.canReply}
+                      onClick={onGenerateDraft}
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      {isStreamingDraft ? "Generating..." : "Generate AI Draft"}
+                    </Button>
+                  ) : (
+                    <span />
+                  )}
                   <Button type="submit" disabled={!reply.trim() || isReplyPending || !data.permissions.canReply}>
-                    <Send className="h-4 w-4 mr-2" />
+                    <Send className="mr-2 h-4 w-4" />
                     {isReplyPending ? "Sending..." : "Send Reply"}
                   </Button>
                 </div>
@@ -457,6 +508,7 @@ export function TicketDetailScreen({
         </div>
 
         <div className="space-y-6">
+          <RoutingProgressPanel ticketId={data.id} activationSeq={routingActivationSeq} />
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Ticket Details</CardTitle>

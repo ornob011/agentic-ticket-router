@@ -21,7 +21,6 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 @Slf4j
 public class CategoryDetectionEventHandlerService {
 
@@ -32,6 +31,7 @@ public class CategoryDetectionEventHandlerService {
     private final AuditService auditService;
     private final MemoryContextService memoryContextService;
 
+    @Transactional
     public void handleCategoryDetection(
         CategoryDetectionEvent categoryDetectionEvent
     ) {

@@ -1,6 +1,7 @@
 package com.dsi.support.agenticrouter.service.agentruntime.planner;
 
 import com.dsi.support.agenticrouter.dto.ArticleSearchResult;
+import com.dsi.support.agenticrouter.dto.PatternHint;
 import com.dsi.support.agenticrouter.dto.RouterRequest;
 import com.dsi.support.agenticrouter.dto.RouterResponse;
 import com.dsi.support.agenticrouter.enums.*;
@@ -27,6 +28,15 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 @Slf4j
 public class AgentPlannerLlmClient {
+
+    private static final EnumPromptValues ENUM_PROMPT_VALUES = new EnumPromptValues(
+        buildEnumValues(TicketCategory.values()),
+        buildEnumValues(TicketPriority.values()),
+        buildEnumValues(TicketQueue.values()),
+        buildEnumValues(NextAction.values())
+    );
+
+    private static final String ROUTING_POLICY = buildRoutingPolicy();
 
     private final ChatModel chatModel;
     private final PromptService promptService;
@@ -67,13 +77,17 @@ public class AgentPlannerLlmClient {
             routerRequest.getLatestAssistantMessage()
         );
 
-        EnumPromptValues promptValues = enumPromptValues();
+        EnumPromptValues promptValues = ENUM_PROMPT_VALUES;
 
         String relevantArticles = formatRelevantArticles(
             routerRequest.getRelevantArticles()
         );
 
-        String routingPolicy = routingPolicy();
+        String relevantPatterns = formatRelevantPatterns(
+            routerRequest.getRelevantPatterns()
+        );
+
+        String routingPolicy = ROUTING_POLICY;
 
         String plannerRawJson = llmResponseTextExtractor.extractRequiredContent(
             llmPromptCaller.call(
@@ -90,10 +104,10 @@ public class AgentPlannerLlmClient {
                     .param("customer_tier", routerRequest.getCustomerTier())
                     .param("initial_message", routerRequest.getInitialMessage())
                     .param("conversation_history", routerRequest.getConversationHistory())
-                    .param("analysis", routerRequest.getAnalysis())
                     .param("latest_customer_message", latestCustomerMessage)
                     .param("latest_assistant_message", latestAssistantMessage)
                     .param("relevant_articles", relevantArticles)
+                    .param("relevant_patterns", relevantPatterns)
                     .param("routing_policy", routingPolicy)
                     .param("agent_role", actorRole.name())
                     .param("agent_role_description", actorRole.getDescription())
@@ -129,7 +143,7 @@ public class AgentPlannerLlmClient {
 
         String repairTemplateName = orchestrationMode.repairTemplateName();
 
-        EnumPromptValues promptValues = enumPromptValues();
+        EnumPromptValues promptValues = ENUM_PROMPT_VALUES;
 
         String normalizedPlannerRawJson = Objects.requireNonNullElse(
             plannerRawJson,
@@ -140,7 +154,7 @@ public class AgentPlannerLlmClient {
             validationError
         );
 
-        String routingPolicy = routingPolicy();
+        String routingPolicy = ROUTING_POLICY;
 
         String repairedJson = llmResponseTextExtractor.extractRequiredContent(
             llmPromptCaller.call(
@@ -204,6 +218,26 @@ public class AgentPlannerLlmClient {
         );
     }
 
+    private String formatRelevantPatterns(
+        List<PatternHint> patterns
+    ) {
+        if (CollectionUtils.isEmpty(patterns)) {
+            return "No historical patterns available.";
+        }
+
+        return "HISTORICAL PATTERNS (from human feedback on similar tickets):\n" +
+               patterns.stream()
+                       .map(patternHint -> String.format(
+                           "- Category: %s, Action: %s, Success rate: %.0f%% over %d samples",
+                           patternHint.category(),
+                           patternHint.successfulAction(),
+                           patternHint.successRate() * 100,
+                           patternHint.sampleCount()
+                       ))
+                       .collect(Collectors.joining("\n")) +
+               "\nUse these patterns to inform your decision, but prioritize current intent signals.";
+    }
+
     private String formatRelevantArticles(
         List<ArticleSearchResult> articles
     ) {
@@ -223,46 +257,23 @@ public class AgentPlannerLlmClient {
                        .collect(Collectors.joining("\n"));
     }
 
-    private EnumPromptValues enumPromptValues() {
-        return new EnumPromptValues(
-            enumValues(TicketCategory.values()),
-            enumValues(TicketPriority.values()),
-            enumValues(TicketQueue.values()),
-            enumValues(NextAction.values())
-        );
-    }
-
-    private String enumValues(
-        Enum<?>[] values
-    ) {
+    private static String buildEnumValues(Enum<?>[] values) {
         return Arrays.stream(values)
                      .map(Enum::name)
                      .collect(Collectors.joining(" | "));
     }
 
-    private String normalizeValidationError(
-        String validationError
-    ) {
-        if (StringUtils.isBlank(validationError)) {
-            return "none";
-        }
-
-        return validationError;
-    }
-
-    private String routingPolicy() {
+    private static String buildRoutingPolicy() {
         return Stream.of(TicketCategory.values())
                      .map(category -> String.format(
                          "- %s -> %s",
                          category.name(),
-                         queueForCategory(category).name()
+                         queueForCategoryStatic(category).name()
                      ))
                      .collect(Collectors.joining("\n"));
     }
 
-    private TicketQueue queueForCategory(
-        TicketCategory category
-    ) {
+    private static TicketQueue queueForCategoryStatic(TicketCategory category) {
         TicketCategory routingCategory = Objects.requireNonNullElse(
             category,
             TicketCategory.OTHER
@@ -276,6 +287,16 @@ public class AgentPlannerLlmClient {
             case ACCOUNT, PRICING, CANCEL -> TicketQueue.ACCOUNT_Q;
             default -> TicketQueue.GENERAL_Q;
         };
+    }
+
+    private String normalizeValidationError(
+        String validationError
+    ) {
+        if (StringUtils.isBlank(validationError)) {
+            return "none";
+        }
+
+        return validationError;
     }
 
     private record EnumPromptValues(

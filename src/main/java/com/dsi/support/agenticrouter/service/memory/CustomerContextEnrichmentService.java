@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -18,8 +19,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class CustomerContextEnrichmentService {
 
-    private static final int MAX_CONTEXT_MESSAGES = 10;
-    private static final int MAX_RECENT_TICKETS = 5;
+    private static final int MAX_CONTEXT_MESSAGES = 5;
+    private static final int MAX_RECENT_TICKETS = 3;
 
     private final SupportTicketRepository supportTicketRepository;
     private final MemoryContextService memoryContextService;
@@ -36,22 +37,26 @@ public class CustomerContextEnrichmentService {
             currentTicketId
         );
 
-        StringBuilder contextBuilder = new StringBuilder();
-
-        String memoryContext = buildMemoryContext(
-            customerId
+        CompletableFuture<String> memoryFuture = CompletableFuture.supplyAsync(
+            () -> buildMemoryContext(customerId)
         );
+
+        CompletableFuture<String> ticketFuture = CompletableFuture.supplyAsync(
+            () -> buildRecentTicketHistory(customerId, currentTicketId)
+        );
+
+        CompletableFuture.allOf(memoryFuture, ticketFuture).join();
+
+        String memoryContext = memoryFuture.join();
+        String ticketHistoryContext = ticketFuture.join();
+
+        StringBuilder contextBuilder = new StringBuilder();
 
         if (StringUtils.isNotBlank(memoryContext)) {
             contextBuilder.append("## Customer Conversation History\n");
             contextBuilder.append(memoryContext);
             contextBuilder.append("\n");
         }
-
-        String ticketHistoryContext = buildRecentTicketHistory(
-            customerId,
-            currentTicketId
-        );
 
         if (StringUtils.isNotBlank(ticketHistoryContext)) {
             contextBuilder.append("## Recent Resolved Tickets\n");

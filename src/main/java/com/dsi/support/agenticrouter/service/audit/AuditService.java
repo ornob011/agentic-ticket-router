@@ -69,6 +69,28 @@ public class AuditService {
                                            );
         }
 
+        recordEventWithEntities(eventType, supportTicket, performedBy, description, payload);
+    }
+
+    public void recordEventWithEntities(
+        AuditEventType eventType,
+        SupportTicket supportTicket,
+        AppUser performedBy,
+        String description,
+        JsonNode payload
+    ) {
+        log.debug(
+            "AuditEventRecordWithEntities({}) SupportTicket(id:{}) AuditEvent(type:{}) Actor(id:{})",
+            OperationalLogContext.PHASE_START,
+            supportTicket.getId(),
+            eventType,
+            Objects.nonNull(performedBy) ? performedBy.getId() : null
+        );
+
+        Objects.requireNonNull(eventType, "eventType");
+        Objects.requireNonNull(supportTicket, "supportTicket");
+        Objects.requireNonNull(description, "description");
+
         String correlationId = MDC.get("correlationId");
 
         AuditEvent auditEvent = AuditEvent.builder()
@@ -85,11 +107,11 @@ public class AuditService {
         log.info(
             "AuditEventRecord({}) SupportTicket(id:{}) AuditEvent(id:{},type:{},correlationId:{}) Actor(id:{})",
             OperationalLogContext.PHASE_COMPLETE,
-            ticketId,
+            supportTicket.getId(),
             auditEvent.getId(),
             eventType,
             correlationId,
-            performedById
+            Objects.nonNull(performedBy) ? performedBy.getId() : null
         );
     }
 
@@ -102,36 +124,6 @@ public class AuditService {
         return auditEventRepository.findTicketAuditTrailView(
             ticketId,
             AuditEventType.getCustomerVisible()
-        );
-    }
-
-    public void recordTicketAnalysis(
-        Long ticketId,
-        String section,
-        boolean success,
-        String errorMessage
-    ) {
-        Objects.requireNonNull(ticketId, "ticketId");
-        Objects.requireNonNull(section, "section");
-
-        AuditEventType eventType = AuditEventType.TICKET_ANALYSIS_FAILED;
-
-        if (success) {
-            eventType = AuditEventType.TICKET_ANALYSIS_EXECUTED;
-        }
-
-        String description = String.format("Ticket section '%s' analysis failed: %s", section, errorMessage);
-
-        if (success) {
-            description = String.format("Ticket section '%s' analyzed successfully", section);
-        }
-
-        recordEvent(
-            eventType,
-            ticketId,
-            null,
-            description,
-            null
         );
     }
 

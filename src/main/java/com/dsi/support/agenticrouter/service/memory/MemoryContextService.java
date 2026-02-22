@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -22,10 +23,12 @@ import java.util.Objects;
 public class MemoryContextService {
 
     private static final String CUSTOMER_MEMORY_TICKET_PREFIX = "[Ticket %s] %s";
+    private static final int MAX_CACHE_SIZE = 1000;
 
     private final ChatMemory ticketHistoryChatMemory;
     private final ChatMemory customerContextChatMemory;
     private final ChatMemory agentPatternChatMemory;
+    private final ConcurrentHashMap<String, Integer> recentMessageHashes = new ConcurrentHashMap<>();
 
     public void appendCustomerMessage(
         SupportTicket ticket,
@@ -305,32 +308,62 @@ public class MemoryContextService {
         MessageType messageType,
         String content
     ) {
+        String cacheKey = conversationId + ":" + messageType.name();
+        int contentHash = StringUtils.isNotBlank(content) ? content.hashCode() : 0;
+
+        Integer lastHash = recentMessageHashes.get(cacheKey);
+        if (Objects.nonNull(lastHash) && lastHash == contentHash) {
+            log.debug(
+                "MemoryContextAppend({}) conversationId:{} messageType:{} Outcome(skipped:{},source:{})",
+                OperationalLogContext.PHASE_SKIP,
+                conversationId,
+                messageType,
+                true,
+                "local_cache"
+            );
+            return true;
+        }
+
         List<Message> existingMessages = chatMemory.get(
             conversationId
         );
 
         if (existingMessages.isEmpty()) {
+            recentMessageHashes.put(cacheKey, contentHash);
+            trimCacheIfNeeded();
             return false;
         }
 
-        Message lastMessage = existingMessages.get(
-            existingMessages.size() - 1
+        Message lastMessage = existingMessages.getLast(
         );
 
         boolean shouldSkip = lastMessage.getMessageType() == messageType
-                             && StringUtils.equals(lastMessage.getText(), content);
+                             && StringUtils.normalizeSpace(lastMessage.getText())
+                                           .equals(
+                                               StringUtils.normalizeSpace(content)
+                                           );
 
         if (shouldSkip) {
             log.debug(
-                "MemoryContextAppend({}) conversationId:{} messageType:{} Outcome(skipped:{})",
+                "MemoryContextAppend({}) conversationId:{} messageType:{} Outcome(skipped:{},source:{})",
                 OperationalLogContext.PHASE_SKIP,
                 conversationId,
                 messageType,
-                true
+                true,
+                "db_check"
             );
+        } else {
+            recentMessageHashes.put(cacheKey, contentHash);
+            trimCacheIfNeeded();
         }
 
         return shouldSkip;
+    }
+
+    private void trimCacheIfNeeded() {
+        if (recentMessageHashes.size() > MAX_CACHE_SIZE) {
+            recentMessageHashes.clear();
+        }
     }
 
     private String formatCustomerMemoryMessage(

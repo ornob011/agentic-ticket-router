@@ -11,13 +11,9 @@ import com.dsi.support.agenticrouter.repository.RoutingPatternRepository;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -25,17 +21,9 @@ import java.util.Optional;
 @Slf4j
 public class PatternLearningService {
 
-    private static final int MIN_KEYWORD_LENGTH = 4;
-    private static final int MAX_KEYWORDS_PER_PATTERN = 10;
-    private static final String[] STOP_WORDS = {
-        "the", "and", "for", "are", "but", "not", "you", "all", "can", "had",
-        "her", "was", "one", "our", "out", "has", "have", "been", "will", "your",
-        "this", "that", "with", "they", "from", "what", "which", "their", "there",
-        "would", "about", "could", "should", "when", "where", "while"
-    };
-
     private final ResolutionFeedbackRepository feedbackRepository;
     private final RoutingPatternRepository patternRepository;
+    private final PatternKeywordExtractor patternKeywordExtractor;
 
     @Transactional
     public void learnFromFeedback(Long feedbackId) {
@@ -264,38 +252,14 @@ public class PatternLearningService {
         TicketCategory category,
         NextAction action
     ) {
-        List<String> keywords = extractKeywords(ticket.getSubject());
-
         return RoutingPattern.builder()
                              .category(category)
-                             .keywords(keywords)
+                             .keywords(patternKeywordExtractor.extractKeywords(ticket.getSubject()))
                              .successfulAction(action)
                              .successCount(1)
                              .failureCount(0)
                              .confidenceBoost(0.1)
                              .active(true)
                              .build();
-    }
-
-    private List<String> extractKeywords(String text) {
-        if (StringUtils.isBlank(text)) {
-            return new ArrayList<>();
-        }
-
-        String normalizedText = text.toLowerCase()
-                                    .replaceAll("[^a-z0-9\\s]", " ")
-                                    .replaceAll("\\s+", " ")
-                                    .trim();
-
-        return Arrays.stream(normalizedText.split(" "))
-                     .filter(word -> word.length() >= MIN_KEYWORD_LENGTH)
-                     .filter(word -> !isStopWord(word))
-                     .distinct()
-                     .limit(MAX_KEYWORDS_PER_PATTERN)
-                     .toList();
-    }
-
-    private boolean isStopWord(String word) {
-        return Arrays.asList(STOP_WORDS).contains(word);
     }
 }

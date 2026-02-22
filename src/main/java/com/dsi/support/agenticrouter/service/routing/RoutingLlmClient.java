@@ -46,16 +46,14 @@ public class RoutingLlmClient implements RoutingModelClient {
         );
 
         log.debug(
-            "RoutingModelCall({}) RouterRequest(ticketId:{},ticketNo:{}) Outcome(subjectLength:{},conversationLength:{},analysisLength:{},subjectTokensEst:{},conversationTokensEst:{},analysisTokensEst:{},relevantArticleCount:{})",
+            "RoutingModelCall({}) RouterRequest(ticketId:{},ticketNo:{}) Outcome(subjectLength:{},conversationLength:{},subjectTokensEst:{},conversationTokensEst:{},relevantArticleCount:{})",
             OperationalLogContext.PHASE_START,
             routerRequest.getTicketId(),
             routerRequest.getTicketNo(),
             StringUtils.length(routerRequest.getSubject()),
             StringUtils.length(routerRequest.getConversationHistory()),
-            StringUtils.length(routerRequest.getAnalysis()),
             tokenCountService.countTokens(routerRequest.getSubject()),
             tokenCountService.countTokens(routerRequest.getConversationHistory()),
-            tokenCountService.countTokens(routerRequest.getAnalysis()),
             CollectionUtils.size(routerRequest.getRelevantArticles())
         );
 
@@ -88,14 +86,12 @@ public class RoutingLlmClient implements RoutingModelClient {
                     .param("priority", priorityValues)
                     .param("queue", queueValues)
                     .param("next_action", nextActionValues)
-                    .param("suggested_category", Objects.requireNonNullElse(routerRequest.getSuggestedCategory(), "None"))
                     .param("ticket_no", routerRequest.getTicketNo())
                     .param("subject", routerRequest.getSubject())
                     .param("customer_name", routerRequest.getCustomerName())
                     .param("customer_tier", routerRequest.getCustomerTier())
                     .param("initial_message", routerRequest.getInitialMessage())
                     .param("conversation_history", routerRequest.getConversationHistory())
-                    .param("analysis", routerRequest.getAnalysis())
                     .param("latest_customer_message", latestCustomerMessage)
                     .param("latest_assistant_message", latestAssistantMessage)
                     .param("previous_clarifying_question",

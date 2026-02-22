@@ -19,12 +19,6 @@ public final class DashboardComposerCatalog {
     public DashboardComposerCatalog(
         List<RoleDashboardComposer> discoveredComposers
     ) {
-        log.debug(
-            "DashboardComposerCatalogBuild({}) Outcome(discoveredCount:{})",
-            OperationalLogContext.PHASE_START,
-            discoveredComposers.size()
-        );
-
         EnumMap<UserRole, RoleDashboardComposer> composerEnumMap = new EnumMap<>(UserRole.class);
 
         for (RoleDashboardComposer roleDashboardComposer : discoveredComposers) {
@@ -48,12 +42,6 @@ public final class DashboardComposerCatalog {
         }
 
         this.composerByRole = Map.copyOf(composerEnumMap);
-
-        log.info(
-            "DashboardComposerCatalogBuild({}) Outcome(mappedRoles:{})",
-            OperationalLogContext.PHASE_COMPLETE,
-            composerByRole.keySet()
-        );
     }
 
     public RoleDashboardComposer composerSupporting(
