@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Loader2, CheckCircle2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { endpoints } from "@/lib/endpoints";
+import { SSE_EVENT_NAME, SSE_EVENT_TYPE, type SseEventEnvelope } from "@/lib/sse-contract";
 
 type AgentProgressEvent = {
   ticketId: number;
@@ -26,7 +27,36 @@ const NODE_LABELS: Record<AgentProgressEvent["node"], string> = {
   TOOL_EXECUTION: "Tool Execution",
 };
 
-export function RoutingProgressPanel({ ticketId }: { ticketId: number }) {
+function resolveStepMessage(message: string): string {
+  return message;
+}
+
+function resolveConnectionLabel(
+  isComplete: boolean,
+  connectionState: "connecting" | "connected" | "reconnecting"
+): string {
+  if (isComplete) {
+    return "Routing Complete";
+  }
+
+  if (connectionState === "connected") {
+    return "Routing Stream Active";
+  }
+
+  if (connectionState === "reconnecting") {
+    return "Reconnecting Updates...";
+  }
+
+  return "Connecting Updates...";
+}
+
+export function RoutingProgressPanel({
+  ticketId,
+  activationSeq,
+}: {
+  ticketId: number;
+  activationSeq: number;
+}) {
   const [steps, setSteps] = useState<StepEntry[]>([]);
   const [isComplete, setIsComplete] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -39,12 +69,26 @@ export function RoutingProgressPanel({ ticketId }: { ticketId: number }) {
       setConnectionState("connected");
     };
 
-    es.addEventListener("routing-connected", () => {
+    es.addEventListener(SSE_EVENT_NAME.CONNECTED, () => {
       setConnectionState("connected");
     });
 
-    es.addEventListener("agent-progress", (e) => {
-      const event = JSON.parse(e.data) as AgentProgressEvent;
+    es.addEventListener(SSE_EVENT_NAME.HEARTBEAT, () => {
+      setConnectionState("connected");
+    });
+
+    es.addEventListener(SSE_EVENT_NAME.EVENT, (e) => {
+      const envelope = JSON.parse(e.data) as SseEventEnvelope<AgentProgressEvent>;
+      if (envelope.eventType !== SSE_EVENT_TYPE.PROGRESS) {
+        return;
+      }
+
+      const event = envelope.payload;
+      if (!event) {
+        return;
+      }
+
+      const message = resolveStepMessage(event.message);
       setVisible(true);
       setConnectionState("connected");
       if (event.node === "PLAN" && event.status === "STARTED") {
@@ -52,11 +96,11 @@ export function RoutingProgressPanel({ ticketId }: { ticketId: number }) {
       }
       setSteps((prev) => {
         if (event.node === "PLAN" && event.status === "STARTED") {
-          return [{ node: event.node, status: event.status, message: event.message }];
+          return [{ node: event.node, status: event.status, message }];
         }
 
         const existing = prev.findIndex((s) => s.node === event.node);
-        const entry: StepEntry = { node: event.node, status: event.status, message: event.message };
+        const entry: StepEntry = { node: event.node, status: event.status, message };
         if (existing >= 0) {
           const updated = [...prev];
           updated[existing] = entry;
@@ -66,10 +110,14 @@ export function RoutingProgressPanel({ ticketId }: { ticketId: number }) {
       });
     });
 
-    es.addEventListener("routing-complete", () => {
+    es.addEventListener(SSE_EVENT_NAME.COMPLETE, () => {
       setVisible(true);
       setIsComplete(true);
       setTimeout(() => setVisible(false), 3000);
+    });
+
+    es.addEventListener(SSE_EVENT_NAME.ERROR, () => {
+      setConnectionState("reconnecting");
     });
 
     es.onerror = () => {
@@ -81,9 +129,23 @@ export function RoutingProgressPanel({ ticketId }: { ticketId: number }) {
     };
   }, [ticketId]);
 
-  if (!visible) return null;
+  useEffect(() => {
+    if (activationSeq <= 0) {
+      return;
+    }
+    setVisible(true);
+    setIsComplete(false);
+    setConnectionState("connecting");
+    setSteps([]);
+  }, [activationSeq]);
 
-  const stepsByNode = Object.fromEntries(steps.map((s) => [s.node, s])) as Partial<Record<AgentProgressEvent["node"], StepEntry>>;
+  const stepsByNode = useMemo(
+    () => Object.fromEntries(steps.map((s) => [s.node, s])) as Partial<Record<AgentProgressEvent["node"], StepEntry>>,
+    [steps]
+  );
+  const connectionLabel = resolveConnectionLabel(isComplete, connectionState);
+
+  if (!visible) return null;
 
   return (
     <Card>
@@ -94,15 +156,10 @@ export function RoutingProgressPanel({ ticketId }: { ticketId: number }) {
           ) : (
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
           )}
-          {isComplete
-            ? "Routing Complete"
-            : connectionState === "connected"
-              ? "AI Routing in Progress\u2026"
-              : connectionState === "reconnecting"
-                ? "Reconnecting stream\u2026"
-                : "Connecting stream\u2026"}
-          <Badge variant="outline" className="ml-auto text-xs">
-            AI
+          {connectionLabel}
+          <Badge variant="info" className="ml-auto gap-1 text-xs">
+            <Sparkles className="h-3 w-3" />
+            AI Assisted
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -122,9 +179,7 @@ export function RoutingProgressPanel({ ticketId }: { ticketId: number }) {
               </span>
               <div className="min-w-0">
                 <span className="font-medium">{NODE_LABELS[node]}</span>
-                {step?.message && (
-                  <p className="text-xs text-muted-foreground truncate">{step.message}</p>
-                )}
+                {step?.message && <p className="text-xs text-muted-foreground truncate">{step.message}</p>}
               </div>
             </div>
           );

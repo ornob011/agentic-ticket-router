@@ -11,13 +11,15 @@ import com.dsi.support.agenticrouter.service.agentruntime.planner.AgentPlannerDe
 import com.dsi.support.agenticrouter.service.agentruntime.safety.AgentSafetyDecision;
 import com.dsi.support.agenticrouter.service.agentruntime.safety.AgentSafetyEvaluator;
 import com.dsi.support.agenticrouter.service.agentruntime.streaming.AgentProgressEvent;
-import com.dsi.support.agenticrouter.service.agentruntime.streaming.SseEmitterRegistry;
 import com.dsi.support.agenticrouter.service.agentruntime.tooling.AgentToolExecutionResult;
 import com.dsi.support.agenticrouter.service.agentruntime.tooling.AgentToolExecutor;
 import com.dsi.support.agenticrouter.service.agentruntime.trace.AgentPlannerTracePayload;
 import com.dsi.support.agenticrouter.service.agentruntime.trace.AgentRuntimeRunFinishCommand;
 import com.dsi.support.agenticrouter.service.agentruntime.trace.AgentRuntimeStepTraceCommand;
 import com.dsi.support.agenticrouter.service.agentruntime.trace.AgentRuntimeTraceService;
+import com.dsi.support.agenticrouter.service.sse.SseChannel;
+import com.dsi.support.agenticrouter.service.sse.SseEngine;
+import com.dsi.support.agenticrouter.service.sse.SseEventType;
 import com.dsi.support.agenticrouter.service.ticket.TicketRoutingPersistenceService;
 import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +50,7 @@ public class AgentRuntimeOrchestrator {
     private final AgentRuntimeTraceService agentRuntimeTraceService;
     private final TicketRoutingPersistenceService ticketRoutingPersistenceService;
     private final AgentOrchestrationModeResolver agentOrchestrationModeResolver;
-    private final SseEmitterRegistry sseEmitterRegistry;
+    private final SseEngine sseEngine;
 
     public RouterResponse execute(
         SupportTicket supportTicket,
@@ -224,8 +226,10 @@ public class AgentRuntimeOrchestrator {
     ) {
         long startedAt = System.currentTimeMillis();
 
-        sseEmitterRegistry.emit(
-            supportTicket.getId(),
+        sseEngine.publish(
+            SseChannel.ROUTING_PROGRESS,
+            String.valueOf(supportTicket.getId()),
+            SseEventType.PROGRESS,
             AgentProgressEvent.started(supportTicket.getId(), AgentRuntimeGraphNode.PLAN, "Planning routing decision")
         );
 
@@ -305,8 +309,10 @@ public class AgentRuntimeOrchestrator {
             )
         );
 
-        sseEmitterRegistry.emit(
-            supportTicket.getId(),
+        sseEngine.publish(
+            SseChannel.ROUTING_PROGRESS,
+            String.valueOf(supportTicket.getId()),
+            SseEventType.PROGRESS,
             AgentProgressEvent.completed(supportTicket.getId(), AgentRuntimeGraphNode.PLAN, "Plan completed")
         );
 
@@ -436,8 +442,10 @@ public class AgentRuntimeOrchestrator {
     ) {
         long startedAt = System.currentTimeMillis();
 
-        sseEmitterRegistry.emit(
-            supportTicket.getId(),
+        sseEngine.publish(
+            SseChannel.ROUTING_PROGRESS,
+            String.valueOf(supportTicket.getId()),
+            SseEventType.PROGRESS,
             AgentProgressEvent.started(supportTicket.getId(), AgentRuntimeGraphNode.SAFETY, "Evaluating safety constraints")
         );
 
@@ -499,8 +507,10 @@ public class AgentRuntimeOrchestrator {
             )
         );
 
-        sseEmitterRegistry.emit(
-            supportTicket.getId(),
+        sseEngine.publish(
+            SseChannel.ROUTING_PROGRESS,
+            String.valueOf(supportTicket.getId()),
+            SseEventType.PROGRESS,
             AgentProgressEvent.completed(supportTicket.getId(), AgentRuntimeGraphNode.SAFETY, "Safety evaluation complete")
         );
 
@@ -517,8 +527,10 @@ public class AgentRuntimeOrchestrator {
     ) throws BindException {
         long startedAt = System.currentTimeMillis();
 
-        sseEmitterRegistry.emit(
-            supportTicket.getId(),
+        sseEngine.publish(
+            SseChannel.ROUTING_PROGRESS,
+            String.valueOf(supportTicket.getId()),
+            SseEventType.PROGRESS,
             AgentProgressEvent.started(supportTicket.getId(), AgentRuntimeGraphNode.TOOL_EXECUTION, "Executing routing action")
         );
 
@@ -574,8 +586,10 @@ public class AgentRuntimeOrchestrator {
             )
         );
 
-        sseEmitterRegistry.emit(
-            supportTicket.getId(),
+        sseEngine.publish(
+            SseChannel.ROUTING_PROGRESS,
+            String.valueOf(supportTicket.getId()),
+            SseEventType.PROGRESS,
             AgentProgressEvent.completed(supportTicket.getId(), AgentRuntimeGraphNode.TOOL_EXECUTION, "Tool execution complete")
         );
 
@@ -663,7 +677,15 @@ public class AgentRuntimeOrchestrator {
     private AgentRuntimeStateUpdate runTerminateNode(
         AgentGraphState agentGraphState
     ) {
-        sseEmitterRegistry.complete(agentGraphState.getTicketId());
+        sseEngine.complete(
+            SseChannel.ROUTING_PROGRESS,
+            String.valueOf(agentGraphState.getTicketId()),
+            AgentProgressEvent.completed(
+                agentGraphState.getTicketId(),
+                AgentRuntimeGraphNode.TOOL_EXECUTION,
+                "Routing execution complete"
+            )
+        );
 
         agentRuntimeTraceService.recordStep(
             new AgentRuntimeStepTraceCommand(

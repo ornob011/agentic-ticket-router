@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
@@ -461,6 +462,33 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 
         return ResponseEntity.status(ErrorCode.ENDPOINT_NOT_FOUND.getStatus())
                              .body(problemDetail);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleAsyncRequestTimeoutException(
+        @NonNull AsyncRequestTimeoutException exception,
+        @NonNull HttpHeaders headers,
+        @NonNull HttpStatusCode status,
+        @NonNull WebRequest request
+    ) {
+        String requestUri = resolveRequestUri(request);
+        boolean isRoutingStreamRequest = requestUri.contains("/routing/stream");
+
+        if (isRoutingStreamRequest) {
+            log.debug(
+                "RestExceptionHandler({}) HttpRequest(uri:{}) Outcome(async_timeout_ignored)",
+                OperationalLogContext.PHASE_COMPLETE,
+                requestUri
+            );
+            return ResponseEntity.status(status).build();
+        }
+
+        return super.handleAsyncRequestTimeoutException(
+            exception,
+            headers,
+            status,
+            request
+        );
     }
 
     @Override

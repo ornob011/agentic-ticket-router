@@ -7,7 +7,8 @@ import com.dsi.support.agenticrouter.entity.SupportTicket;
 import com.dsi.support.agenticrouter.enums.TicketQueryScope;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
-import com.dsi.support.agenticrouter.service.agentruntime.streaming.SseEmitterRegistry;
+import com.dsi.support.agenticrouter.service.sse.SseChannel;
+import com.dsi.support.agenticrouter.service.sse.SseEngine;
 import com.dsi.support.agenticrouter.service.ticket.TicketAssignmentCommandService;
 import com.dsi.support.agenticrouter.service.ticket.TicketLifecycleCommandService;
 import com.dsi.support.agenticrouter.service.ticket.TicketQueryService;
@@ -32,7 +33,7 @@ public class TicketApiController {
     private final TicketLifecycleCommandService ticketLifecycleCommandService;
     private final TicketAssignmentCommandService ticketAssignmentCommandService;
     private final TicketQueryService ticketQueryService;
-    private final SseEmitterRegistry sseEmitterRegistry;
+    private final SseEngine sseEngine;
 
     @GetMapping
     @PreAuthorize("@ticketAuthorizationService.canAccessQueueScope(#scope,#queue)")
@@ -189,7 +190,11 @@ public class TicketApiController {
             OperationalLogContext.PHASE_START,
             ticketId
         );
-        return sseEmitterRegistry.register(ticketId);
+
+        return sseEngine.subscribe(
+            SseChannel.ROUTING_PROGRESS,
+            ticketId
+        );
     }
 
 }

@@ -219,12 +219,12 @@ public class AgentPlannerLlmClient {
 
         return "HISTORICAL PATTERNS (from human feedback on similar tickets):\n" +
                patterns.stream()
-                       .map(p -> String.format(
+                       .map(patternHint -> String.format(
                            "- Category: %s, Action: %s, Success rate: %.0f%% over %d samples",
-                           p.category(),
-                           p.successfulAction(),
-                           p.successRate() * 100,
-                           p.sampleCount()
+                           patternHint.category(),
+                           patternHint.successfulAction(),
+                           patternHint.successRate() * 100,
+                           patternHint.sampleCount()
                        ))
                        .collect(Collectors.joining("\n")) +
                "\nUse these patterns to inform your decision, but prioritize current intent signals.";

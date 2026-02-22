@@ -53,6 +53,7 @@ export type TicketDetailScreenProps = Readonly<{
   isUnassignPending: boolean;
   isStreamingDraft: boolean;
   onGenerateDraft: () => void;
+  routingActivationSeq: number;
   onBack: () => void;
 }>;
 
@@ -284,6 +285,7 @@ export function TicketDetailScreen({
   isUnassignPending,
   isStreamingDraft,
   onGenerateDraft,
+  routingActivationSeq,
   onBack,
 }: TicketDetailScreenProps) {
   const [isUnassignDialogOpen, setIsUnassignDialogOpen] = useState(false);
@@ -506,7 +508,7 @@ export function TicketDetailScreen({
         </div>
 
         <div className="space-y-6">
-          <RoutingProgressPanel ticketId={data.id} />
+          <RoutingProgressPanel ticketId={data.id} activationSeq={routingActivationSeq} />
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Ticket Details</CardTitle>
