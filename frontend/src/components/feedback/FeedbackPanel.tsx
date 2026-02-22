@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Star, AlertTriangle } from "lucide-react";
+import { Star, AlertTriangle, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getMe } from "@/app/auth";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useSubmitRatingMutation, useSubmitCorrectionMutation, useTicketFeedback } from "@/lib/hooks";
@@ -15,12 +14,9 @@ type FeedbackPanelProps = {
   onFeedbackSubmitted?: () => void;
 };
 
-const feedbackTypeConfig: Record<"RATING" | "CORRECTION", { label: string; icon: typeof Star; color: string }> = {
-  RATING: { label: "Rate", icon: Star, color: "text-yellow-500" },
-  CORRECTION: { label: "Correct", icon: AlertTriangle, color: "text-orange-500" },
-};
+const RATING_LABELS = ["", "Poor", "Fair", "Good", "Very Good", "Excellent"];
 
-export function FeedbackPanel({
+function FeedbackPanel({
   ticketId,
   originalCategory,
   originalAction,
@@ -28,6 +24,7 @@ export function FeedbackPanel({
 }: FeedbackPanelProps) {
   const [activeType, setActiveType] = useState<FeedbackType | null>(null);
   const [rating, setRating] = useState<number>(0);
+  const [hoveredRating, setHoveredRating] = useState<number>(0);
   const [notes, setNotes] = useState<string>("");
   const [showCorrectionForm, setShowCorrectionForm] = useState(false);
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: getMe });
@@ -88,47 +85,54 @@ export function FeedbackPanel({
     );
   };
 
-  return (
-    <div className="rounded-lg border bg-card p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h4 className="text-sm font-medium text-foreground">
-          AI Decision Feedback
-        </h4>
-        <Badge variant="info" className="text-xs">
-          Help improve routing
-        </Badge>
-      </div>
+  const displayRating = hoveredRating || rating;
 
+  return (
+    <div className="space-y-4">
       {!activeType && !showCorrectionForm && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {latestMyRating?.rating ? (
-            <p className="text-xs text-muted-foreground">
-              Your rating: {latestMyRating.rating}/5
-            </p>
+            <div className="inline-flex items-center gap-2 rounded-md bg-primary/10 px-3 py-1.5">
+              <div className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`h-3.5 w-3.5 ${
+                      star <= (latestMyRating.rating ?? 0)
+                        ? "fill-primary text-primary"
+                        : "text-primary/30"
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="text-sm font-medium text-primary">
+                Your rating: {latestMyRating.rating}/5
+              </span>
+            </div>
           ) : null}
           <div className="flex flex-wrap gap-2">
-            {availableFeedbackTypes.map((type) => {
-              const config = feedbackTypeConfig[type];
-              const Icon = config.icon;
-              return (
-                <Button
-                  key={type}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (type === "RATING") {
-                      setActiveType("RATING");
-                    } else {
-                      setShowCorrectionForm(true);
-                    }
-                  }}
-                  className="flex items-center gap-1"
-                >
-                  <Icon className={`h-4 w-4 ${config.color}`} />
-                  {config.label}
-                </Button>
-              );
-            })}
+            {availableFeedbackTypes.map((type) => (
+              <Button
+                key={type}
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (type === "RATING") {
+                    setActiveType("RATING");
+                  } else {
+                    setShowCorrectionForm(true);
+                  }
+                }}
+                className="flex items-center gap-1.5 bg-primary/5 hover:bg-primary/10 border-primary/20 hover:border-primary/30"
+              >
+                {type === "RATING" ? (
+                  <Star className="h-4 w-4 text-primary" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 text-primary" />
+                )}
+                {type === "RATING" ? "Rate" : "Correct"}
+              </Button>
+            ))}
           </div>
         </div>
       )}
@@ -140,27 +144,37 @@ export function FeedbackPanel({
               <button
                 key={star}
                 onClick={() => setRating(star)}
+                onMouseEnter={() => setHoveredRating(star)}
+                onMouseLeave={() => setHoveredRating(0)}
                 className="rounded-sm p-1 transition-transform hover:scale-110"
               >
                 <Star
-                  className={`h-6 w-6 ${
-                    star <= rating
-                      ? "fill-yellow-400 text-yellow-400"
-                      : "text-muted-foreground/40"
+                  className={`h-6 w-6 transition-colors ${
+                    star <= displayRating
+                      ? "fill-primary text-primary"
+                      : "text-primary/30 hover:text-primary/50"
                   }`}
                 />
               </button>
             ))}
-            <span className="ml-2 text-sm text-muted-foreground">
-              {rating > 0 ? `${rating}/5` : "Select rating"}
-            </span>
+            <div className="ml-3">
+              {rating > 0 ? (
+                <span className="text-sm font-medium text-primary">
+                  {rating}/5 - {RATING_LABELS[rating]}
+                </span>
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  Click to rate
+                </span>
+              )}
+            </div>
           </div>
           <Textarea
             placeholder="Optional notes about this rating..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="text-sm"
+            className="text-sm resize-none"
           />
           <div className="flex gap-2">
             <Button
@@ -168,6 +182,7 @@ export function FeedbackPanel({
               onClick={handleRatingSubmit}
               disabled={rating === 0 || ratingMutation.isPending}
             >
+              {ratingMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Submit Rating
             </Button>
             <Button
@@ -176,6 +191,7 @@ export function FeedbackPanel({
               onClick={() => {
                 setActiveType(null);
                 setRating(0);
+                setHoveredRating(0);
                 setNotes("");
               }}
             >
@@ -187,15 +203,17 @@ export function FeedbackPanel({
 
       {showCorrectionForm && (
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Mark this ticket for human review if the AI decision was incorrect.
-          </p>
+          <div className="rounded-md bg-primary/10 px-3 py-2">
+            <p className="text-sm text-primary">
+              Mark this ticket for human review if the AI decision was incorrect.
+            </p>
+          </div>
           <Textarea
             placeholder="Explain why this decision needs correction..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="text-sm"
+            className="text-sm resize-none"
           />
           <div className="flex gap-2">
             <Button
@@ -203,6 +221,7 @@ export function FeedbackPanel({
               onClick={handleCorrectionSubmit}
               disabled={correctionMutation.isPending}
             >
+              {correctionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Submit Correction
             </Button>
             <Button
@@ -221,3 +240,5 @@ export function FeedbackPanel({
     </div>
   );
 }
+
+export { FeedbackPanel };
