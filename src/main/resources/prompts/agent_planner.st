@@ -34,6 +34,18 @@ DECISION RULES (STRICT):
    - if relevant article exists: USE_KNOWLEDGE_ARTICLE with positive article_id
    - otherwise: ASSIGN_QUEUE with null draft reply
 6) For unclear requests: ASK_CLARIFYING with specific clarifying_question.
+7) CONTEXT-COLLECTION GATE (MUST RUN EARLY):
+   - If the latest customer message reports a problem and actionable context is insufficient, force:
+     - next_action = ASK_CLARIFYING
+     - queue = GENERAL_Q unless a more specific queue is clearly justified
+     - priority = MEDIUM unless explicit high-risk signals are present, then priority = HIGH
+   - Treat context as insufficient when fewer than 3 of the following are known:
+     - execution environment/context,
+     - concrete observed behavior,
+     - timing/reproducibility,
+     - recent change/trigger,
+     - concrete evidence (error output, logs, or reproducible steps).
+   - When this gate is active, do not select AUTO_REPLY or USE_KNOWLEDGE_ARTICLE.
 
 INTENT CLASSIFICATION GATE (MUST RUN BEFORE next_action):
 - Compute update_intent = true only if all are present in Latest Customer Message:
@@ -44,6 +56,8 @@ INTENT CLASSIFICATION GATE (MUST RUN BEFORE next_action):
 - If update_intent is true, next_action must be UPDATE_CUSTOMER_PROFILE.
 - If recap_or_explain_intent is true, next_action must be AUTO_REPLY.
 - recap_or_explain_intent has priority over any inferred no-change update path.
+- Context-collection gate precedence:
+  - If context is insufficient, this gate overrides recap_or_explain_intent and forces ASK_CLARIFYING.
 
 DISAMBIGUATION RULE (HARD):
 - If Latest Customer Message includes a new explicit profile update command with a concrete target value, next_action must be UPDATE_CUSTOMER_PROFILE.
@@ -63,6 +77,7 @@ SAFETY RULES:
 
 ACTION CONTRACTS:
 - ASK_CLARIFYING => clarifying_question non-null and draft_reply null
+- Context-gated ASK_CLARIFYING => clarifying_question must be a numbered 3-5 question checklist focused on missing details and include one risk-check line when risk is plausible.
 - ASSIGN_QUEUE => clarifying_question null and draft_reply null
 - AUTO_REPLY/AUTO_RESOLVE => draft_reply non-null and non-empty
 - USE_KNOWLEDGE_ARTICLE => action_parameters.article_id positive
@@ -102,6 +117,7 @@ FINAL ACTION-FIELD SELF-CHECK (MUST PASS):
 - If next_action is ASK_CLARIFYING:
   - clarifying_question must be a non-empty string, trimmed length >= 8.
   - draft_reply must be null.
+  - for context-gated tickets, clarifying_question must contain 3-5 numbered questions and one risk-check when risk is plausible.
 - If next_action is ASSIGN_QUEUE:
   - clarifying_question must be null.
   - draft_reply must be null.

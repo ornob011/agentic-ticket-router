@@ -43,10 +43,23 @@ REPAIR INTENT GATE (MANDATORY):
   - concrete target value signal.
 - If latest customer turn asks for explanation/recap and lacks concrete new target value, force next_action to AUTO_REPLY.
 - Do not preserve no-change/update outcomes for recap_or_explain_intent turns.
+- CONTEXT-COLLECTION REPAIR GATE:
+  - If latest customer turn reports a problem and actionable context is insufficient, force:
+    - next_action = ASK_CLARIFYING
+    - queue = GENERAL_Q unless a more specific queue is clearly justified
+    - priority = MEDIUM unless explicit high-risk signals are present, then HIGH
+  - Treat context as insufficient when fewer than 3 of the following are known:
+    - execution environment/context,
+    - concrete observed behavior,
+    - timing/reproducibility,
+    - recent change/trigger,
+    - concrete evidence (error output, logs, or reproducible steps).
+  - Do not keep AUTO_REPLY or USE_KNOWLEDGE_ARTICLE when this gate applies.
 
 ACTION CONTRACTS:
 - AUTO_REPLY/AUTO_RESOLVE => draft_reply non-null and non-empty
 - ASK_CLARIFYING => clarifying_question non-null and draft_reply null
+- Context-gated ASK_CLARIFYING => clarifying_question must be a numbered 3-5 question checklist focused on missing details and include one risk-check line when risk is plausible.
 - ASSIGN_QUEUE => clarifying_question null and draft_reply null
 - USE_KNOWLEDGE_ARTICLE => action_parameters.article_id positive
 - USE_TEMPLATE => action_parameters.template_id positive
@@ -74,6 +87,7 @@ FINAL ACTION-FIELD SELF-CHECK (MUST PASS):
 - If next_action is ASK_CLARIFYING:
   - clarifying_question must be a non-empty string, trimmed length >= 8.
   - draft_reply must be null.
+  - for context-gated tickets, clarifying_question must contain 3-5 numbered questions and one risk-check when risk is plausible.
 - If next_action is ASSIGN_QUEUE:
   - clarifying_question must be null.
   - draft_reply must be null.
