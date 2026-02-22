@@ -53,15 +53,6 @@ public class AgentPlannerClient {
         );
 
         String candidateJson = plannerRawJson;
-        if (agentRuntimeConfiguration.isRepairEnabled()) {
-            candidateJson = agentPlannerLlmClient.repairPlan(
-                plannerRawJson,
-                null,
-                routerRequest,
-                ticketId,
-                actorRole
-            );
-        }
 
         AgentPlanValidationResult validationResult = agentRuntimeConfiguration.isSchemaEnforcementEnabled()
             ? agentPlanSchemaValidator.validate(candidateJson)

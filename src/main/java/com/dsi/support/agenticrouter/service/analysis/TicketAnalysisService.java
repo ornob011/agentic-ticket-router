@@ -30,6 +30,15 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TicketAnalysisService {
 
+    private static final String CATEGORY_TOKENS = Arrays.stream(TicketCategory.values())
+                                                        .map(Enum::name)
+                                                        .collect(Collectors.joining(" | "));
+
+    private static final String CATEGORY_CONTRACT = String.format(
+        "The final line must be exactly one category token from this list: %s",
+        CATEGORY_TOKENS
+    );
+
     private final ChatModel chatModel;
     private final PromptService promptService;
     private final SupportTicketRepository supportTicketRepository;
@@ -59,21 +68,12 @@ public class TicketAnalysisService {
                                                                  )
                                                              );
 
-        String categoryTokens = Arrays.stream(TicketCategory.values())
-                                      .map(Enum::name)
-                                      .collect(Collectors.joining(" | "));
-
-        String categoryContract = String.format(
-            "The final line must be exactly one category token from this list: %s",
-            categoryTokens
-        );
-
         String responseText = llmResponseTextExtractor.extractRequiredContent(
             llmPromptCaller.call(
                 chatModel,
                 promptUserSpec -> promptUserSpec.text(promptService.getAnalysisPrompt())
                                                 .param("content", ticketAnalysisRequest.getContent())
-                                                .param("category_contract", categoryContract)
+                                                .param("category_contract", CATEGORY_CONTRACT)
                                                 .param("fallback_category", TicketCategory.OTHER.name())
             ),
             "ticket_analysis"

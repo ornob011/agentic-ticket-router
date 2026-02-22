@@ -29,6 +29,15 @@ import java.util.stream.Stream;
 @Slf4j
 public class AgentPlannerLlmClient {
 
+    private static final EnumPromptValues ENUM_PROMPT_VALUES = new EnumPromptValues(
+        buildEnumValues(TicketCategory.values()),
+        buildEnumValues(TicketPriority.values()),
+        buildEnumValues(TicketQueue.values()),
+        buildEnumValues(NextAction.values())
+    );
+
+    private static final String ROUTING_POLICY = buildRoutingPolicy();
+
     private final ChatModel chatModel;
     private final PromptService promptService;
     private final LlmPromptCaller llmPromptCaller;
@@ -68,7 +77,7 @@ public class AgentPlannerLlmClient {
             routerRequest.getLatestAssistantMessage()
         );
 
-        EnumPromptValues promptValues = enumPromptValues();
+        EnumPromptValues promptValues = ENUM_PROMPT_VALUES;
 
         String relevantArticles = formatRelevantArticles(
             routerRequest.getRelevantArticles()
@@ -78,7 +87,7 @@ public class AgentPlannerLlmClient {
             routerRequest.getRelevantPatterns()
         );
 
-        String routingPolicy = routingPolicy();
+        String routingPolicy = ROUTING_POLICY;
 
         String plannerRawJson = llmResponseTextExtractor.extractRequiredContent(
             llmPromptCaller.call(
@@ -135,7 +144,7 @@ public class AgentPlannerLlmClient {
 
         String repairTemplateName = orchestrationMode.repairTemplateName();
 
-        EnumPromptValues promptValues = enumPromptValues();
+        EnumPromptValues promptValues = ENUM_PROMPT_VALUES;
 
         String normalizedPlannerRawJson = Objects.requireNonNullElse(
             plannerRawJson,
@@ -146,7 +155,7 @@ public class AgentPlannerLlmClient {
             validationError
         );
 
-        String routingPolicy = routingPolicy();
+        String routingPolicy = ROUTING_POLICY;
 
         String repairedJson = llmResponseTextExtractor.extractRequiredContent(
             llmPromptCaller.call(
@@ -249,46 +258,23 @@ public class AgentPlannerLlmClient {
                        .collect(Collectors.joining("\n"));
     }
 
-    private EnumPromptValues enumPromptValues() {
-        return new EnumPromptValues(
-            enumValues(TicketCategory.values()),
-            enumValues(TicketPriority.values()),
-            enumValues(TicketQueue.values()),
-            enumValues(NextAction.values())
-        );
-    }
-
-    private String enumValues(
-        Enum<?>[] values
-    ) {
+    private static String buildEnumValues(Enum<?>[] values) {
         return Arrays.stream(values)
                      .map(Enum::name)
                      .collect(Collectors.joining(" | "));
     }
 
-    private String normalizeValidationError(
-        String validationError
-    ) {
-        if (StringUtils.isBlank(validationError)) {
-            return "none";
-        }
-
-        return validationError;
-    }
-
-    private String routingPolicy() {
+    private static String buildRoutingPolicy() {
         return Stream.of(TicketCategory.values())
                      .map(category -> String.format(
                          "- %s -> %s",
                          category.name(),
-                         queueForCategory(category).name()
+                         queueForCategoryStatic(category).name()
                      ))
                      .collect(Collectors.joining("\n"));
     }
 
-    private TicketQueue queueForCategory(
-        TicketCategory category
-    ) {
+    private static TicketQueue queueForCategoryStatic(TicketCategory category) {
         TicketCategory routingCategory = Objects.requireNonNullElse(
             category,
             TicketCategory.OTHER
@@ -302,6 +288,16 @@ public class AgentPlannerLlmClient {
             case ACCOUNT, PRICING, CANCEL -> TicketQueue.ACCOUNT_Q;
             default -> TicketQueue.GENERAL_Q;
         };
+    }
+
+    private String normalizeValidationError(
+        String validationError
+    ) {
+        if (StringUtils.isBlank(validationError)) {
+            return "none";
+        }
+
+        return validationError;
     }
 
     private record EnumPromptValues(

@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -47,8 +48,13 @@ public class RoutingRequestFactory {
     public TicketAnalysisRequest buildAnalysisRequest(
         SupportTicket supportTicket
     ) {
+        List<TicketMessage> ticketMessages = ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(
+            supportTicket.getId()
+        );
+
         String conversationText = buildConversationText(
-            supportTicket
+            supportTicket,
+            ticketMessages
         );
 
         String analysisContent = String.format(
@@ -74,12 +80,27 @@ public class RoutingRequestFactory {
         SupportTicket supportTicket,
         TicketAnalysisResult ticketAnalysisResult
     ) {
-        String conversationHistory = buildConversationText(
-            supportTicket
+        List<TicketMessage> messages = ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(
+            supportTicket.getId()
         );
 
-        String initialMessage = getInitialMessage(
-            supportTicket
+        String initialMessage = getInitialMessage(messages);
+
+        String conversationHistory = buildConversationText(
+            supportTicket,
+            messages
+        );
+
+        String latestCustomerMessage = getLatestMessage(
+            messages,
+            this::isCustomerMessage,
+            initialMessage
+        );
+
+        String latestAssistantMessage = getLatestMessage(
+            messages,
+            this::isAssistantMessage,
+            StringUtils.EMPTY
         );
 
         String customerTierCode = supportTicket.getCustomer()
@@ -94,15 +115,27 @@ public class RoutingRequestFactory {
                                                 .filter(StringUtils::isNotBlank)
                                                 .orElse(NO_PREVIOUS_QUESTION);
 
-        List<ArticleSearchResult> relevantArticles = searchRelevantArticles(
-            supportTicket.getSubject(),
-            initialMessage
+        CompletableFuture<List<ArticleSearchResult>> articlesFuture = CompletableFuture.supplyAsync(
+            () -> searchRelevantArticles(
+                supportTicket.getSubject(),
+                initialMessage
+            )
         );
 
-        List<PatternHint> relevantPatterns = routingPatternMatcherService.findRelevantPatterns(
-            ticketAnalysisResult.getCategory(),
-            supportTicket.getSubject()
+        CompletableFuture<List<PatternHint>> patternsFuture = CompletableFuture.supplyAsync(
+            () -> routingPatternMatcherService.findRelevantPatterns(
+                ticketAnalysisResult.getCategory(),
+                supportTicket.getSubject()
+            )
         );
+
+        CompletableFuture.allOf(
+            articlesFuture,
+            patternsFuture
+        ).join();
+
+        List<ArticleSearchResult> relevantArticles = articlesFuture.join();
+        List<PatternHint> relevantPatterns = patternsFuture.join();
 
         int remainingActions = MAX_AUTONOMOUS_ACTIONS - Optional.ofNullable(autonomousMetadata)
                                                                 .map(TicketAutonomousMetadata::getAutonomousActionCount)
@@ -120,8 +153,8 @@ public class RoutingRequestFactory {
                             .customerTier(customerTierCode)
                             .initialMessage(initialMessage)
                             .conversationHistory(conversationHistory)
-                            .latestCustomerMessage(getLatestCustomerMessage(supportTicket))
-                            .latestAssistantMessage(getLatestAssistantMessage(supportTicket))
+                            .latestCustomerMessage(latestCustomerMessage)
+                            .latestAssistantMessage(latestAssistantMessage)
                             .analysis(StringUtils.defaultString(ticketAnalysisResult.getAnalysis()))
                             .suggestedCategory(ticketAnalysisResult.getCategory())
                             .previousClarifyingQuestion(lastClarifyingQuestion)
@@ -264,46 +297,19 @@ public class RoutingRequestFactory {
     }
 
     private String getInitialMessage(
-        SupportTicket supportTicket
+        List<TicketMessage> ticketMessages
     ) {
-        return ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(
-                                          supportTicket.getId()
-                                      )
-                                      .stream()
-                                      .findFirst()
-                                      .map(TicketMessage::getContent)
-                                      .orElse(StringUtils.EMPTY);
-    }
-
-    private String getLatestAssistantMessage(
-        SupportTicket supportTicket
-    ) {
-        return getLatestMessage(
-            supportTicket,
-            this::isAssistantMessage,
-            StringUtils.EMPTY
-        );
-    }
-
-    private String getLatestCustomerMessage(
-        SupportTicket supportTicket
-    ) {
-        return getLatestMessage(
-            supportTicket,
-            this::isCustomerMessage,
-            getInitialMessage(supportTicket)
-        );
+        return ticketMessages.stream()
+                             .findFirst()
+                             .map(TicketMessage::getContent)
+                             .orElse(StringUtils.EMPTY);
     }
 
     private String getLatestMessage(
-        SupportTicket supportTicket,
+        List<TicketMessage> ticketMessages,
         Predicate<TicketMessage> selector,
         String fallback
     ) {
-        List<TicketMessage> ticketMessages = ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(
-            supportTicket.getId()
-        );
-
         for (int i = ticketMessages.size() - 1; i >= 0; i--) {
             TicketMessage ticketMessage = ticketMessages.get(i);
             if (ticketMessage == null || StringUtils.isBlank(ticketMessage.getContent())) {
@@ -336,21 +342,19 @@ public class RoutingRequestFactory {
     }
 
     private String buildConversationText(
-        SupportTicket supportTicket
+        SupportTicket supportTicket,
+        List<TicketMessage> ticketMessages
     ) {
-        String ticketConversation = ticketMessageRepository.findByTicketIdWithAuthorOrderByCreatedAtAsc(
-                                                               supportTicket.getId()
-                                                           )
-                                                           .stream()
-                                                           .map(
-                                                               message -> String.format(
-                                                                   "[%s] %s: %s",
-                                                                   message.getCreatedAt(),
-                                                                   message.getMessageKind(),
-                                                                   message.getContent()
-                                                               )
-                                                           )
-                                                           .collect(Collectors.joining("\n"));
+        String ticketConversation = ticketMessages.stream()
+                                                  .map(
+                                                      message -> String.format(
+                                                          "[%s] %s: %s",
+                                                          message.getCreatedAt(),
+                                                          message.getMessageKind(),
+                                                          message.getContent()
+                                                      )
+                                                  )
+                                                  .collect(Collectors.joining("\n"));
 
         String customerContext = customerContextEnrichmentService.buildCustomerContext(
             supportTicket.getCustomer().getId(),

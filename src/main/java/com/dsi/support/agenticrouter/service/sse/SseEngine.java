@@ -25,8 +25,6 @@ import java.util.stream.Collectors;
 public class SseEngine {
 
     private final List<SseChannelPlugin<?>> plugins;
-    private final DisconnectedClientHelper disconnectedClientHelper = new DisconnectedClientHelper(SseEngine.class.getName());
-
     private final ConcurrentHashMap<String, SessionState> sessions = new ConcurrentHashMap<>();
     private final ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
         Thread thread = new Thread(runnable);
@@ -331,7 +329,7 @@ public class SseEngine {
             cancelHeartbeat(sessionState);
             safeComplete(sessionState.emitter());
 
-            if (disconnectedClientHelper.checkAndLogClientDisconnectedException(exception)) {
+            if (DisconnectedClientHelper.isClientDisconnectedException(exception)) {
                 return;
             }
 
