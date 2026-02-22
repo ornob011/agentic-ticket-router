@@ -51,13 +51,6 @@ public class SseEngine {
             resourceId
         );
 
-        log.debug(
-            "SseEngine({}) SseChannel(channel:{},resourceId:{}) Outcome(subscribe)",
-            OperationalLogContext.PHASE_START,
-            channel,
-            resourceId
-        );
-
         SseEmitter emitter = new SseEmitter(
             plugin.emitterTimeoutMs(context)
         );
@@ -73,13 +66,12 @@ public class SseEngine {
         );
 
         if (Objects.nonNull(existing)) {
-            cancelHeartbeat(existing);
-            safeComplete(existing.emitter());
-            log.debug(
-                "SseEngine({}) SseChannel(channel:{},resourceId:{}) Outcome(replaced_existing_session)",
-                OperationalLogContext.PHASE_COMPLETE,
-                channel,
-                resourceId
+            cancelHeartbeat(
+                existing
+            );
+
+            safeComplete(
+                existing.emitter()
             );
         }
 
@@ -384,7 +376,8 @@ public class SseEngine {
         } catch (Exception exception) {
             log.debug(
                 "SseEngine({}) Outcome(reason:safe_complete_failed)",
-                OperationalLogContext.PHASE_FAIL
+                OperationalLogContext.PHASE_FAIL,
+                exception
             );
         }
     }
