@@ -46,4 +46,14 @@ public interface RoutingPatternRepository extends JpaRepository<RoutingPattern, 
         """)
     List<RoutingPattern> findByKeyword(@Param("keyword") String keyword);
 
+    @Query("""
+        SELECT DISTINCT p FROM RoutingPattern p
+        WHERE p.active = true
+        AND EXISTS (SELECT 1 FROM p.keywords k WHERE k IN :keywords)
+        ORDER BY p.successCount DESC
+        """)
+    List<RoutingPattern> findByKeywordsIn(
+        @Param("keywords") List<String> keywords
+    );
+
 }

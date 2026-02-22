@@ -8,6 +8,7 @@ import com.dsi.support.agenticrouter.util.OperationalLogContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,7 @@ public class RoutingPatternMatcherService {
     private final PatternKeywordExtractor keywordExtractor;
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "patternHints", key = "#category.name() + '_' + #subject.hashCode()")
     public List<PatternHint> findRelevantPatterns(
         TicketCategory category,
         String subject
@@ -48,13 +50,13 @@ public class RoutingPatternMatcherService {
         }
 
         if (StringUtils.isNotBlank(subject)) {
-            keywordExtractor.extractKeywords(subject)
-                            .forEach(keyword ->
-                                routingPatternRepository.findByKeyword(keyword)
-                                                        .stream()
-                                                        .filter(RoutingPattern::isReliable)
-                                                        .forEach(routingPattern -> merged.putIfAbsent(patternKey(routingPattern), routingPattern))
-                            );
+            List<String> keywords = keywordExtractor.extractKeywords(subject);
+            if (!keywords.isEmpty()) {
+                routingPatternRepository.findByKeywordsIn(keywords)
+                                        .stream()
+                                        .filter(RoutingPattern::isReliable)
+                                        .forEach(routingPattern -> merged.putIfAbsent(patternKey(routingPattern), routingPattern));
+            }
         }
 
         List<PatternHint> hints = merged.values().stream()
