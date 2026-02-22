@@ -7,13 +7,13 @@ assignment using LLMs.
 
 ## Tech Stack
 
-| Layer    | Technologies                                                    |
-|----------|-----------------------------------------------------------------|
-| Backend  | Spring Boot 3.5.9, Java 21, Spring Data JPA, Spring Security    |
-| Database | PostgreSQL 16 + pgvector                                        |
-| AI/ML    | Spring AI 1.1.2, Ollama (qwen2.5:3b-instruct, nomic-embed-text) |
-| Frontend | React 18, Vite 6, Tailwind CSS 4                                |
-| Build    | Maven, npm (via frontend-maven-plugin)                          |
+| Layer    | Technologies                                                  |
+|----------|---------------------------------------------------------------|
+| Backend  | Spring Boot 3.5.9, Java 21, Spring Data JPA, Spring Security  |
+| Database | PostgreSQL 16 + pgvector                                      |
+| AI/ML    | Spring AI 1.1.2, Ollama (qwen3:4b-instruct, nomic-embed-text) |
+| Frontend | React 18, Vite 6, Tailwind CSS 4                              |
+| Build    | Maven, npm (via frontend-maven-plugin)                        |
 
 ## Prerequisites
 
@@ -59,7 +59,7 @@ Open `sql/ddl/ddl.sql` in IntelliJ → Run against database connection
 ### 5. Setup Ollama (Required)
 
 ```bash
-ollama pull qwen2.5:3b-instruct
+ollama pull qwen3:4b-instruct
 ollama pull nomic-embed-text
 ollama serve
 ```
@@ -68,7 +68,8 @@ ollama serve
 
 **Option A - Pre-computed (Faster):**
 
-- Download [V013__seed_vector_store.sql](https://drive.google.com/file/d/1_E5a4Sc-mbDUgGMdeAC-F7bXnBlIIiu4/view?usp=drive_link)
+-
+Download [V013__seed_vector_store.sql](https://drive.google.com/file/d/1_E5a4Sc-mbDUgGMdeAC-F7bXnBlIIiu4/view?usp=drive_link)
 from Google Drive (~300 MB)
 - Execute `V013__seed_vector_store.sql` in IntelliJ
 
