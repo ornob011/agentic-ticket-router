@@ -37,6 +37,7 @@ public class RoutingRequestFactory {
 
     private static final int MAX_AUTONOMOUS_ACTIONS = 5;
     private static final int MAX_QUESTIONS = 3;
+    private static final int MAX_CONVERSATION_MESSAGES = 5;
 
     private static final String TITLE_SEPARATOR = System.lineSeparator() + System.lineSeparator();
     private static final String UNKNOWN_TITLE = "Unknown Title";
@@ -316,7 +317,11 @@ public class RoutingRequestFactory {
         SupportTicket supportTicket,
         List<TicketMessage> ticketMessages
     ) {
-        String ticketConversation = ticketMessages.stream()
+        int messageCount = ticketMessages.size();
+        int startIndex = Math.max(0, messageCount - MAX_CONVERSATION_MESSAGES);
+        List<TicketMessage> recentMessages = ticketMessages.subList(startIndex, messageCount);
+
+        String ticketConversation = recentMessages.stream()
                                                   .map(
                                                       message -> String.format(
                                                           "[%s] %s: %s",
