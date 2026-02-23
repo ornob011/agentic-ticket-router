@@ -31,4 +31,6 @@ export {
   useSubmitFeedbackMutation,
   useSubmitRatingMutation,
   useSubmitCorrectionMutation,
+  useSubmitApprovalMutation,
+  useSubmitRejectionMutation,
 } from "./domain";

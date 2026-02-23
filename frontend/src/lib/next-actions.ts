@@ -1,0 +1,16 @@
+export const NEXT_ACTION_OPTIONS = [
+  { value: "AUTO_REPLY", label: "Auto Reply" },
+  { value: "ASK_CLARIFYING", label: "Ask Clarifying" },
+  { value: "ASSIGN_QUEUE", label: "Assign Queue" },
+  { value: "ESCALATE", label: "Escalate" },
+  { value: "HUMAN_REVIEW", label: "Human Review" },
+  { value: "UPDATE_CUSTOMER_PROFILE", label: "Update Customer Profile" },
+  { value: "CHANGE_PRIORITY", label: "Change Priority" },
+  { value: "ADD_INTERNAL_NOTE", label: "Add Internal Note" },
+  { value: "AUTO_ESCALATE", label: "Auto Escalate" },
+  { value: "AUTO_RESOLVE", label: "Auto Resolve" },
+  { value: "REOPEN_TICKET", label: "Reopen Ticket" },
+  { value: "TRIGGER_NOTIFICATION", label: "Trigger Notification" },
+  { value: "USE_KNOWLEDGE_ARTICLE", label: "Use Knowledge Article" },
+  { value: "USE_TEMPLATE", label: "Use Template" },
+] as const;

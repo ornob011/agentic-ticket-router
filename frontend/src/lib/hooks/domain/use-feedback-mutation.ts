@@ -25,9 +25,10 @@ export function useSubmitFeedbackMutation() {
 
 export function useSubmitRatingMutation() {
   return useApiMutation({
-    mutationFn: async (variables: { ticketId: number; rating: number; notes?: string }) => {
+    mutationFn: async (variables: { ticketId: number; routingId?: number; rating: number; notes?: string }) => {
       const request: FeedbackRequest = {
         ticketId: variables.ticketId,
+        routingId: variables.routingId,
         feedbackType: "RATING",
         rating: variables.rating,
         notes: variables.notes,
@@ -45,6 +46,7 @@ export function useSubmitCorrectionMutation() {
   return useApiMutation({
     mutationFn: async (variables: {
       ticketId: number;
+      routingId?: number;
       originalCategory?: string;
       correctedCategory?: string;
       originalAction: string;
@@ -53,6 +55,7 @@ export function useSubmitCorrectionMutation() {
     }) => {
       const request: FeedbackRequest = {
         ticketId: variables.ticketId,
+        routingId: variables.routingId,
         feedbackType: "CORRECTION",
         originalCategory: variables.originalCategory,
         correctedCategory: variables.correctedCategory,
@@ -65,6 +68,56 @@ export function useSubmitCorrectionMutation() {
     },
     onSuccessMessage: "Correction recorded for learning",
     onErrorMessage: "Failed to submit correction",
+    revalidate: true,
+  });
+}
+
+export function useSubmitApprovalMutation() {
+  return useApiMutation({
+    mutationFn: async (variables: {
+      ticketId: number;
+      routingId: number;
+      originalCategory?: string;
+      originalAction: string;
+      notes?: string;
+    }) => {
+      const request: FeedbackRequest = {
+        ticketId: variables.ticketId,
+        routingId: variables.routingId,
+        feedbackType: "APPROVAL",
+        originalCategory: variables.originalCategory,
+        originalAction: variables.originalAction,
+        notes: variables.notes,
+      };
+      const response = await api.post<FeedbackResponse>(endpoints.feedback.submit, request);
+      return response.data;
+    },
+    onSuccessMessage: "Approval recorded for learning",
+    onErrorMessage: "Failed to submit approval",
+    revalidate: true,
+  });
+}
+
+export function useSubmitRejectionMutation() {
+  return useApiMutation({
+    mutationFn: async (variables: {
+      ticketId: number;
+      routingId: number;
+      originalAction: string;
+      notes?: string;
+    }) => {
+      const request: FeedbackRequest = {
+        ticketId: variables.ticketId,
+        routingId: variables.routingId,
+        feedbackType: "REJECTION",
+        originalAction: variables.originalAction,
+        notes: variables.notes,
+      };
+      const response = await api.post<FeedbackResponse>(endpoints.feedback.submit, request);
+      return response.data;
+    },
+    onSuccessMessage: "Rejection recorded",
+    onErrorMessage: "Failed to submit rejection",
     revalidate: true,
   });
 }

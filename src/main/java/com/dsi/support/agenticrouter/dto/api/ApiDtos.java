@@ -501,6 +501,7 @@ public final class ApiDtos {
 
     public record FeedbackRequest(
         @NotNull Long ticketId,
+        Long routingId,
         @NotNull FeedbackType feedbackType,
         @Min(1) @Max(5) Integer rating,
         String originalCategory,
