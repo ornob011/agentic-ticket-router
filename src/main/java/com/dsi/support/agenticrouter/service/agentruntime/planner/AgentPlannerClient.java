@@ -91,7 +91,8 @@ public class AgentPlannerClient {
 
         if (agentRuntimeConfiguration.isSchemaEnforcementEnabled() && !validationResult.valid()) {
             log.error(
-                "AgentPlannerFallback(fail) SupportTicket(id:{}) Outcome(errorCode:{},error:{})",
+                "AgentPlannerFallback({}) SupportTicket(id:{}) Outcome(errorCode:{},error:{})",
+                OperationalLogContext.PHASE_FAIL,
                 ticketId,
                 validationResult.errorCode(),
                 validationResult.errorMessage()
