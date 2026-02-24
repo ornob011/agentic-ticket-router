@@ -60,6 +60,14 @@ public class FeedbackCaptureService {
             request
         );
 
+        validateRoutingIdRequirement(
+            request
+        );
+
+        validateCorrectedActionRequirement(
+            request
+        );
+
         Long actorId = Utils.getLoggedInUserId();
 
         AppUser actor = appUserRepository.findById(actorId)
@@ -78,6 +86,7 @@ public class FeedbackCaptureService {
             case RATING -> captureRating(
                 ticket,
                 request.ticketId(),
+                request.routingId(),
                 request.rating(),
                 request.notes(),
                 actor
@@ -97,6 +106,7 @@ public class FeedbackCaptureService {
                 toNextAction(
                     request.correctedAction()
                 ),
+                request.routingId(),
                 request.notes(),
                 actor
             );
@@ -106,6 +116,7 @@ public class FeedbackCaptureService {
                 toNextAction(
                     request.originalAction()
                 ),
+                request.routingId(),
                 request.notes(),
                 actor
             );
@@ -115,6 +126,7 @@ public class FeedbackCaptureService {
                 toNextAction(
                     request.originalAction()
                 ),
+                request.routingId(),
                 request.notes(),
                 actor
             );
@@ -209,6 +221,7 @@ public class FeedbackCaptureService {
     private ResolutionFeedback captureRating(
         SupportTicket ticket,
         Long ticketId,
+        Long routingId,
         Integer rating,
         String notes,
         AppUser actor
@@ -229,6 +242,10 @@ public class FeedbackCaptureService {
 
         feedback.setFeedbackNotes(
             notes
+        );
+
+        feedback.setRoutingId(
+            routingId
         );
 
         ResolutionFeedback savedFeedback = feedbackRepository.save(
@@ -254,6 +271,7 @@ public class FeedbackCaptureService {
         TicketCategory correctedCategory,
         NextAction originalAction,
         NextAction correctedAction,
+        Long routingId,
         String notes,
         AppUser actor
     ) {
@@ -265,6 +283,7 @@ public class FeedbackCaptureService {
                                                         .originalAction(originalAction)
                                                         .correctedAction(correctedAction)
                                                         .feedbackNotes(notes)
+                                                        .routingId(routingId)
                                                         .agent(actor)
                                                         .build();
 
@@ -289,16 +308,31 @@ public class FeedbackCaptureService {
         SupportTicket ticket,
         Long ticketId,
         NextAction originalAction,
+        Long routingId,
         String reason,
         AppUser actor
     ) {
-        ResolutionFeedback feedback = ResolutionFeedback.builder()
-                                                        .ticket(ticket)
-                                                        .feedbackType(FeedbackType.REJECTION)
-                                                        .originalAction(originalAction)
-                                                        .feedbackNotes(reason)
-                                                        .agent(actor)
-                                                        .build();
+        ResolutionFeedback feedback = feedbackRepository.findTopByRoutingIdAndAgentIdAndFeedbackTypeOrderByCreatedAtDesc(
+            routingId,
+            actor.getId(),
+            FeedbackType.REJECTION
+        ).orElseGet(() -> ResolutionFeedback.builder()
+                                            .ticket(ticket)
+                                            .feedbackType(FeedbackType.REJECTION)
+                                            .agent(actor)
+                                            .build());
+
+        feedback.setOriginalAction(
+            originalAction
+        );
+
+        feedback.setFeedbackNotes(
+            reason
+        );
+
+        feedback.setRoutingId(
+            routingId
+        );
 
         ResolutionFeedback savedFeedback = feedbackRepository.save(
             feedback
@@ -320,16 +354,31 @@ public class FeedbackCaptureService {
         SupportTicket ticket,
         Long ticketId,
         NextAction approvedAction,
+        Long routingId,
         String notes,
         AppUser actor
     ) {
-        ResolutionFeedback feedback = ResolutionFeedback.builder()
-                                                        .ticket(ticket)
-                                                        .feedbackType(FeedbackType.APPROVAL)
-                                                        .originalAction(approvedAction)
-                                                        .feedbackNotes(notes)
-                                                        .agent(actor)
-                                                        .build();
+        ResolutionFeedback feedback = feedbackRepository.findTopByRoutingIdAndAgentIdAndFeedbackTypeOrderByCreatedAtDesc(
+            routingId,
+            actor.getId(),
+            FeedbackType.APPROVAL
+        ).orElseGet(() -> ResolutionFeedback.builder()
+                                            .ticket(ticket)
+                                            .feedbackType(FeedbackType.APPROVAL)
+                                            .agent(actor)
+                                            .build());
+
+        feedback.setOriginalAction(
+            approvedAction
+        );
+
+        feedback.setFeedbackNotes(
+            notes
+        );
+
+        feedback.setRoutingId(
+            routingId
+        );
 
         ResolutionFeedback savedFeedback = feedbackRepository.save(
             feedback
@@ -453,6 +502,37 @@ public class FeedbackCaptureService {
                     "Original action is required for %s feedback",
                     request.feedbackType()
                 )
+            );
+        }
+    }
+
+    private void validateRoutingIdRequirement(
+        ApiDtos.FeedbackRequest request
+    ) throws BindException {
+        if (request.feedbackType() == FeedbackType.APPROVAL
+            || request.feedbackType() == FeedbackType.REJECTION) {
+            if (Objects.isNull(request.routingId())) {
+                throw BindValidation.fieldError(
+                    "feedbackRequest",
+                    "routingId",
+                    String.format(
+                        "Routing id is required for %s feedback",
+                        request.feedbackType()
+                    )
+                );
+            }
+        }
+    }
+
+    private void validateCorrectedActionRequirement(
+        ApiDtos.FeedbackRequest request
+    ) throws BindException {
+        if (request.feedbackType() == FeedbackType.CORRECTION
+            && StringUtils.isBlank(request.correctedAction())) {
+            throw BindValidation.fieldError(
+                "feedbackRequest",
+                "correctedAction",
+                "Corrected action is required for CORRECTION feedback"
             );
         }
     }

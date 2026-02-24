@@ -589,6 +589,7 @@ export function TicketDetailScreen({
               <CardContent>
                 <FeedbackPanel
                   ticketId={data.id}
+                  routingId={latestRouting.id}
                   originalCategory={latestRouting.category}
                   originalAction={latestRouting.nextAction}
                 />

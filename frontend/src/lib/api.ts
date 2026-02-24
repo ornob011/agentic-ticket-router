@@ -338,6 +338,7 @@ export type FeedbackType = "RATING" | "CORRECTION" | "REJECTION" | "APPROVAL";
 
 export type FeedbackRequest = {
   ticketId: number;
+  routingId?: number;
   feedbackType: FeedbackType;
   rating?: number;
   originalCategory?: string;

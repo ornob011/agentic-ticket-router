@@ -24,6 +24,12 @@ public interface ResolutionFeedbackRepository extends JpaRepository<ResolutionFe
         FeedbackType feedbackType
     );
 
+    Optional<ResolutionFeedback> findTopByRoutingIdAndAgentIdAndFeedbackTypeOrderByCreatedAtDesc(
+        Long routingId,
+        Long agentId,
+        FeedbackType feedbackType
+    );
+
     @Query("""
         SELECT COUNT(f)
         FROM ResolutionFeedback f

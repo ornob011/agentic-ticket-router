@@ -35,4 +35,6 @@ export {
   useSubmitFeedbackMutation,
   useSubmitRatingMutation,
   useSubmitCorrectionMutation,
+  useSubmitApprovalMutation,
+  useSubmitRejectionMutation,
 } from "./use-feedback-mutation";

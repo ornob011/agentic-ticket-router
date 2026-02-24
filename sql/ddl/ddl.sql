@@ -781,6 +781,13 @@ CREATE TABLE resolution_feedback
 CREATE INDEX idx_feedback_ticket ON resolution_feedback (ticket_id);
 CREATE INDEX idx_feedback_type ON resolution_feedback (feedback_type);
 CREATE INDEX idx_feedback_agent ON resolution_feedback (agent_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_feedback_approval_routing_agent
+  ON resolution_feedback (routing_id, agent_id, feedback_type)
+  WHERE feedback_type = 'APPROVAL';
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_feedback_rejection_routing_agent
+  ON resolution_feedback (routing_id, agent_id, feedback_type)
+  WHERE feedback_type = 'REJECTION';
 
 COMMENT ON TABLE resolution_feedback IS 'Stores agent feedback on AI routing decisions';
 COMMENT ON COLUMN resolution_feedback.feedback_type IS 'RATING, CORRECTION, REJECTION, or APPROVAL';
