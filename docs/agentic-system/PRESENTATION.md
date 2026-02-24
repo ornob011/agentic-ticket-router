@@ -63,27 +63,40 @@ tickets.
 ### Traditional LLM vs Agentic
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│  TRADITIONAL LLM APP           │  AGENTIC SYSTEM               │
-├────────────────────────────────────────────────────────────────┤
-│                                │                               │
-│  User Input ──→ LLM ──→ Out    │  ┌─────────┐  ┌─────────┐     │
-│                                │  │  PLAN   │─▶│ SAFETY  │     │
-│  Problems:                     │  └─────────┘  └─────────┘     │
-│  • Single shot                 │       │             │         │
-│  • No memory                   │       ▼             ▼         │
-│  • No validation               │  ┌─────────┐  ┌─────────┐     │
-│  • No guardrails               │  │ Context │  │ Policy  │     │
-│  • Cannot take actions         │  │ Enrich  │  │ Engine  │     │
-│  • Fails silently              │  └─────────┘  └─────────┘     │
-│                                │       │             │         │
-│                                │       ▼             ▼         │
-│                                │  ┌─────────┐  ┌─────────┐     │
-│                                │  │ TOOL    │  │Fallback │     │
-│                                │  │ EXEC    │  │Service  │     │
-│                                │  └─────────┘  └─────────┘     │
-│                                │                               │
-└────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│  TRADITIONAL LLM APP                              │  AGENTIC SYSTEM                                       │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                   │                                                       │
+│  User Input                                       │  User Input                                           │
+│      │                                            │      │                                                │
+│      ▼                                            │      ▼                                                │
+│  Prompt + LLM                                     │  Context + Memory Enrichment                          │
+│      │                                            │      │                                                │
+│      ▼                                            │      ▼                                                │
+│  Single Response                                  │  Planner (structured decision)                        │
+│      │                                            │      │                                                │
+│      ▼                                            │      ▼                                                │
+│  Return Output                                    │  Safety + Policy Gates                                │
+│                                                   │      │                                                │
+│  Typical limits:                                  │      ▼                                                │
+│  • One-shot reasoning                             │  Tool / Action Execution                              │
+│  • Limited verification                           │      │                                                │
+│  • No multi-step control loop                     │      ▼                                                │
+│  • Weak fallback behavior                         │  Reflect / Evaluate                                   │
+│                                                   │      │                                                │
+│                                                   │      ├────────── loop back to Planner if needed       │
+│                                                   │      ▼                                                │
+│                                                   │  Terminate with validated final response              │
+│                                                   │      │                                                │
+│                                                   │      ▼                                                │
+│                                                   │  Trace + Monitoring + Streaming progress              │
+│                                                   │                                                       │
+│                                                   │  Reliability traits:                                  │
+│                                                   │  • Multi-step control loop                            │
+│                                                   │  • Policy/safety enforcement                          │
+│                                                   │  • Tool-backed actions                                │
+│                                                   │  • Structured fallback path                           │
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Comparison Matrix
