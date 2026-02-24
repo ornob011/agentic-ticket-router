@@ -1,24 +1,36 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { useLoaderData, useLocation, useNavigate, useRevalidator } from "react-router-dom";
+import { useLoaderData, useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import type { TicketDetailLoaderData } from "@/router";
+import { getTicketDetail } from "@/app/tickets";
 import {
   useAddReplyMutation,
   useAssignableAgents,
   useAssignAgentMutation,
   useReleaseAgentMutation,
   useAssignSelfMutation,
-  usePeriodicRevalidation,
   useUpdateTicketStatusMutation,
   useStreamingDraft,
 } from "@/lib/hooks";
 import { TicketDetailScreen } from "@/widgets/ticket-detail/ticket-detail-screen";
 
 export default function TicketDetailPage() {
-  const data = useLoaderData<TicketDetailLoaderData>();
+  const initialData = useLoaderData<TicketDetailLoaderData>();
   const navigate = useNavigate();
   const location = useLocation();
-  const revalidator = useRevalidator();
+  const { data } = useQuery({
+    queryKey: ["ticket-detail", initialData.id],
+    queryFn: () => getTicketDetail(initialData.id),
+    initialData,
+    refetchInterval: () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return 10000;
+      }
+      return 1000;
+    },
+    refetchIntervalInBackground: true,
+  });
 
   const [reply, setReply] = useState("");
   const [newStatus, setNewStatus] = useState<string>(data.status);
@@ -26,8 +38,6 @@ export default function TicketDetailPage() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const [routingActivationSeq, setRoutingActivationSeq] = useState(0);
-
-  usePeriodicRevalidation(revalidator);
 
   const { draft: streamedDraft, isStreaming: isStreamingDraft, start: startStreaming } = useStreamingDraft(data.id);
 

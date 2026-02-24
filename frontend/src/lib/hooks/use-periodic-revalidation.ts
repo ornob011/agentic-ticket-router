@@ -11,6 +11,8 @@ export function usePeriodicRevalidation(
       revalidator.revalidate();
     }, intervalMs);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, [intervalMs, revalidator]);
 }
