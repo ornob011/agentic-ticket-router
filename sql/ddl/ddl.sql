@@ -33,6 +33,7 @@ DROP TABLE IF EXISTS article_template_applicable_categories CASCADE;
 DROP TABLE IF EXISTS article_template CASCADE;
 DROP TABLE IF EXISTS knowledge_article CASCADE;
 DROP TABLE IF EXISTS vector_store;
+DROP TABLE IF EXISTS spring_ai_chat_memory;
 
 -- Drop sequences
 DROP SEQUENCE IF EXISTS support_ticket_ticket_no_seq CASCADE;
