@@ -4,6 +4,8 @@ import com.dsi.support.agenticrouter.enums.TicketCategory;
 import com.dsi.support.agenticrouter.enums.TicketPriority;
 import com.dsi.support.agenticrouter.enums.TicketQueue;
 import com.dsi.support.agenticrouter.enums.TicketStatus;
+import com.dsi.support.agenticrouter.model.TicketAutonomousMetadata;
+import com.dsi.support.agenticrouter.model.TicketAutonomousMetadataConverter;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -11,59 +13,59 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.Generated;
-import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 import org.hibernate.generator.EventType;
 import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 @Entity
 @Table(
-        name = "support_ticket",
-        indexes = {
-                @Index(
-                        name = "idx_support_ticket_ticket_no",
-                        columnList = "ticket_no",
-                        unique = true
-                ),
-                @Index(
-                        name = "idx_support_ticket_customer_id",
-                        columnList = "customer_id"
-                ),
-                @Index(
-                        name = "idx_support_ticket_status",
-                        columnList = "status"
-                ),
-                @Index(
-                        name = "idx_support_ticket_assigned_queue",
-                        columnList = "assigned_queue"
-                ),
-                @Index(
-                        name = "idx_support_ticket_current_priority",
-                        columnList = "current_priority"
-                ),
-                @Index(
-                        name = "idx_support_ticket_last_activity_at",
-                        columnList = "last_activity_at"
-                ),
-                @Index(
-                        name = "idx_support_ticket_assigned_agent_id",
-                        columnList = "assigned_agent_id"
-                ),
-                @Index(
-                        name = "idx_support_ticket_status_queue_priority",
-                        columnList = "status, assigned_queue, current_priority"
-                ),
-                @Index(
-                        name = "idx_support_ticket_customer_created",
-                        columnList = "customer_id, created_at"
-                )
-        }
+    name = "support_ticket",
+    indexes = {
+        @Index(
+            name = "idx_support_ticket_ticket_no",
+            columnList = "ticket_no",
+            unique = true
+        ),
+        @Index(
+            name = "idx_support_ticket_customer_id",
+            columnList = "customer_id"
+        ),
+        @Index(
+            name = "idx_support_ticket_status",
+            columnList = "status"
+        ),
+        @Index(
+            name = "idx_support_ticket_assigned_queue",
+            columnList = "assigned_queue"
+        ),
+        @Index(
+            name = "idx_support_ticket_current_priority",
+            columnList = "current_priority"
+        ),
+        @Index(
+            name = "idx_support_ticket_last_activity_at",
+            columnList = "last_activity_at"
+        ),
+        @Index(
+            name = "idx_support_ticket_assigned_agent_id",
+            columnList = "assigned_agent_id"
+        ),
+        @Index(
+            name = "idx_support_ticket_status_queue_priority",
+            columnList = "status, assigned_queue, current_priority"
+        ),
+        @Index(
+            name = "idx_support_ticket_customer_created",
+            columnList = "customer_id, created_at"
+        )
+    }
 )
 @Getter
 @Setter
@@ -72,162 +74,164 @@ import java.util.Objects;
 @Builder
 public class SupportTicket extends BaseEntity {
 
+    private static final TicketAutonomousMetadataConverter AUTONOMOUS_CONVERTER = new TicketAutonomousMetadataConverter();
+
     @Generated(event = EventType.INSERT)
     @Column(
-            name = "ticket_no",
-            nullable = false,
-            unique = true,
-            updatable = false,
-            insertable = false
+        name = "ticket_no",
+        nullable = false,
+        unique = true,
+        updatable = false,
+        insertable = false
     )
     private Long ticketNo;
 
     @NotNull(message = "Customer is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "customer_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "fk_support_ticket_customer")
+        name = "customer_id",
+        nullable = false,
+        foreignKey = @ForeignKey(name = "fk_support_ticket_customer")
     )
     private AppUser customer;
 
     @NotBlank(message = "Subject is required")
     @Size(max = 255)
     @Column(
-            name = "subject",
-            nullable = false,
-            length = 255
+        name = "subject",
+        nullable = false
     )
     private String subject;
 
     @NotNull(message = "Status is required")
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
-            name = "status",
-            nullable = false,
-            columnDefinition = "ticket_status"
+        name = "status",
+        nullable = false
     )
     @Builder.Default
     private TicketStatus status = TicketStatus.RECEIVED;
 
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
-            name = "current_category",
-            columnDefinition = "ticket_category"
+        name = "current_category"
     )
     private TicketCategory currentCategory;
 
     @NotNull(message = "Priority is required")
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
-            name = "current_priority",
-            nullable = false,
-            columnDefinition = "ticket_priority"
+        name = "current_priority",
+        nullable = false
     )
     @Builder.Default
     private TicketPriority currentPriority = TicketPriority.MEDIUM;
 
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
-            name = "assigned_queue",
-            columnDefinition = "ticket_queue"
+        name = "assigned_queue"
     )
     private TicketQueue assignedQueue;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "assigned_agent_id",
-            foreignKey = @ForeignKey(name = "fk_support_ticket_assigned_agent")
+        name = "assigned_agent_id",
+        foreignKey = @ForeignKey(name = "fk_support_ticket_assigned_agent")
     )
     private AppUser assignedAgent;
 
     @Column(
-            name = "last_activity_at",
-            nullable = false,
-            columnDefinition = "timestamptz"
+        name = "last_activity_at",
+        nullable = false,
+        columnDefinition = "timestamptz"
     )
     @Builder.Default
     private Instant lastActivityAt = Instant.now();
 
     @Column(
-            name = "first_assigned_at",
-            columnDefinition = "timestamptz"
+        name = "first_assigned_at",
+        columnDefinition = "timestamptz"
     )
     private Instant firstAssignedAt;
 
     @Column(
-            name = "resolved_at",
-            columnDefinition = "timestamptz"
+        name = "resolved_at",
+        columnDefinition = "timestamptz"
     )
     private Instant resolvedAt;
 
     @Column(
-            name = "closed_at",
-            columnDefinition = "timestamptz"
+        name = "closed_at",
+        columnDefinition = "timestamptz"
     )
     private Instant closedAt;
 
     @Column(
-            name = "reopen_count",
-            nullable = false
+        name = "reopen_count",
+        nullable = false
     )
     @Builder.Default
     private int reopenCount = 0;
 
     @Column(
-            name = "escalated",
-            nullable = false
+        name = "escalated",
+        nullable = false
     )
     @Builder.Default
     private boolean escalated = false;
 
     @Column(
-            name = "latest_routing_confidence",
-            precision = 5,
-            scale = 4
+        name = "requires_human_review",
+        nullable = false
     )
-    private Double latestRoutingConfidence;
+    @Builder.Default
+    private boolean requiresHumanReview = false;
 
     @Column(
-            name = "latest_routing_version",
-            nullable = false
+        name = "latest_routing_confidence",
+        columnDefinition = "numeric(5,4)"
+    )
+    private BigDecimal latestRoutingConfidence;
+
+    @Column(
+        name = "latest_routing_version",
+        nullable = false
     )
     @Builder.Default
     private int latestRoutingVersion = 0;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(
-            name = "metadata",
-            columnDefinition = "jsonb"
+        name = "metadata",
+        columnDefinition = "jsonb"
     )
     private JsonNode metadata;
 
+    @Transient
+    private TicketAutonomousMetadata autonomousMetadataCache;
+
     @OneToMany(
-            mappedBy = "ticket",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true,
-            fetch = FetchType.LAZY
+        mappedBy = "ticket",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true,
+        fetch = FetchType.LAZY
     )
     @Builder.Default
     private List<TicketMessage> messages = new ArrayList<>();
 
     @OneToMany(
-            mappedBy = "ticket",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true,
-            fetch = FetchType.LAZY
+        mappedBy = "ticket",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true,
+        fetch = FetchType.LAZY
     )
     @Builder.Default
     private List<TicketRouting> routings = new ArrayList<>();
 
     @OneToOne(
-            mappedBy = "ticket",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
+        mappedBy = "ticket",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
     )
     private Escalation escalation;
 
@@ -238,22 +242,111 @@ public class SupportTicket extends BaseEntity {
         }
     }
 
+    @PostLoad
+    @PostPersist
+    @PostUpdate
+    private void resetAutonomousCache() {
+        autonomousMetadataCache = null;
+    }
+
+    public void setMetadata(JsonNode metadata) {
+        this.metadata = metadata;
+        this.autonomousMetadataCache = null;
+    }
+
     public String getFormattedTicketNo() {
-        return Objects.nonNull(ticketNo)
-                ? String.format("TKT-%08d", ticketNo)
-                : "PENDING";
+        if (Objects.isNull(ticketNo)) {
+            return "PENDING";
+        }
+
+        return String.format("TKT-%08d", ticketNo);
+    }
+
+    public TicketAutonomousMetadata getAutonomousMetadata() {
+        if (Objects.nonNull(autonomousMetadataCache)) {
+            return autonomousMetadataCache;
+        }
+
+        if (Objects.isNull(metadata)) {
+            autonomousMetadataCache = new TicketAutonomousMetadata();
+            return autonomousMetadataCache;
+        }
+
+        autonomousMetadataCache = AUTONOMOUS_CONVERTER.convertToEntityAttribute(metadata);
+        return autonomousMetadataCache;
+    }
+
+    public void setAutonomousMetadata(TicketAutonomousMetadata value) {
+        autonomousMetadataCache = value;
+
+        if (Objects.isNull(value)) {
+            metadata = null;
+            return;
+        }
+
+        metadata = AUTONOMOUS_CONVERTER.convertToDatabaseColumn(value);
+    }
+
+    public boolean isInAutonomousLoop() {
+        return status == TicketStatus.TRIAGING || status == TicketStatus.WAITING_CUSTOMER;
+    }
+
+    private void mutateAutonomousMetadata(
+        Consumer<TicketAutonomousMetadata> mutator
+    ) {
+        TicketAutonomousMetadata m = getAutonomousMetadata();
+        mutator.accept(m);
+        setAutonomousMetadata(m);
+    }
+
+    public int getAutonomousActionCount() {
+        return getAutonomousMetadata().getAutonomousActionCount();
+    }
+
+    public void incrementAutonomousActionCount() {
+        mutateAutonomousMetadata(
+            TicketAutonomousMetadata::incrementActionCount
+        );
+    }
+
+    public void recordClarifyingQuestion(
+        String question
+    ) {
+        mutateAutonomousMetadata(
+            autonomousMetadata -> autonomousMetadata.recordClarifyingQuestion(question)
+        );
+    }
+
+    public int getQuestionCount() {
+        return getAutonomousMetadata().getQuestionCount();
+    }
+
+    public boolean hasFrustrationDetected() {
+        return getAutonomousMetadata().isHasFrustrationDetected();
+    }
+
+    public void setFrustrationDetected(
+        boolean detected
+    ) {
+        mutateAutonomousMetadata(
+            autonomousMetadata -> autonomousMetadata.setHasFrustrationDetected(detected)
+        );
+    }
+
+    public TicketQueue getCurrentQueue() {
+        return assignedQueue;
     }
 
     public boolean requiresCustomerAction() {
-        return Objects.nonNull(status) && status.requiresCustomerAction();
+        return status.requiresCustomerAction();
     }
 
     public boolean requiresAgentAction() {
-        return Objects.nonNull(status) && status.requiresAgentAction();
+        return status.requiresAgentAction();
     }
 
     public boolean isTerminal() {
-        return Objects.nonNull(status) && status.isTerminalState();
+        return status.isTerminalState();
     }
 
     public void updateLastActivity() {
@@ -268,6 +361,7 @@ public class SupportTicket extends BaseEntity {
         if (Objects.isNull(message)) {
             return;
         }
+
         message.setTicket(this);
         messages.add(message);
     }
@@ -276,6 +370,7 @@ public class SupportTicket extends BaseEntity {
         if (Objects.isNull(routing)) {
             return;
         }
+
         routing.setTicket(this);
         routings.add(routing);
     }
@@ -283,12 +378,12 @@ public class SupportTicket extends BaseEntity {
     @Override
     public String toString() {
         return "SupportTicket{" +
-                "id=" + getId() +
-                ", ticketNo=" + ticketNo +
-                ", subject='" + subject + '\'' +
-                ", status=" + status +
-                ", currentPriority=" + currentPriority +
-                ", assignedQueue=" + assignedQueue +
-                '}';
+               "id=" + getId() +
+               ", ticketNo=" + ticketNo +
+               ", subject='" + subject + '\'' +
+               ", status=" + status +
+               ", currentPriority=" + currentPriority +
+               ", assignedQueue=" + assignedQueue +
+               '}';
     }
 }

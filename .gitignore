@@ -32,6 +32,11 @@ build/
 ### VS Code ###
 .vscode/
 
+### Environment ###
+.env
+.env.*
+!.env.example
+
 ### Log Files ###
 logs/**
 
@@ -41,6 +46,7 @@ logs/**
 /frontend/.npm
 /frontend/.cache
 /frontend/dist
+/src/main/resources/static/app/
 
 ### Test Files ###
 src/test/**

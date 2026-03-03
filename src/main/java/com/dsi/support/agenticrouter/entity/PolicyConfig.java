@@ -1,183 +1,87 @@
 package com.dsi.support.agenticrouter.entity;
 
-import com.dsi.support.agenticrouter.enums.ConfigValueType;
+import com.dsi.support.agenticrouter.enums.PolicyConfigKey;
+import com.dsi.support.agenticrouter.validator.ValidPolicyConfig;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.*;
-import org.hibernate.annotations.JdbcType;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.math.BigDecimal;
-import java.util.Objects;
 
 @Entity
 @Table(
-        name = "policy_config",
-        indexes = {
-                @Index(
-                        name = "idx_policy_config_config_key",
-                        columnList = "config_key",
-                        unique = true
-                ),
-                @Index(
-                        name = "idx_policy_config_active",
-                        columnList = "active"
-                )
-        }
+    name = "policy_config",
+    indexes = {
+        @Index(
+            name = "idx_policy_config_active",
+            columnList = "active"
+        )
+    }
 )
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ValidPolicyConfig
 public class PolicyConfig extends BaseEntity {
 
-    @NotBlank
-    @Size(max = 100)
-    @Column(
-            name = "config_key",
-            nullable = false,
-            unique = true,
-            length = 100
-    )
-    private String configKey;
-
-    @NotBlank
-    @Size(max = 500)
-    @Column(
-            name = "config_value",
-            nullable = false,
-            length = 500
-    )
-    private String configValue;
-
     @NotNull
-    @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
-    @Column(
-            name = "value_type",
-            nullable = false,
-            columnDefinition = "config_value_type"
+    @Enumerated(
+        EnumType.STRING
     )
-    private ConfigValueType valueType;
-
-    @Size(max = 500)
     @Column(
-            name = "description",
-            columnDefinition = "text"
+        name = "config_key",
+        nullable = false,
+        unique = true
+    )
+    private PolicyConfigKey configKey;
+
+    @Column(
+        name = "config_value",
+        nullable = false
+    )
+    private BigDecimal configValue;
+
+    @Column(
+        name = "description",
+        columnDefinition = "text"
     )
     private String description;
 
     @Builder.Default
     @Column(
-            name = "active",
-            nullable = false
+        name = "active",
+        nullable = false
     )
     private boolean active = true;
 
-    @Size(max = 500)
     @Column(
-            name = "default_value",
-            length = 500
+        name = "default_value"
     )
-    private String defaultValue;
+    private BigDecimal defaultValue;
 
     @Column(
-            name = "min_value",
-            length = 50
+        name = "min_value"
     )
-    private String minValue;
+    private BigDecimal minValue;
 
     @Column(
-            name = "max_value",
-            length = 50
+        name = "max_value"
     )
-    private String maxValue;
-
-    public String effectiveValue() {
-        return Objects.nonNull(configValue)
-                ? configValue
-                : defaultValue;
-    }
-
-    public BigDecimal getValueAsDecimal() {
-        String value = effectiveValue();
-
-        if (Objects.isNull(value)) {
-            return null;
-        }
-
-        try {
-            return new BigDecimal(value);
-        } catch (Exception ignored) {
-            return null;
-        }
-    }
-
-    public Integer getValueAsInteger() {
-        BigDecimal value = getValueAsDecimal();
-        return Objects.nonNull(value)
-                ? value.intValue()
-                : null;
-    }
-
-    public Long getValueAsLong() {
-        BigDecimal value = getValueAsDecimal();
-        return Objects.nonNull(value)
-                ? value.longValue()
-                : null;
-    }
-
-    public Boolean getValueAsBoolean() {
-        String value = effectiveValue();
-
-        return Objects.nonNull(value)
-                ? Boolean.parseBoolean(value)
-                : null;
-    }
-
-    public boolean isValueValid(String value) {
-        if (Objects.isNull(valueType) || Objects.isNull(value)) {
-            return false;
-        }
-
-        try {
-            if (valueType.isNumeric()) {
-                BigDecimal numeric = new BigDecimal(value);
-
-                if (Objects.nonNull(minValue)
-                        && numeric.compareTo(new BigDecimal(minValue)) < 0) {
-                    return false;
-                }
-
-                if (Objects.nonNull(maxValue)
-                        && numeric.compareTo(new BigDecimal(maxValue)) > 0) {
-                    return false;
-                }
-
-                return true;
-            }
-
-            if (Objects.equals(valueType, ConfigValueType.BOOLEAN)) {
-                return "true".equalsIgnoreCase(value)
-                        || "false".equalsIgnoreCase(value);
-            }
-
-            return true;
-        } catch (Exception ignored) {
-            return false;
-        }
-    }
+    private BigDecimal maxValue;
 
     @Override
     public String toString() {
         return "PolicyConfig{" +
-                "id=" + getId() +
-                ", configKey='" + configKey + '\'' +
-                ", valueType=" + valueType +
-                ", active=" + active +
-                '}';
+               "id=" + getId() +
+               ", configKey=" + configKey +
+               ", configValue=" + configValue +
+               ", description='" + description + '\'' +
+               ", active=" + active +
+               ", defaultValue=" + defaultValue +
+               ", minValue=" + minValue +
+               ", maxValue=" + maxValue +
+               '}';
     }
 }

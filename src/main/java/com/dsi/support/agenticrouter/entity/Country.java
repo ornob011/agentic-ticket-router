@@ -2,24 +2,23 @@ package com.dsi.support.agenticrouter.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
-import java.util.Objects;
-
 @Entity
 @Table(
-        name = "ref_country",
-        indexes = {
-                @Index(
-                        name = "idx_ref_country_name",
-                        columnList = "name"
-                ),
-                @Index(
-                        name = "idx_ref_country_active",
-                        columnList = "active"
-                )
-        }
+    name = "country",
+    indexes = {
+        @Index(
+            name = "idx_country_name",
+            columnList = "name"
+        ),
+        @Index(
+            name = "idx_country_active",
+            columnList = "active"
+        )
+    }
 )
 @Getter
 @Setter
@@ -28,41 +27,48 @@ import java.util.Objects;
 @Builder
 public class Country {
 
-    /**
-     * ISO 3166-1 alpha-2 (e.g. "BD", "US")
-     */
     @Id
+    @NotBlank
     @Column(
-            name = "iso2",
-            nullable = false,
-            length = 2,
-            updatable = false
+        name = "iso2",
+        nullable = false,
+        length = 2,
+        updatable = false
     )
-    @Size(min = 2, max = 2)
+    @Size(
+        min = 2,
+        max = 2
+    )
+    @Pattern(
+        regexp = "^[A-Za-z]{2}$",
+        message = "iso2 must be exactly 2 letters"
+    )
     private String iso2;
 
     @NotBlank
     @Column(
-            name = "name",
-            nullable = false,
-            length = 100
+        name = "name",
+        nullable = false,
+        length = 100
     )
-    @Size(max = 100)
+    @Size(
+        max = 100
+    )
     private String name;
 
-    @Column(name = "active", nullable = false)
+    @Column(
+        name = "active",
+        nullable = false
+    )
     @Builder.Default
     private boolean active = true;
 
-    @PrePersist
-    @PreUpdate
-    public void normalize() {
-        if (Objects.nonNull(iso2)) {
-            iso2 = iso2.trim().toUpperCase();
-        }
-
-        if (Objects.nonNull(name)) {
-            name = name.trim();
-        }
+    @Override
+    public String toString() {
+        return "Country{" +
+               "iso2='" + iso2 + '\'' +
+               ", name='" + name + '\'' +
+               ", active=" + active +
+               '}';
     }
 }

@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: hsl(0 0% 100%);
+  --color-foreground: hsl(222.2 47.4% 11.2%);
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(222.2 47.4% 11.2%);
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(222.2 47.4% 11.2%);
+  --color-primary: hsl(217.2 91.2% 59.8%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-secondary: hsl(210 40% 96.1%);
+  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
+  --color-muted: hsl(210 40% 96.1%);
+  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
+  --color-accent: hsl(210 40% 96.1%);
+  --color-accent-foreground: hsl(222.2 47.4% 11.2%);
+  --color-destructive: hsl(0 84.2% 60.2%);
+  --color-destructive-foreground: hsl(0 0% 98%);
+  --color-success: hsl(142.1 71.8% 45.3%);
+  --color-success-foreground: hsl(0 0% 98%);
+  --color-warning: hsl(38 92% 50%);
+  --color-warning-foreground: hsl(0 0% 98%);
+  --color-border: hsl(214.3 31.8% 91.4%);
+  --color-input: hsl(214.3 31.8% 91.4%);
+  --color-ring: hsl(217.2 91.2% 59.8%);
+  --color-sidebar: hsl(0 0% 98%);
+  --color-sidebar-foreground: hsl(222.2 47.4% 11.2%);
+  --color-sidebar-accent: hsl(217.2 91.2% 59.8%);
+  --color-sidebar-accent-foreground: hsl(0 0% 100%);
+  --color-info: hsl(199 89% 48%);
+  --color-info-foreground: hsl(0 0% 98%);
+  --color-customer: hsl(210 40% 96.1%);
+  --color-customer-foreground: hsl(222.2 47.4% 11.2%);
+  --color-agent: hsl(215 20% 95%);
+  --color-agent-foreground: hsl(222.2 47.4% 11.2%);
+  --color-ai: hsl(262 83% 58%);
+  --color-ai-foreground: hsl(0 0% 100%);
+  --color-ai-muted: hsl(262 60% 96%);
+  --color-ai-muted-foreground: hsl(262 40% 30%);
+  --radius-lg: 0.5rem;
+  --radius-md: calc(0.5rem - 2px);
+  --radius-sm: calc(0.5rem - 4px);
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+:root {
+  --sidebar-width: 260px;
+  --sidebar-width-collapsed: 70px;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: hsl(215.4 16.3% 46.9% / 0.3);
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: hsl(215.4 16.3% 46.9% / 0.5);
+  }
+}
+
+@utility gradient-header {
+  background: linear-gradient(135deg, hsl(217.2 91.2% 59.8% / 0.08) 0%, hsl(262 83% 58% / 0.05) 100%);
+}
+
+@utility gradient-ai {
+  background: linear-gradient(135deg, hsl(262 83% 58% / 0.1) 0%, hsl(280 70% 55% / 0.08) 100%);
+}
+
+@utility stat-icon-blue {
+  background: linear-gradient(135deg, hsl(217.2 91.2% 59.8%) 0%, hsl(217.2 80% 50%) 100%);
+}
+
+@utility stat-icon-green {
+  background: linear-gradient(135deg, hsl(142.1 71.8% 45.3%) 0%, hsl(142 60% 35%) 100%);
+}
+
+@utility stat-icon-orange {
+  background: linear-gradient(135deg, hsl(38 92% 50%) 0%, hsl(30 80% 45%) 100%);
+}
+
+@utility stat-icon-red {
+  background: linear-gradient(135deg, hsl(0 84.2% 60.2%) 0%, hsl(0 70% 50%) 100%);
+}
+
+@utility stat-icon-purple {
+  background: linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(262 70% 48%) 100%);
+}
+
+@utility animate-pulse-slow {
+  animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@utility card-hover {
+  transition: all 0.2s ease;
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px hsl(0 0% 0% / 0.08);
+  }
+}
+
+@utility message-container {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.15s ease;
+  &:hover {
+    background-color: hsl(210 40% 98%);
+  }
+}
+
+@utility date-separator {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 0 0.5rem;
+  color: hsl(215.4 16.3% 46.9%);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: hsl(214.3 31.8% 91.4%);
+  }
+}
+
+@utility toast-close-button {
+  background-color: hsl(0 0% 100% / 0.9);
+  border: 1px solid hsl(214.3 31.8% 91.4%);
+  border-radius: 9999px;
+  width: 1.25rem;
+  height: 1.25rem;
+  opacity: 1;
+  right: -6px;
+  top: -6px;
+  box-shadow: 0 1px 2px hsl(0 0% 0% / 0.05);
+  transition: all 0.15s ease;
+  &:hover {
+    background-color: hsl(0 0% 100%);
+    border-color: hsl(215.4 16.3% 46.9%);
+  }
+}

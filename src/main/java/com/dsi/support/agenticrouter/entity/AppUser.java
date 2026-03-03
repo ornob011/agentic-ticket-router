@@ -1,41 +1,40 @@
 package com.dsi.support.agenticrouter.entity;
 
 import com.dsi.support.agenticrouter.enums.UserRole;
+import com.dsi.support.agenticrouter.util.StringNormalizationUtils;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
-import org.hibernate.annotations.JdbcType;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import java.time.Instant;
 import java.util.Objects;
 
 @Entity
 @Table(
-        name = "app_user",
-        indexes = {
-                @Index(
-                        name = "idx_app_user_email",
-                        columnList = "email",
-                        unique = true
-                ),
-                @Index(
-                        name = "idx_app_user_username",
-                        columnList = "username",
-                        unique = true
-                ),
-                @Index(
-                        name = "idx_app_user_role",
-                        columnList = "role"
-                ),
-                @Index(
-                        name = "idx_app_user_active_role",
-                        columnList = "active, role"
-                )
-        }
+    name = "app_user",
+    indexes = {
+        @Index(
+            name = "idx_app_user_email",
+            columnList = "email",
+            unique = true
+        ),
+        @Index(
+            name = "idx_app_user_username",
+            columnList = "username",
+            unique = true
+        ),
+        @Index(
+            name = "idx_app_user_role",
+            columnList = "role"
+        ),
+        @Index(
+            name = "idx_app_user_active_role",
+            columnList = "active, role"
+        )
+    }
 )
 @Getter
 @Setter
@@ -47,10 +46,10 @@ public class AppUser extends BaseEntity {
     @NotBlank(message = "Username is required")
     @Size(max = 50)
     @Column(
-            name = "username",
-            nullable = false,
-            unique = true,
-            length = 50
+        name = "username",
+        nullable = false,
+        unique = true,
+        length = 50
     )
     private String username;
 
@@ -58,35 +57,33 @@ public class AppUser extends BaseEntity {
     @Email(message = "Email must be valid")
     @Size(max = 100)
     @Column(
-            name = "email",
-            nullable = false,
-            unique = true,
-            length = 100
+        name = "email",
+        nullable = false,
+        unique = true,
+        length = 100
     )
     private String email;
 
     @NotBlank(message = "Password hash is required")
-    @Size(max = 255)
+    @Size(max = 512)
     @Column(
-            name = "password_hash",
-            nullable = false
+        name = "password_hash",
+        nullable = false
     )
     private String passwordHash;
 
     @Size(max = 100)
     @Column(
-            name = "full_name",
-            length = 100
+        name = "full_name",
+        length = 100
     )
     private String fullName;
 
     @NotNull(message = "User role is required")
     @Enumerated(EnumType.STRING)
-    @JdbcType(PostgreSQLEnumJdbcType.class)
     @Column(
-            name = "role",
-            nullable = false,
-            columnDefinition = "user_role"
+        name = "role",
+        nullable = false
     )
     private UserRole role;
 
@@ -99,22 +96,22 @@ public class AppUser extends BaseEntity {
     private boolean emailVerified = false;
 
     @Column(
-            name = "last_login_at",
-            columnDefinition = "timestamptz"
+        name = "last_login_at",
+        columnDefinition = "timestamptz"
     )
     private Instant lastLoginAt;
 
     @Size(max = 45)
     @Column(
-            name = "last_login_ip",
-            length = 45
+        name = "last_login_ip",
+        length = 45
     )
     private String lastLoginIp;
 
     @OneToOne(
-            mappedBy = "user",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
+        mappedBy = "user",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
     )
     private CustomerProfile customerProfile;
 
@@ -122,15 +119,15 @@ public class AppUser extends BaseEntity {
     @PreUpdate
     public void normalize() {
         if (Objects.nonNull(email)) {
-            email = email.trim().toLowerCase();
+            email = StringNormalizationUtils.lowerTrimmedOrNull(email);
         }
 
         if (Objects.nonNull(username)) {
-            username = username.trim().toLowerCase();
+            username = StringNormalizationUtils.lowerTrimmedOrNull(username);
         }
 
         if (Objects.nonNull(fullName)) {
-            fullName = fullName.trim();
+            fullName = StringNormalizationUtils.trimToNull(fullName);
         }
     }
 
@@ -161,11 +158,11 @@ public class AppUser extends BaseEntity {
     @Override
     public String toString() {
         return "AppUser{" +
-                "id=" + getId() +
-                ", username='" + username + '\'' +
-                ", email='" + email + '\'' +
-                ", role=" + role +
-                ", active=" + active +
-                '}';
+               "id=" + getId() +
+               ", username='" + username + '\'' +
+               ", email='" + email + '\'' +
+               ", role=" + role +
+               ", active=" + active +
+               '}';
     }
 }

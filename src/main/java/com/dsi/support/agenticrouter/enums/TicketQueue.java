@@ -15,18 +15,18 @@ public enum TicketQueue {
     GENERAL_Q("General Support Queue");
 
     private static final Set<TicketQueue> SECURITY_SENSITIVE =
-            EnumSet.of(
-                    SECURITY_Q
-            );
+        EnumSet.of(
+            SECURITY_Q
+        );
 
     private static final Set<TicketQueue> SPECIALIZED =
-            EnumSet.of(
-                    BILLING_Q,
-                    TECH_Q,
-                    OPS_Q,
-                    SECURITY_Q,
-                    ACCOUNT_Q
-            );
+        EnumSet.of(
+            BILLING_Q,
+            TECH_Q,
+            OPS_Q,
+            SECURITY_Q,
+            ACCOUNT_Q
+        );
 
     private static final TicketQueue DEFAULT_QUEUE = GENERAL_Q;
 

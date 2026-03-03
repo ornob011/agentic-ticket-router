@@ -17,10 +17,10 @@ public enum NotificationType {
     ASSIGNED_TO_YOU("Ticket assigned to you");
 
     private static final Set<NotificationType> URGENT =
-            EnumSet.of(
-                    ESCALATION,
-                    SLA_REMINDER
-            );
+        EnumSet.of(
+            ESCALATION,
+            SLA_REMINDER
+        );
 
     private final String description;
 

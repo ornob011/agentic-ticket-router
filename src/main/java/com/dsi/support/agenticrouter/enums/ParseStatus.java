@@ -1,9 +1,16 @@
 package com.dsi.support.agenticrouter.enums;
 
 import lombok.Getter;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
+import java.io.InterruptedIOException;
+import java.net.SocketTimeoutException;
+import java.net.http.HttpTimeoutException;
+import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 
 @Getter
 public enum ParseStatus {
@@ -18,28 +25,55 @@ public enum ParseStatus {
     MODEL_ERROR("Model returned error response");
 
     private static final Set<ParseStatus> SUCCESS_STATUSES =
-            EnumSet.of(
-                    SUCCESS,
-                    REPAIR_SUCCESS
-            );
+        EnumSet.of(
+            SUCCESS,
+            REPAIR_SUCCESS
+        );
 
     private static final Set<ParseStatus> HUMAN_REVIEW_REQUIRED =
-            EnumSet.of(
-                    REPAIR_FAILED,
-                    SCHEMA_VIOLATION,
-                    MODEL_ERROR
-            );
+        EnumSet.of(
+            REPAIR_FAILED,
+            SCHEMA_VIOLATION,
+            MODEL_ERROR
+        );
 
     private static final Set<ParseStatus> RETRYABLE =
-            EnumSet.of(
-                    INVALID_JSON,
-                    INVALID_ENUM
-            );
+        EnumSet.of(
+            INVALID_JSON,
+            INVALID_ENUM
+        );
+
+    private static final List<Class<? extends Throwable>> TIMEOUT_TYPES =
+        Arrays.asList(
+            TimeoutException.class,
+            HttpTimeoutException.class,
+            SocketTimeoutException.class,
+            InterruptedIOException.class
+        );
 
     private final String description;
 
     ParseStatus(String description) {
         this.description = description;
+    }
+
+    public static boolean isTimeout(
+        Throwable throwable
+    ) {
+        for (Throwable cause : ExceptionUtils.getThrowableList(throwable)) {
+            if (cause instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+                return true;
+            }
+
+            for (Class<? extends Throwable> timeoutType : TIMEOUT_TYPES) {
+                if (timeoutType.isInstance(cause)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public boolean isSuccess() {
